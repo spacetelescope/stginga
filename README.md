@@ -1,2 +1,2 @@
 # stginga
-Ginga products specific to STScI data analysis.
+[Ginga](https://github.com/ejeschke/ginga) products specific to STScI data analysis.
