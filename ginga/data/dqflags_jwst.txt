@@ -1,0 +1,20 @@
+# TELESCOPE = JWST
+# INSTRUMENT = ANY
+DQFLAG SHORT_DESCRIPTION LONG_DESCRIPTION
+0      "OK"              "Good pixel"
+1      "DONOTUSE"        "Do not use"
+2      "DEAD"            "Dead pixel or ADC saturated"
+4      "HOT"             "Hot pixel or hard saturated"
+8      "WARM"            "Warm pixel or soft saturated"
+16     "LOWQE"           "Low QE or CR before"
+32     "EARLYSAT"        "Early saturation or CR within"
+64     "RC"              "RC or after CR"
+128    "RESET"           "High reset or reset anomaly"
+256    "UNDEF"           "Undefined"
+512    "UNDEF"           "Undefined"
+1024   "UNDEF"           "Undefined"
+2048   "UNDEF"           "Undefined"
+4096   "UNDEF"           "Undefined"
+8192   "UNDEF"           "Undefined"
+16384  "UNDEF"           "Undefined"
+32768  "UNDEF"           "Undefined"

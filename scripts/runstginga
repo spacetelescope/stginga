@@ -1,0 +1,1 @@
+ginga --toolkit=qt --loglevel=20 --log=ginga.log --plugins=ginga.qtw.plugins.BackgroundSub,ginga.qtw.plugins.DQInspect

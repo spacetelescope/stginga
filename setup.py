@@ -12,7 +12,7 @@ setup(
     version = '0.1.0',
     namespace_packages = ['ginga'],
     provides = ['stginga'],
-    packages = ['stginga', 'stginga.utils',
+    packages = ['stginga',
                 'ginga',
                 'ginga.gtk', 'ginga.gtk.plugins',
                 'ginga.misc', 'ginga.misc.plugins',
