@@ -9,12 +9,12 @@ import warnings
 
 # THIRD-PARTY
 import numpy as np
-from astropy.io import ascii
+from astropy.io import ascii, fits
 from astropy.utils.data import get_pkg_data_filename
 
 # GINGA
 from ginga import GingaPlugin, colors
-from ginga.misc import Widgets
+from ginga.misc import Future, Widgets
 from ginga.RGBImage import RGBImage
 from ginga.qtw.QtHelp import QtCore, QtGui
 
@@ -72,15 +72,6 @@ except ImportError:
         #rgbobj.save_as_file('ztmp_rgbobj.png')
 
         return rgbobj
-
-# LOCAL
-try:
-    from stginga.utils import _fits_extnamever_lookup
-except ImportError:
-    warnings.warn('stginga not found, DQ assumed to be in EXT 3')
-
-    def _fits_extnamever_lookup(*args, **kwargs):
-        return 3
 
 __all__ = []
 
@@ -284,24 +275,33 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             imfile = image.metadata['path']
             imname = image.metadata['name'].split('[')[0]
             extver = header.get(self._extver_key, self._dummy_value)
-            dq_extnum = _fits_extnamever_lookup(
-                imfile, self._dq_extname, extver)
+            dq_extnum = (self._dq_extname, extver)
 
-            if dq_extnum < 0:
-                self.logger.error('{0} extension not found for {1}'.format(
-                    self._dq_extname, imname))
+            with fits.open(imfile) as pf:
+                dqsrc = dq_extnum in pf
+
+            # Do not continue if no DQ extension
+            if not dqsrc:
+                self.logger.error(
+                    '{0} extension not found for {1}'.format(dq_extnum, imfile))
                 return True
 
             chname = self.fv.get_channelName(self.fitsimage)
             chinfo = self.fv.get_channelInfo(chname)
-            dqname = '{0}[{1}]'.format(imname, dq_extnum)
+            dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
 
             if dqname in chinfo.datasrc:  # DQ already loaded
+                self.logger.debug('Loading {0} from cache'.format(dqname))
                 dqsrc = chinfo.datasrc[dqname]
             else:  # Force load DQ data
+                self.logger.debug('Loading {0} from {1}'.format(dqname, imfile))
                 dqsrc = self.fv.load_image(imfile, idx=dq_extnum)
+                future = Future.Future()
+                future.freeze(self.fv.load_image, imfile, idx=dq_extnum)
+                dqsrc.set(path=imfile, idx=dq_extnum, name=dqname,
+                          image_future=future)
                 chinfo.datasrc[dqname] = dqsrc
-                self.fv.make_callback('add-image', chinfo.name, dqsrc)
+                self.fv.make_callback('add-image', chname, dqsrc)
 
         # Use displayed image
         else:

@@ -14,6 +14,7 @@ from ginga.canvas.types.astro import Annulus
 from ginga.misc import Widgets
 
 # LOCAL
+QUIP_LOG = None
 try:
     from stginga.utils import calc_stat
 except ImportError:
@@ -125,7 +126,7 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
 
         captions = (
             ('Background Value:', 'label', 'Background Value', 'entry'),
-            ('Subtract', 'button', 'Save', 'button'))
+            ('Subtract', 'button'))
         w, b = Widgets.build_info(captions, orientation=self.orientation)
         self.w.update(b)
 
@@ -140,10 +141,6 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         b.subtract.set_tooltip('Subtract background')
         b.subtract.widget.clicked.connect(self.sub_bg)
         b.subtract.widget.setEnabled(False)
-
-        b.save.set_tooltip('Save background subtracted image')
-        b.save.widget.clicked.connect(self.save_im)
-        b.save.widget.setEnabled(False)
 
         vbox.add_widget(w, stretch=0)
         top.add_widget(sw, stretch=1)
@@ -652,14 +649,19 @@ Click "Subtract" to remove background.""")
             s += ' ({0})'.format(self._debug_str)
         self.logger.info(s)
 
+        # Also record action in QUIP log, if available
+        if QUIP_LOG is not None:
+            imname = image.metadata['name'].split('[')[0]
+            s = QUIP_LOG.add_entry(imname, 'Background subtracted', s, 'status')
+
         # Update history listing
-        #try:
-        #    history_plugin_obj = self.fv.gpmon.getPlugin('History')
-        #except Exception as e:
-        #    self.logger.error(
-        #        'Failed to update History plugin: {0}'.format(str(e)))
-        #else:
-        #    history_plugin_obj.add_entry(s)
+        try:
+            history_plugin_obj = self.fv.gpmon.getPlugin('History')
+        except Exception as e:
+            self.logger.error(
+                'Failed to update History plugin: {0}'.format(str(e)))
+        else:
+            history_plugin_obj.add_entry(s)
 
         # Change data in Ginga object and recalculate BG in annulus
         image.set_data(new_data, metadata=image.metadata)
@@ -667,20 +669,16 @@ Click "Subtract" to remove background.""")
         self.redo()
 
         # Update file listing
-        #try:
-        #    list_plugin_obj = self.fv.gpmon.getPlugin('ContentsManager')
-        #except Exception as e:
-        #    self.logger.error(
-        #        'Failed to update ContentsManager plugin: {0}'.format(str(e)))
-        #else:
-        #    chname = self.fv.get_channelName(self.fitsimage)
-        #    list_plugin_obj.set_modified_status(chname, image, 'yes')
+        try:
+            list_plugin_obj = self.fv.gpmon.getPlugin('ContentsManager')
+        except Exception as e:
+            self.logger.error(
+                'Failed to update ContentsManager plugin: {0}'.format(str(e)))
+        else:
+            chname = self.fv.get_channelName(self.fitsimage)
+            list_plugin_obj.set_modified_status(chname, image, 'yes')
 
         return True
-
-    def save_im(self):
-        """Save background subtracted image."""
-        raise NotImplementedError('Future work')
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
