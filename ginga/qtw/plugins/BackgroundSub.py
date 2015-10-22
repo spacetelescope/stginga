@@ -665,7 +665,7 @@ Click "Subtract" to remove background. Click "Save Parameters" to save current s
         try:
             history_plugin_obj = self.fv.gpmon.getPlugin('History')
         except Exception as e:
-            self.logger.error(
+            self.logger.debug(
                 'Failed to update History plugin: {0}'.format(str(e)))
         else:
             history_plugin_obj.add_entry(s)
@@ -679,7 +679,7 @@ Click "Subtract" to remove background. Click "Save Parameters" to save current s
         try:
             list_plugin_obj = self.fv.gpmon.getPlugin('ContentsManager')
         except Exception as e:
-            self.logger.error(
+            self.logger.debug(
                 'Failed to update ContentsManager plugin: {0}'.format(str(e)))
         else:
             chname = self.fv.get_channelName(self.fitsimage)
