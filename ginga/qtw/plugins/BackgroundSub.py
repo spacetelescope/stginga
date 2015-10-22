@@ -3,14 +3,18 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 # STDLIB
+import json
+import os
 import warnings
 
 # THIRD-PARTY
 import numpy as np
+from astropy.utils.misc import JsonCustomEncoder
 
 # GINGA
 from ginga import GingaPlugin
 from ginga.canvas.types.astro import Annulus
+from ginga.gw.Widgets import SaveDialog
 from ginga.misc import Widgets
 
 # LOCAL
@@ -126,7 +130,7 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
 
         captions = (
             ('Background Value:', 'label', 'Background Value', 'entry'),
-            ('Subtract', 'button'))
+            ('Subtract', 'button', 'Save Parameters', 'button'))
         w, b = Widgets.build_info(captions, orientation=self.orientation)
         self.w.update(b)
 
@@ -141,6 +145,9 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         b.subtract.set_tooltip('Subtract background')
         b.subtract.widget.clicked.connect(self.sub_bg)
         b.subtract.widget.setEnabled(False)
+
+        b.save_parameters.set_tooltip('Save background subtraction parameters')
+        b.save_parameters.widget.clicked.connect(self.save_params)
 
         vbox.add_widget(w, stretch=0)
         top.add_widget(sw, stretch=1)
@@ -169,7 +176,7 @@ To calculate from annulus or box: Draw (or redraw) a region with the right mouse
 
 To use a constant value: Enter the background value.
 
-Click "Subtract" to remove background.""")
+Click "Subtract" to remove background. Click "Save Parameters" to save current subtraction parameters to a file.""")
 
     def redo(self):
         self.w.background_value.set_text(str(self._dummy_value))
@@ -679,6 +686,45 @@ Click "Subtract" to remove background.""")
             list_plugin_obj.set_modified_status(chname, image, 'yes')
 
         return True
+
+    def params_dict(self):
+        """Return current parameters as a dictionary."""
+        image = self.fitsimage.get_image()
+        pardict = {
+            'plugin': str(self),
+            'image': image.get('path'), 'ext': image.get('idx'),
+            'bgtype': self.bgtype, 'bgval': self.bgval}
+
+        # Nothing else to add
+        if self.bgtype == 'constant':
+            return pardict
+
+        pardict['xcen'] = self.xcen
+        pardict['ycen'] = self.ycen
+        pardict['algorithm'] = self.algorithm
+        pardict['sigma'] = self.sigma
+        pardict['niter'] = self.niter
+
+        if self.bgtype == 'annulus':
+            pardict['radius'] = self.radius
+            pardict['annulus_width'] = self.annulus_width
+        else:  # box
+            pardict['boxwidth'] = self.boxwidth
+            pardict['boxheight'] = self.boxheight
+
+        return pardict
+
+    def save_params(self):
+        """Save parameters to a JSON file."""
+        pardict = self.params_dict()
+        fname = SaveDialog(
+            title='Save parameters', selectedfilter='*.json').get_path()
+        if os.path.exists(fname):
+            self.logger.warn('{0} will be overwritten'.format(fname))
+        with open(fname, 'w') as fout:
+            json.dump(pardict, fout, indent=4, sort_keys=True,
+                      cls=JsonCustomEncoder)
+        self.logger.info('Parameters saved as {0}'.format(fname))
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
