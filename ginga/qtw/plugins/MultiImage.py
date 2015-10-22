@@ -108,13 +108,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.fv.showStatus("Do something")
 
     def redo(self):
-        fig = self.canvas.getObjectByTag(self.picktag)
-        if fig.kind != 'compound':
-            return True
-        bbox  = fig.objects[0]
-        point = fig.objects[1]
-        text = fig.objects[2]
-        data_x, data_y = point.x, point.y
+        bbox = self.canvas.getObjectByTag(self.picktag)
 
         # set the pick image to have the same cut levels and transforms
         self.fitsimage.copy_attributes(self.pickimage,
@@ -167,7 +161,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
         scalefactor = fitsimage.get_scale()
         self.logger.debug("scalefactor = %.2f" % (scalefactor))
         text = self.fv.scale2text(scalefactor)
-        self.wdetail.zoom.set_text(text)
 
     def btndown(self, canvas, event, data_x, data_y, viewer):
         try:
@@ -298,12 +291,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
         x = x1 + (x2 - x1) // 2
         y = y1 + (y2 - y1) // 2
 
-        tag = canvas.add(self.dc.CompoundObject(
-            self.dc.Rectangle(x1, y1, x2, y2,
-                              color=self.pickcolor),
-            self.dc.Point(x, y, 10, color='red'),
-            self.dc.Text(x1, y2+4, "Pick: calc",
-                         color=self.pickcolor)))
+        tag = canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
+                                           color=self.pickcolor))
         self.picktag = tag
 
         #self.fv.raise_tab("detail")
