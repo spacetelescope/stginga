@@ -10,13 +10,13 @@ import warnings
 # THIRD-PARTY
 import numpy as np
 from astropy.io import ascii, fits
-from astropy.utils.data import get_pkg_data_filename
 
 # GINGA
 from ginga import GingaPlugin, colors
 from ginga.misc import Future, Widgets
 from ginga.RGBImage import RGBImage
 from ginga.qtw.QtHelp import QtCore, QtGui
+from ginga.util.nstools import get_pkg_data_filename
 
 try:
     from ginga.util.dp import masktorgb
@@ -328,15 +328,17 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 'Creating new DQ parser for {0}'.format(instrument))
 
             if instrument in self.dqdict:
-                try:
-                    dqfile = get_pkg_data_filename(self.dqdict[instrument],
-                                                   package='ginga')
+                dqfile = get_pkg_data_filename(self.dqdict[instrument])
+                if dqfile:
                     self.logger.info('Using package data {0}'.format(dqfile))
-                except Exception as e:
+                elif os.path.isfile(self.dqdict[instrument]):
                     dqfile = self.dqdict[instrument]
-                    self.logger.debug('Package data {0} not found: '
-                                      '{1}'.format(dqfile, str(e)))
                     self.logger.info('Using external data {0}'.format(dqfile))
+                else:
+                    dqfile = _def_tab
+                    self.logger.warn(
+                        '{0} not found for {1}, using default'.format(
+                            self.dqdict[instrument], instrument))
             else:
                 dqfile = _def_tab
                 self.logger.warn(
