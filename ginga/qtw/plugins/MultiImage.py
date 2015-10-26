@@ -8,6 +8,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def __init__(self, fv, fitsimage):
         super(MultiImage, self).__init__(fv, fitsimage)
 
+        self.logger.debug('Called.')
+
         self.dc = self.fv.getDrawClasses()
 
         canvas = self.dc.DrawingCanvas()
@@ -30,8 +32,11 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.pickcolor = 'green'
         self.max_side = 1024
 
+        self.images = {}
+
     def build_gui(self, container):
         """Build the Dialog"""
+        self.logger.debug('Called.')
 
         # Get container specs.
         vbox, sw, orientation = Widgets.get_oriented_box(container)
@@ -42,6 +47,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         vtop = Widgets.VBox()
         vtop.set_border_width(4)
         vtop.add_widget(sw, stretch=1)
+        self.vtop = vtop
 
         # Instructiopns
         self.msgFont = self.fv.getFont("sansFont", 12)
@@ -53,33 +59,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
         fr.set_widget(tw)
         vbox.add_widget(fr, stretch=0)
 
-        # Setup for thumbnail display
-        cm, im = self.fv.cm, self.fv.im
-        di = Viewers.ImageViewCanvas(logger=self.logger)
-        width, height = 200, 200
-        di.configure_window(width, height)
-        di.enable_autozoom('off')
-        di.enable_autocuts('off')
-        di.zoom_to(3)
-        settings = di.get_settings()
-        settings.getSetting('zoomlevel').add_callback('set',
-                                                      self.zoomset, di)
-        di.set_cmap(cm)
-        di.set_imap(im)
-        di.set_callback('none-move', self.detailxy)
-        di.set_bg(0.4, 0.4, 0.4)
-        # for debugging
-        di.set_name('pickimage')
-        self.pickimage = di
-
-        bd = di.get_bindings()
-        bd.enable_pan(True)
-        bd.enable_zoom(True)
-        bd.enable_cuts(True)
-
-        iw = Widgets.wrap(di.get_widget())
-        vtop.add_widget(iw)
-
         container.add_widget(vtop, stretch=1)
 
     def instructions(self):
@@ -87,6 +66,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.tw.set_font(self.msgFont)
 
     def start(self):
+        self.logger.debug('Called.')
+
         self.instructions()
 
         # insert layer if it is not already
@@ -98,25 +79,40 @@ class MultiImage(GingaPlugin.LocalPlugin):
             # Add canvas layer
             p_canvas.add(self.canvas, tag=self.layertag)
 
-        self.resume()
+        self.redo()
 
     def resume(self):
-        # turn off any mode user may be in
-        #self.modes_off()
+        self.logger.debug('Called.')
 
         self.canvas.ui_setActive(True)
         self.fv.showStatus("Do something")
 
     def redo(self):
-        bbox = self.canvas.getObjectByTag(self.picktag)
+        self.logger.debug('Called.')
 
-        # set the pick image to have the same cut levels and transforms
-        self.fitsimage.copy_attributes(self.pickimage,
+        data = self.fitsimage.get_image()
+        if data is None:
+            return
+        try:
+            pickimage = self.images[data]
+        except KeyError:
+            pickimage = self.add_pickimage()
+            self.images[data] = pickimage
+        self.fitsimage.copy_attributes(pickimage,
                                        ['transforms', 'cutlevels',
                                         'rgbmap'])
 
         try:
-            image = self.fitsimage.get_image()
+            bbox = self.canvas.getObjectByTag(self.picktag)
+        except AttributeError:
+            # No picktag yet, ignore
+            return
+
+        # Loop through all images.
+        for image in self.images:
+            # set the pick image to have the same cut levels and
+            # transforms
+            pickimage = self.images[image]
 
             # sanity check on region
             width = bbox.x2 - bbox.x1
@@ -130,28 +126,31 @@ class MultiImage(GingaPlugin.LocalPlugin):
             # Cut and show pick image in pick window
             self.logger.debug("bbox %f,%f %f,%f" % (bbox.x1, bbox.y1,
                                                     bbox.x2, bbox.y2))
-            x1, y1, x2, y2, data = self.cutdetail(self.fitsimage,
-                                                  self.pickimage,
+            x1, y1, x2, y2, data = self.cutdetail(image,
                                                   int(bbox.x1), int(bbox.y1),
                                                   int(bbox.x2), int(bbox.y2))
+            pickimage.set_data(data)
+
             self.logger.debug("cut box %f,%f %f,%f" % (x1, y1, x2, y2))
 
-        except Exception as e:
-            self.logger.error("Error calculating quality metrics: %s" % (
-                str(e)))
-            return True
 
     def stop(self):
+        self.logger.debug('Called.')
+
         # deactivate the canvas
         self.canvas.ui_setActive(False)
         self.fv.showStatus("")
 
     def close(self):
+        self.logger.debug('Called.')
+
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
 
     def pause(self):
+        self.logger.debug('Called.')
+
         self.canvas.ui_setActive(False)
 
     def __str__(self):
@@ -340,10 +339,36 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
             return self.fv.showxy(self.fitsimage, data_x, data_y)
 
-    def cutdetail(self, srcimage, dstimage, x1, y1, x2, y2):
-        image = srcimage.get_image()
-        data, x1, y1, x2, y2 = image.cutout_adjust(x1, y1, x2, y2)
-
-        dstimage.set_data(data)
-
+    def cutdetail(self, srcimage, x1, y1, x2, y2):
+        data, x1, y1, x2, y2 = srcimage.cutout_adjust(x1, y1, x2, y2)
         return (x1, y1, x2, y2, data)
+
+    def add_pickimage(self):
+
+        # Setup for thumbnail display
+        cm, im = self.fv.cm, self.fv.im
+        di = Viewers.ImageViewCanvas(logger=self.logger)
+        width, height = 200, 200
+        di.configure_window(width, height)
+        di.enable_autozoom('off')
+        di.enable_autocuts('off')
+        di.zoom_to(3)
+        settings = di.get_settings()
+        settings.getSetting('zoomlevel').add_callback('set',
+                                                      self.zoomset, di)
+        di.set_cmap(cm)
+        di.set_imap(im)
+        di.set_callback('none-move', self.detailxy)
+        di.set_bg(0.4, 0.4, 0.4)
+        # for debugging
+        di.set_name('pickimage')
+
+        bd = di.get_bindings()
+        bd.enable_pan(True)
+        bd.enable_zoom(True)
+        bd.enable_cuts(True)
+
+        iw = Widgets.wrap(di.get_widget())
+        self.vtop.add_widget(iw)
+
+        return di
