@@ -16,62 +16,8 @@ from ginga import GingaPlugin, colors
 from ginga.misc import Future, Widgets
 from ginga.RGBImage import RGBImage
 from ginga.qtw.QtHelp import QtCore, QtGui
+from ginga.util.dp import masktorgb
 from ginga.util.nstools import get_pkg_data_filename
-
-try:
-    from ginga.util.dp import masktorgb
-except ImportError:
-
-    # https://gist.github.com/stscieisenhamer/25bf6287c2c724cb9cc7
-    def masktorgb(mask, color='lightgreen', alpha=1.0):
-        """Convert boolean mask to RGB image object for canvas overlay.
-
-        Parameters
-        ----------
-        mask : ndarray
-            Boolean mask to overlay. 2D image only.
-
-        color : str
-            Color name accepted by Ginga.
-
-        alpha : float
-            Opacity. Unmasked data are always transparent.
-
-        Returns
-        -------
-        rgbobj : RGBImage
-            RGB image for canvas Image object.
-
-        Raises
-        ------
-        ValueError
-            Invalid mask dimension.
-
-        """
-        mask = np.asarray(mask)
-
-        if mask.ndim != 2:
-            raise ValueError('ndim={0} is not supported'.format(mask.ndim))
-
-        ht, wd = mask.shape
-        r, g, b = colors.lookup_color(color)
-        rgbobj = RGBImage(data_np = np.zeros((ht, wd, 4), dtype=np.uint8))
-
-        rc = rgbobj.get_slice('R')
-        gc = rgbobj.get_slice('G')
-        bc = rgbobj.get_slice('B')
-        ac = rgbobj.get_slice('A')
-        ac[:] = 0  # Transparent background
-
-        rc[mask] = int(r * 255)
-        gc[mask] = int(g * 255)
-        bc[mask] = int(b * 255)
-        ac[mask] = int(alpha * 255)
-
-        # For debugging
-        #rgbobj.save_as_file('ztmp_rgbobj.png')
-
-        return rgbobj
 
 __all__ = []
 
