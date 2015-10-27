@@ -17,7 +17,21 @@ from ginga.misc import Future, Widgets
 from ginga.RGBImage import RGBImage
 from ginga.qtw.QtHelp import QtCore, QtGui
 from ginga.util.dp import masktorgb
-from ginga.util.nstools import get_pkg_data_filename
+
+try:
+    from ginga.util.nstools import get_pkg_data_filename
+except ImportError:
+    def get_pkg_data_filename(data_name, package_name='ginga'):
+        data_name = os.path.normpath(data_name)
+        data_fn = ''
+        # Traverse through packages in shared namespace.
+        # Get the first match.
+        for path in __import__(package_name).__path__:
+            fn = os.path.join(path, data_name)
+            if os.path.isfile(fn):
+                data_fn = fn
+                break
+        return data_fn
 
 __all__ = []
 
