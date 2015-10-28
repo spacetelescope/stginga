@@ -128,9 +128,8 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         fr.set_widget(vbox2)
         vbox.add_widget(fr, stretch=0)
 
-        captions = (
-            ('Background Value:', 'label', 'Background Value', 'entry'),
-            ('Subtract', 'button', 'Save Parameters', 'button'))
+        captions = (('Background Value:', 'label',
+                     'Background Value', 'entry'), )
         w, b = Widgets.build_info(captions, orientation=self.orientation)
         self.w.update(b)
 
@@ -142,12 +141,19 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         b.background_value.widget.setStyleSheet(
             'QLineEdit{background: white;}')
 
-        b.subtract.set_tooltip('Subtract background')
-        b.subtract.widget.clicked.connect(self.sub_bg)
-        b.subtract.widget.setEnabled(False)
+        vbox.add_widget(w, stretch=0)
+
+        captions = (('Save Parameters', 'button', 'Subtract', 'button',
+                     'Spacer2', 'spacer'), )
+        w, b = Widgets.build_info(captions, orientation=self.orientation)
+        self.w.update(b)
 
         b.save_parameters.set_tooltip('Save background subtraction parameters')
         b.save_parameters.widget.clicked.connect(self.save_params)
+
+        b.subtract.set_tooltip('Subtract background')
+        b.subtract.widget.clicked.connect(self.sub_bg)
+        b.subtract.widget.setEnabled(False)
 
         vbox.add_widget(w, stretch=0)
         top.add_widget(sw, stretch=1)
@@ -176,7 +182,9 @@ To calculate from annulus or box: Draw (or redraw) a region with the right mouse
 
 To use a constant value: Enter the background value.
 
-Click "Subtract" to remove background. Click "Save Parameters" to save current subtraction parameters to a file.""")
+Click "Save Parameters" to save current subtraction parameters to a file. To save the background value, do this BEFORE you subtract.
+
+Click "Subtract" to remove background.""")
 
     def redo(self):
         self.w.background_value.set_text(str(self._dummy_value))
@@ -730,6 +738,8 @@ Click "Subtract" to remove background. Click "Save Parameters" to save current s
         pardict = self.params_dict()
         fname = SaveDialog(
             title='Save parameters', selectedfilter='*.json').get_path()
+        if not fname:  # Cancel
+            return
         if os.path.exists(fname):
             self.logger.warn('{0} will be overwritten'.format(fname))
         with open(fname, 'w') as fout:
