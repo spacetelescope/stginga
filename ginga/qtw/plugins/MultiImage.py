@@ -16,7 +16,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         canvas.enable_draw(True)
         canvas.enable_edit(True)
         canvas.set_drawtype('rectangle', color='cyan', linestyle='dash',
-                            drawdims=True)
+                            coord='wcs', drawdims=True)
         canvas.set_callback('draw-event', self.draw_cb)
         canvas.set_callback('edit-event', self.edit_cb)
         canvas.add_draw_mode('move', down=self.btndown,
@@ -104,11 +104,16 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         try:
             bbox = self.canvas.getObjectByTag(self.picktag)
+            self.logger.debug('bbox="{}"'.format(bbox.get_llur()))
         except AttributeError:
             # No picktag yet, ignore
             return
 
         # Loop through all images.
+        ra, dec = data.pixtoradec(bbox.x1, bbox.y1)
+        self.logger.debug("bbox %f,%f %f,%f" % (bbox.x1, bbox.y1,
+                                                bbox.x2, bbox.y2))
+        self.logger.debug('toradec "{}, {}"'.format(ra, dec))
         for image in self.images:
             # set the pick image to have the same cut levels and
             # transforms
@@ -124,15 +129,12 @@ class MultiImage(GingaPlugin.LocalPlugin):
                 raise Exception(errmsg)
 
             # Cut and show pick image in pick window
-            self.logger.debug("bbox %f,%f %f,%f" % (bbox.x1, bbox.y1,
-                                                    bbox.x2, bbox.y2))
             x1, y1, x2, y2, data = self.cutdetail(image,
                                                   int(bbox.x1), int(bbox.y1),
                                                   int(bbox.x2), int(bbox.y2))
             pickimage.set_data(data)
 
             self.logger.debug("cut box %f,%f %f,%f" % (x1, y1, x2, y2))
-
 
     def stop(self):
         self.logger.debug('Called.')
@@ -162,163 +164,21 @@ class MultiImage(GingaPlugin.LocalPlugin):
         text = self.fv.scale2text(scalefactor)
 
     def btndown(self, canvas, event, data_x, data_y, viewer):
-        try:
-            obj = self.canvas.getObjectByTag(self.picktag)
-            if obj.kind == 'rectangle':
-                bbox = obj
-            else:
-                bbox = obj.objects[0]
-                point = obj.objects[1]
-            self.dx = (bbox.x2 - bbox.x1) // 2
-            self.dy = (bbox.y2 - bbox.y1) // 2
-        except Exception as e:
-            pass
-
-        dx = self.dx
-        dy = self.dy
-
-        # Mark center of object and region on main image
-        try:
-            self.canvas.deleteObjectByTag(self.picktag)
-        except:
-            pass
-
-        x1, y1 = data_x - dx, data_y - dy
-        x2, y2 = data_x + dx, data_y + dy
-
-        tag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
-                                                color='cyan',
-                                                linestyle='dash'))
-        self.picktag = tag
-
-        #self.draw_cb(self.canvas, tag)
+        self.set_region(data_x, data_y)
         return True
 
     def update(self, canvas, event, data_x, data_y, viewer):
-        try:
-            obj = self.canvas.getObjectByTag(self.picktag)
-            if obj.kind == 'rectangle':
-                bbox = obj
-            else:
-                bbox = obj.objects[0]
-                point = obj.objects[1]
-            self.dx = (bbox.x2 - bbox.x1) // 2
-            self.dy = (bbox.y2 - bbox.y1) // 2
-        except Exception as e:
-            obj = None
-            pass
-
-        dx = self.dx
-        dy = self.dy
-
-        x1, y1 = data_x - dx, data_y - dy
-        x2, y2 = data_x + dx, data_y + dy
-
-        if (not obj) or (obj.kind == 'compound'):
-            # Replace compound image with rectangle
-            try:
-                self.canvas.deleteObjectByTag(self.picktag)
-            except:
-                pass
-
-            tag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
-                                                    color='cyan',
-                                                    linestyle='dash'))
-        else:
-            # Update current rectangle with new coords
-            bbox.x1, bbox.y1, bbox.x2, bbox.y2 = x1, y1, x2, y2
-            tag = self.picktag
-
-        self.draw_cb(self.canvas, tag)
-        return True
+        self.set_region(data_x, data_y, finalize=True)
+        return self.redo()
 
     def drag(self, canvas, event, data_x, data_y, viewer):
-
-        obj = self.canvas.getObjectByTag(self.picktag)
-        if obj.kind == 'compound':
-            bbox = obj.objects[0]
-        elif obj.kind == 'rectangle':
-            bbox = obj
-        else:
-            return True
-
-        # calculate center of bbox
-        wd = bbox.x2 - bbox.x1
-        dw = wd // 2
-        ht = bbox.y2 - bbox.y1
-        dh = ht // 2
-        x, y = bbox.x1 + dw, bbox.y1 + dh
-
-        # calculate offsets of move
-        dx = (data_x - x)
-        dy = (data_y - y)
-
-        # calculate new coords
-        x1, y1, x2, y2 = bbox.x1+dx, bbox.y1+dy, bbox.x2+dx, bbox.y2+dy
-
-        if (not obj) or (obj.kind == 'compound'):
-            # Replace compound image with rectangle
-            try:
-                self.canvas.deleteObjectByTag(self.picktag)
-            except:
-                pass
-
-            self.picktag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
-                                                             color='cyan',
-                                                             linestyle='dash'))
-        else:
-            # Update current rectangle with new coords and redraw
-            bbox.x1, bbox.y1, bbox.x2, bbox.y2 = x1, y1, x2, y2
-            self.canvas.redraw(whence=3)
-
-        return True
+        self.set_region(data_x, data_y)
+        return self.redo()
 
     def draw_cb(self, canvas, tag):
-        obj = canvas.getObjectByTag(tag)
-        if obj.kind != 'rectangle':
-            return True
-        canvas.deleteObjectByTag(tag)
-
-        if self.picktag:
-            try:
-                canvas.deleteObjectByTag(self.picktag)
-            except:
-                pass
-
-        # determine center of rectangle
-        x1, y1, x2, y2 = obj.get_llur()
-        x = x1 + (x2 - x1) // 2
-        y = y1 + (y2 - y1) // 2
-
-        tag = canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
-                                           color=self.pickcolor))
-        self.picktag = tag
-
-        #self.fv.raise_tab("detail")
         return self.redo()
 
     def edit_cb(self, canvas, obj):
-        if obj.kind != 'rectangle':
-            return True
-
-        # Get the compound object that sits on the canvas.
-        # Make sure edited rectangle was our pick rectangle.
-        c_obj = self.canvas.getObjectByTag(self.picktag)
-        if (c_obj.kind != 'compound') or (len(c_obj.objects) < 3) or \
-           (c_obj.objects[0] != obj):
-            return False
-
-        # determine center of rectangle
-        x1, y1, x2, y2 = obj.get_llur()
-        x = x1 + (x2 - x1) // 2
-        y = y1 + (y2 - y1) // 2
-
-        # reposition other elements to match
-        point = c_obj.objects[1]
-        point.x, point.y = x, y
-        text = c_obj.objects[2]
-        text.x, text.y = x1, y2 + 4
-
         return self.redo()
 
     def detailxy(self, canvas, button, data_x, data_y):
@@ -372,3 +232,20 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.vtop.add_widget(iw)
 
         return di
+
+    def set_region(self, x, y, finalize=False):
+        """Set the box"""
+        linestyle = 'solid' if finalize else 'dash'
+        try:
+            obj = self.canvas.getObjectByTag(self.picktag)
+        except AttributeError:
+            x1, y1 = x - self.dx, y - self.dy
+            x2, y2 = x + self.dx, y + self.dy
+            self.picktag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
+                                                             color='cyan',
+                                                             linestyle=linestyle))
+        else:
+            obj.linestyle=linestyle
+            obj.x1, obj.y1 = x - self.dx, y - self.dy
+            obj.x2, obj.y2 = x + self.dx, y + self.dy
+            self.canvas.redraw(whence=3)
