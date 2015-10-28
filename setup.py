@@ -1,23 +1,18 @@
 #! /usr/bin/env python
 #
 try:
-    from setuptools import setup
+    from setuptools import setup, find_packages
 except ImportError:
     from distribute_setup import use_setuptools
     use_setuptools()
-    from setuptools import setup
+    from setuptools import setup, find_packages
 
 setup(
     name = 'stginga',
     version = '0.1.0dev',
-    namespace_packages = ['ginga'],
     provides = ['stginga'],
-    packages = ['stginga',
-                'ginga',
-                'ginga.gtk', 'ginga.gtk.plugins',
-                'ginga.misc', 'ginga.misc.plugins',
-                'ginga.qtw', 'ginga.qtw.plugins'],
-    package_data = {'ginga': ['data/*', 'examples/*/*']},
+    packages = find_packages(),
+    package_data = {'stginga': ['data/*', 'examples/*/*']},
     scripts = ['scripts/stginga'],
     author = 'STScI',
     author_email = 'help@stsci.edu',
