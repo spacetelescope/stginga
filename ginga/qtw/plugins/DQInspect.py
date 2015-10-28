@@ -92,6 +92,7 @@ class DQInspect(GingaPlugin.LocalPlugin):
         # FITS keywords and values from general config
         gen_settings = prefs.createCategory('general')
         gen_settings.load(onError='silent')
+        self._sci_extname = gen_settings.get('sciextname', 'SCI')
         self._dq_extname = gen_settings.get('dqextname', 'DQ')
         self._ext_key = gen_settings.get('extnamekey', 'EXTNAME')
         self._extver_key = gen_settings.get('extverkey', 'EXTVER')
@@ -222,12 +223,12 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 
         image = self.fitsimage.get_image()
         if image is None:
-            return True
+            return self._reset_imdq_on_error()
 
         depth = image.get_depth()
         if depth == 3:
             self.logger.error('DQ inspection for RGB image is not supported')
-            return True
+            return self._reset_imdq_on_error()
 
         header = image.get_header()
         extname = header.get(self._ext_key, self._no_keyword).upper()
@@ -238,20 +239,29 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             imfile = image.metadata['path']
             imname = image.metadata['name'].split('[')[0]
             extver = header.get(self._extver_key, self._dummy_value)
-            dq_extnum = (self._dq_extname, extver)
+
+            if instrument != 'WFPC2':
+                dq_extnum = (self._dq_extname, extver)
+                dqname = '{0}[{1},{2}]'.format(
+                    imname, self._dq_extname, extver)
+            else:  # Special handling for WFPC2, lots of assumptions
+                imfile = imfile.replace('c0m', 'c1m')
+                imname = imname.replace('c0m', 'c1m')
+                dq_extnum = (self._sci_extname, extver)
+                dqname = '{0}[{1},{2}]'.format(
+                    imname, self._sci_extname, extver)
 
             with fits.open(imfile) as pf:
                 dqsrc = dq_extnum in pf
 
             # Do not continue if no DQ extension
             if not dqsrc:
-                self.logger.error(
-                    '{0} extension not found for {1}'.format(dq_extnum, imfile))
-                return True
+                self.logger.error('{0} extension not found for '
+                                  '{1}'.format(dq_extnum, imfile))
+                return self._reset_imdq_on_error()
 
             chname = self.fv.get_channelName(self.fitsimage)
             chinfo = self.fv.get_channelInfo(chname)
-            dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
 
             if dqname in chinfo.datasrc:  # DQ already loaded
                 self.logger.debug('Loading {0} from cache'.format(dqname))
@@ -275,7 +285,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         if data.ndim != self._ndim:
             self.logger.error('Expected ndim={0} but data has '
                               'ndim={1}'.format(self._ndim, data.ndim))
-            return True
+            return self._reset_imdq_on_error()
 
         # Get cached DQ parser first, if available
         if instrument in self._dqparser:
@@ -351,6 +361,13 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 
         return True
 
+    def _reset_imdq_on_error(self):
+        self._curpxmask = None
+        self._curshape = None
+        self.imdqlist.clear()
+        self.w.npix.set_text(self._no_keyword)
+        return self.mark_dqs()
+
     def mark_dqs(self):
         """Mark all pixels affected by selected DQ flag(s)."""
         if not self.gui_up:
@@ -364,6 +381,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 pass
 
         if self._curshape is None:
+            self.fitsimage.redraw()  # Need this to clear mask immediately
             return True
 
         # Recreate pixel marking and label
