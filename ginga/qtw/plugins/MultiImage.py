@@ -165,9 +165,25 @@ class MultiImage(GingaPlugin.LocalPlugin):
         return self.redo()
 
     def draw_cb(self, canvas, tag):
+        self.logger.debug('Called.')
+        obj = canvas.getObjectByTag(tag)
+        self.logger.debug('obj="{}"'.format(obj))
+        pt_obj = canvas.getObjectByTag(self.picktag)
+        self.logger.debug('self.picktag="{}"'.format(pt_obj))
+        if obj.kind != 'rectangle':
+            return True
+        canvas.deleteObject(obj)
+        x1, y1, x2, y2 = obj.get_llur()
+        self.dx = (x2 - x1) // 2
+        self.dy = (y2 - y1) // 2
+        self.set_region(x1 + self.dx, y1 + self.dy, finalize=True)
         return self.redo()
 
     def edit_cb(self, canvas, obj):
+        self.logger.debug('Called.')
+        self.logger.debug('obj="{}"'.format(obj))
+        pick_obj = canvas.getObjectByTag(self.picktag)
+        self.logger.debug('self.picktag="{}"'.format(pt_obj))
         return self.redo()
 
     def detailxy(self, canvas, button, data_x, data_y):
