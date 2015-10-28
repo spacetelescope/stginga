@@ -29,10 +29,10 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.layertag = 'muimg-canvas'
         self.dx = 30
         self.dy = 30
-        self.pickcolor = 'green'
         self.max_side = 1024
-
         self.images = {}
+        self.center_ra = None
+        self.center_dec = None
 
     def build_gui(self, container):
         """Build the Dialog"""
@@ -110,31 +110,20 @@ class MultiImage(GingaPlugin.LocalPlugin):
             return
 
         # Loop through all images.
-        ra, dec = data.pixtoradec(bbox.x1, bbox.y1)
-        self.logger.debug("bbox %f,%f %f,%f" % (bbox.x1, bbox.y1,
-                                                bbox.x2, bbox.y2))
-        self.logger.debug('toradec "{}, {}"'.format(ra, dec))
         for image in self.images:
-            # set the pick image to have the same cut levels and
-            # transforms
-            pickimage = self.images[image]
 
-            # sanity check on region
-            width = bbox.x2 - bbox.x1
-            height = bbox.y2 - bbox.y1
-            if (width > self.max_side) or (height > self.max_side):
-                errmsg = "Image area (%dx%d) too large!" % (
-                    width, height)
-                self.fv.show_error(errmsg)
-                raise Exception(errmsg)
+            # Determine the region.
+            xc, yc = image.radectopix(self.center_ra, self.center_dec)
+            x1, y1 = xc - self.dx, yc - self.dy
+            x2, y2 = xc + self.dx, yc + self.dy
 
             # Cut and show pick image in pick window
             x1, y1, x2, y2, data = self.cutdetail(image,
-                                                  int(bbox.x1), int(bbox.y1),
-                                                  int(bbox.x2), int(bbox.y2))
-            pickimage.set_data(data)
-
+                                                  int(x1), int(y1),
+                                                  int(x2), int(y2))
             self.logger.debug("cut box %f,%f %f,%f" % (x1, y1, x2, y2))
+            pickimage = self.images[image]
+            pickimage.set_data(data)
 
     def stop(self):
         self.logger.debug('Called.')
@@ -241,11 +230,17 @@ class MultiImage(GingaPlugin.LocalPlugin):
         except AttributeError:
             x1, y1 = x - self.dx, y - self.dy
             x2, y2 = x + self.dx, y + self.dy
-            self.picktag = self.canvas.add(self.dc.Rectangle(x1, y1, x2, y2,
-                                                             color='cyan',
-                                                             linestyle=linestyle))
+            self.picktag = self.canvas.add(
+                self.dc.Rectangle(x1, y1, x2, y2,
+                                  color='cyan',
+                                  linestyle=linestyle)
+            )
+            obj = self.canvas.getObjectByTag(self.picktag)
         else:
-            obj.linestyle=linestyle
+            obj.linestyle = linestyle
             obj.x1, obj.y1 = x - self.dx, y - self.dy
             obj.x2, obj.y2 = x + self.dx, y + self.dy
             self.canvas.redraw(whence=3)
+
+            data = self.fitsimage.get_image()
+            self.center_ra, self.center_dec = data.pixtoradec(x, y)
