@@ -18,7 +18,7 @@ setup(
                 'ginga.misc', 'ginga.misc.plugins',
                 'ginga.qtw', 'ginga.qtw.plugins'],
     package_data = {'ginga': ['data/*', 'examples/*/*']},
-    scripts = ['scripts/runstginga'],
+    scripts = ['scripts/stginga'],
     author = 'STScI',
     author_email = 'help@stsci.edu',
     url = "https://github.com/spacetelescope/stginga",
