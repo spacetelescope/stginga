@@ -9,7 +9,7 @@ except ImportError:
 
 setup(
     name = 'stginga',
-    version = '0.1.0',
+    version = '0.1.0dev',
     namespace_packages = ['ginga'],
     provides = ['stginga'],
     packages = ['stginga',
