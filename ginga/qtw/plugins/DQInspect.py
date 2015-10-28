@@ -221,6 +221,9 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         self.w.dq.set_text(self._no_keyword)
 
         image = self.fitsimage.get_image()
+        if image is None:
+            return True
+
         depth = image.get_depth()
         if depth == 3:
             self.logger.error('DQ inspection for RGB image is not supported')
@@ -392,6 +395,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             self.pxdqtag = self.canvas.add(
                 self.dc.CompoundObject(p_obj, lbl_obj))
 
+        self.fitsimage.redraw()  # Need this to clear mask immediately
         return True
 
     def update(self, canvas, button, data_x, data_y):

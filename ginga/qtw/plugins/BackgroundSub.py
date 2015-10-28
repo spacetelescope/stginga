@@ -190,6 +190,9 @@ Click "Subtract" to remove background. Click "Save Parameters" to save current s
         self._debug_str = 'x={0}, y={1}'.format(self.xcen, self.ycen)
 
         image = self.fitsimage.get_image()
+        if image is None:
+            return True
+
         depth = image.get_depth()
         if depth == 3:
             self.logger.error(
@@ -649,6 +652,10 @@ Click "Subtract" to remove background. Click "Save Parameters" to save current s
             return True
 
         image = self.fitsimage.get_image()
+        if image is None:
+            self.logger.error('No image to subtract')
+            return True
+
         new_data = image.get_data() - self.bgval
         s = '{0} subtracted from {1}'.format(
             self.bgval, image.metadata['name'])
@@ -689,11 +696,15 @@ Click "Subtract" to remove background. Click "Save Parameters" to save current s
 
     def params_dict(self):
         """Return current parameters as a dictionary."""
+        pardict = {'plugin': str(self),
+                   'bgtype': self.bgtype, 'bgval': self.bgval}
+
         image = self.fitsimage.get_image()
-        pardict = {
-            'plugin': str(self),
-            'image': image.get('path'), 'ext': image.get('idx'),
-            'bgtype': self.bgtype, 'bgval': self.bgval}
+        if image is None:
+            return pardict
+
+        pardict['image'] = image.get('path')
+        pardict['ext'] = image.get('idx')
 
         # Nothing else to add
         if self.bgtype == 'constant':
