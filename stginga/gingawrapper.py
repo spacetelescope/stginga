@@ -32,7 +32,7 @@ def runginga(sys_argv):
         you will see duplicates!
 
     """
-    gpfx = 'ginga.qtw.plugins'  # To load custom Qt plugins in Ginga namespace
+    gpfx = 'stginga.qtw.plugins'  # To load custom Qt plugins in Ginga namespace
 
     # Remove some Ginga default plugins.
     # Use this if we have custom plugins that replaces them.

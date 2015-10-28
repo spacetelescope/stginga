@@ -80,7 +80,7 @@ The key is to use ``ginga``'s builtin configuration machinery.  Create a
         from ginga.misc.Bunch import Bunch
 
         # Prefix for custom plugins
-        qtpfx = 'ginga.qtw.plugins'  # Qt
+        qtpfx = 'stginga.qtw.plugins'  # Qt
 
         # Add STScI local plugins (Qt)
         ginga.add_local_plugin(
@@ -98,7 +98,7 @@ Manually Load the ``stginga`` pluins
 
 You can also run Ginga natively and just specify the plugins directly::
 
-    ginga --toolkit=qt --plugins=ginga.qtw.plugins.BackgroundSub,ginga.qtw.plugins.DQInspect [args]
+    ginga --toolkit=qt --plugins=stginga.qtw.plugins.BackgroundSub,stginga.qtw.plugins.DQInspect [args]
 
 
 Using ``stginga``
