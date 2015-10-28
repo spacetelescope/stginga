@@ -1,3 +1,5 @@
+from math import sqrt
+
 from ginga import GingaPlugin
 from ginga.gw import Widgets, Viewers
 
@@ -33,6 +35,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.images = {}
         self.center_ra = None
         self.center_dec = None
+        self.dsky = None
 
     def build_gui(self, container):
         """Build the Dialog"""
@@ -116,8 +119,20 @@ class MultiImage(GingaPlugin.LocalPlugin):
             xc, yc = image.radectopix(self.center_ra, self.center_dec)
             x1, y1 = xc - self.dx, yc - self.dy
             x2, y2 = xc + self.dx, yc + self.dy
+            x1, y1 = image.radectopix(
+                self.center_ra - self.dsky,
+                self.center_dec - self.dsky
+            )
+            x2, y2 = image.radectopix(
+                self.center_ra + self.dsky,
+                self.center_dec + self.dsky
+            )
 
             # Cut and show pick image in pick window
+            self.logger.debug("initial box %f,%f %f,%f" % (x1, y1, x2, y2))
+            x1, x2 = (x1, x2) if x1 <= x2 else (x2, x1)
+            y1, y2 = (y1, y2) if y1 <= y2 else (y2, y1)
+            self.logger.debug("swapped box %f,%f %f,%f" % (x1, y1, x2, y2))
             x1, y1, x2, y2, data = self.cutdetail(image,
                                                   int(x1), int(y1),
                                                   int(x2), int(y2))
@@ -238,14 +253,19 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         return di
 
-    def set_region(self, x, y, finalize=False):
+    def set_region(self, x, y, finalize=False, coord='data'):
         """Set the box"""
         linestyle = 'solid' if finalize else 'dash'
+
+        image = self.fitsimage.get_image()
+        x1, y1, \
+            x2, y2, \
+            self.center_ra, self.center_dec, \
+            self.dsky = self.sky_region(image, x, y)
+
         try:
             obj = self.canvas.getObjectByTag(self.picktag)
         except AttributeError:
-            x1, y1 = x - self.dx, y - self.dy
-            x2, y2 = x + self.dx, y + self.dy
             self.picktag = self.canvas.add(
                 self.dc.Rectangle(x1, y1, x2, y2,
                                   color='cyan',
@@ -254,9 +274,28 @@ class MultiImage(GingaPlugin.LocalPlugin):
             obj = self.canvas.getObjectByTag(self.picktag)
         else:
             obj.linestyle = linestyle
-            obj.x1, obj.y1 = x - self.dx, y - self.dy
-            obj.x2, obj.y2 = x + self.dx, y + self.dy
+            obj.x1, obj.y1 = x1, y1
+            obj.x2, obj.y2 = x2, y2
             self.canvas.redraw(whence=3)
 
-            data = self.fitsimage.get_image()
-            self.center_ra, self.center_dec = data.pixtoradec(x, y)
+    def sky_region(self, image, x, y):
+        center_ra, center_dec = image.pixtoradec(x, y)
+        dsky = self.dsky
+        if dsky is None:
+            x1, y1 = x - self.dx, y - self.dy
+            ra1, dec1 = image.pixtoradec(x1, y1)
+            dsky = sqrt(
+                (center_ra - ra1)**2 + (center_dec - dec1)**2
+            )
+
+        x1, y1 = image.radectopix(
+            center_ra - dsky,
+            center_dec - dsky
+        )
+        x2, y2 = image.radectopix(
+            center_ra + dsky,
+            center_dec + dsky
+        )
+        x1, x2 = (x1, x2) if x1 <= x2 else (x2, x1)
+        y1, y2 = (y1, y2) if y1 <= y2 else (y2, y1)
+        return (x1, y1, x2, y2, center_ra, center_dec, dsky)
