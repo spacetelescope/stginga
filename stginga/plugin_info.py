@@ -41,7 +41,7 @@ Then you can run Ginga natively as follows::
 
     ginga [args]
 
-Depending on how your system is setup, you might need to specify the toolkit, 
+Depending on how your system is setup, you might need to specify the toolkit,
 because ``stginga`` plugins are currently only available for QT::
 
     ginga --toolkit=qt [args]
@@ -70,7 +70,7 @@ def load_plugins(ginga):
     Parameters
     ----------
     ginga
-        The ginga app object that is provided to ``post_gui_config`` in 
+        The ginga app object that is provided to ``post_gui_config`` in
         ``ginga_config.py``.
     """
     stglobal_plugins, stlocal_plugins = _get_stginga_plugins()
@@ -84,8 +84,8 @@ def _get_stginga_plugins():
     gpfx = 'stginga.qtw.plugins'  # To load custom Qt plugins in Ginga namespace
 
     global_plugins = []
-    local_plugins = [Bunch(module='BackgroundSub', tab='BackgroundSub', ws='dialogs', pfx=gpfx),
-                     Bunch(module='DQInspect', tab='DQInspect', ws='dialogs', pfx=gpfx)]
+    local_plugins = [Bunch(module='BackgroundSub', ws='dialogs', pfx=gpfx),
+                     Bunch(module='DQInspect', ws='dialogs', pfx=gpfx)]
     return global_plugins, local_plugins
 
 
