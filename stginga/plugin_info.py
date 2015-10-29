@@ -75,9 +75,17 @@ def load_plugins(ginga):
     """
     stglobal_plugins, stlocal_plugins = _get_stginga_plugins()
     for gplg in stglobal_plugins:
-        ginga.add_global_plugin(gplg)
+        if gplg['module'] in ginga.global_plugins:
+            ginga.logger.info('Plugin {0} already loaded in Ginga.  Not adding '
+                              'again.'.format(gplg['module']))
+        else:
+            ginga.add_global_plugin(gplg)
     for lplg in stlocal_plugins:
-        ginga.add_local_plugin(lplg)
+        if lplg['module'] in ginga.local_plugins:
+            ginga.logger.info('Plugin {0} already loaded in Ginga.  Not adding '
+                              'again.'.format(lplg['module']))
+        else:
+            ginga.add_local_plugin(lplg)
 
 
 def _get_stginga_plugins():
