@@ -104,35 +104,20 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.fitsimage.copy_attributes(pickimage,
                                        ['transforms', 'cutlevels',
                                         'rgbmap'])
-
-        try:
-            bbox = self.canvas.getObjectByTag(self.picktag)
-            self.logger.debug('bbox="{}"'.format(bbox.get_llur()))
-        except AttributeError:
-            # No picktag yet, ignore
-            return
+        # Ensure region is accurately reflected on displayed image.
+        self.set_region(finalize=True)
 
         # Loop through all images.
         for image in self.images:
 
             # Determine the region.
-            xc, yc = image.radectopix(self.center_ra, self.center_dec)
-            x1, y1 = xc - self.dx, yc - self.dy
-            x2, y2 = xc + self.dx, yc + self.dy
-            x1, y1 = image.radectopix(
-                self.center_ra - self.dsky,
-                self.center_dec - self.dsky
-            )
-            x2, y2 = image.radectopix(
-                self.center_ra + self.dsky,
-                self.center_dec + self.dsky
-            )
+            x1, y1, \
+                x2, y2, \
+                center_ra, center_dec, \
+                dsky = self.sky_region(image)
 
             # Cut and show pick image in pick window
-            self.logger.debug("initial box %f,%f %f,%f" % (x1, y1, x2, y2))
-            x1, x2 = (x1, x2) if x1 <= x2 else (x2, x1)
-            y1, y2 = (y1, y2) if y1 <= y2 else (y2, y1)
-            self.logger.debug("swapped box %f,%f %f,%f" % (x1, y1, x2, y2))
+            self.logger.debug("box %f,%f %f,%f" % (x1, y1, x2, y2))
             x1, y1, x2, y2, data = self.cutdetail(image,
                                                   int(x1), int(y1),
                                                   int(x2), int(y2))
@@ -177,7 +162,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def drag(self, canvas, event, data_x, data_y, viewer):
         self.set_region(data_x, data_y)
-        return self.redo()
+        self.redo()
+        return True
 
     def draw_cb(self, canvas, tag):
         self.logger.debug('Called.')
@@ -187,19 +173,22 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.logger.debug('self.picktag="{}"'.format(pt_obj))
         if obj.kind != 'rectangle':
             return True
-        canvas.deleteObject(obj)
+        canvas.deleteObjects([obj, pt_obj])
         x1, y1, x2, y2 = obj.get_llur()
         self.dx = (x2 - x1) // 2
         self.dy = (y2 - y1) // 2
+        self.dsky = None
         self.set_region(x1 + self.dx, y1 + self.dy, finalize=True)
-        return self.redo()
+        self.redo()
+        return True
 
     def edit_cb(self, canvas, obj):
         self.logger.debug('Called.')
         self.logger.debug('obj="{}"'.format(obj))
-        pick_obj = canvas.getObjectByTag(self.picktag)
+        pt_obj = canvas.getObjectByTag(self.picktag)
         self.logger.debug('self.picktag="{}"'.format(pt_obj))
-        return self.redo()
+        self.redo()
+        return True
 
     def detailxy(self, canvas, button, data_x, data_y):
         """Motion event in the pick fits window.  Show the pointing
@@ -253,7 +242,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         return di
 
-    def set_region(self, x, y, finalize=False, coord='data'):
+    def set_region(self, x=None, y=None, finalize=False, coord='data'):
         """Set the box"""
         linestyle = 'solid' if finalize else 'dash'
 
@@ -265,7 +254,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         try:
             obj = self.canvas.getObjectByTag(self.picktag)
-        except AttributeError:
+        except: # Need be general due to ginga
             self.picktag = self.canvas.add(
                 self.dc.Rectangle(x1, y1, x2, y2,
                                   color='cyan',
@@ -278,8 +267,12 @@ class MultiImage(GingaPlugin.LocalPlugin):
             obj.x2, obj.y2 = x2, y2
             self.canvas.redraw(whence=3)
 
-    def sky_region(self, image, x, y):
-        center_ra, center_dec = image.pixtoradec(x, y)
+    def sky_region(self, image, x=None, y=None):
+        if x is not None and y is not None:
+            center_ra, center_dec = image.pixtoradec(x, y)
+        else:
+            center_ra = self.center_ra
+            center_dec = self.center_dec
         dsky = self.dsky
         if dsky is None:
             x1, y1 = x - self.dx, y - self.dy
