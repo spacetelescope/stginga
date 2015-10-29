@@ -40,65 +40,7 @@ over. You can further customize Ginga according to your own preferences
 afterwards by modifying them manually.
 
 
-Running Ginga With STGinga Plugins
-----------------------------------
-
-``stginga`` includes additional plugins to beyond those provided by `ginga`
-itself that add functionality.  There are a few different ways to start
-ginga in a way that will make it recognize those plugins.
-
-
-The ``stginga`` script
-^^^^^^^^^^^^^^^^^^^^^^
-
-The simplest way is to simple use a script packaged with ``stginga`` that knows
-to preload the STScI plugins.  Note that this currently only works when ginga
-is run with the qt backend::
-
-    stginga [args]
-
-The accepted command line arguments are the same as for standard ginga,
-with the following exceptions:
-
-* There is no need to use ``--plugins`` and ``--modules`` to load STScI plugins.
-* Toolkit (``--toolkit`` or ``-t``) is always set to Qt.
-
-
-Change Local Configuration to Always Load ``stginga``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you wish to have the ``stginga`` plugins *always* loaded when you
-start ginga, you can set your local configuration to do this autmatically.
-
-The key is to use ``ginga``'s builtin configuration machinery.  Create a
-``$HOME/.ginga/ginga_config.py`` file with the following contents::
-
-    def pre_gui_config(ginga):
-        pass
-
-    def post_gui_config(ginga):
-        from ginga.misc.Bunch import Bunch
-
-        # Prefix for custom plugins
-        qtpfx = 'ginga.qtw.plugins'  # Qt
-
-        # Add STScI local plugins (Qt)
-        ginga.add_local_plugin(
-            Bunch(module='BackgroundSub', ws='dialogs', pfx=qtpfx))
-        ginga.add_local_plugin(
-            Bunch(module='DQInspect', ws='dialogs', pfx=qtpfx))
-
-Then you can run Ginga natively as follows::
-
-    ginga --toolkit=qt [args]
-
-
-Manually Load the ``stginga`` pluins
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You can also run Ginga natively and just specify the plugins directly::
-
-    ginga --toolkit=qt --plugins=ginga.qtw.plugins.BackgroundSub,ginga.qtw.plugins.DQInspect [args]
+.. automodule:: stginga.plugin_info
 
 
 Using ``stginga``

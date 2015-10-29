@@ -13,10 +13,10 @@ from ginga.misc.Bunch import Bunch
 import logging
 logging.raiseExceptions = False
 
-__all__ = ['runginga']
+__all__ = ['run_stginga']
 
 
-def runginga(sys_argv):
+def run_stginga(sys_argv):
     """Run this from command line.
 
     This does the following:
@@ -32,7 +32,7 @@ def runginga(sys_argv):
         you will see duplicates!
 
     """
-    gpfx = 'ginga.qtw.plugins'  # To load custom Qt plugins in Ginga namespace
+    from .plugin_info import _get_stginga_plugins
 
     # Remove some Ginga default plugins.
     # Use this if we have custom plugins that replaces them.
@@ -46,13 +46,9 @@ def runginga(sys_argv):
 
     # Add custom plugins.
     # If we use this, we do not have to use ginga_config.py
-    global_plgs = []
-    local_plgs = [
-        Bunch(module='BackgroundSub', tab='BackgroundSub', ws='dialogs',
-              pfx=gpfx),
-        Bunch(module='DQInspect', tab='DQInspect', ws='dialogs', pfx=gpfx)]
-    gmain.global_plugins += global_plgs
-    gmain.local_plugins += local_plgs
+    stglobal_plugins, stlocal_plugins = _get_stginga_plugins()
+    gmain.global_plugins += stglobal_plugins
+    gmain.local_plugins += stlocal_plugins
 
     # Enforce Qt (--toolkit or -t)
     new_argv = ['--toolkit=qt' if 'toolkit' in s else s for s in sys_argv]
@@ -81,4 +77,4 @@ def _remove_plugins(rmlist, plist):
 
 
 if __name__ == '__main__':
-    runginga(sys.argv)
+    run_stginga(sys.argv)
