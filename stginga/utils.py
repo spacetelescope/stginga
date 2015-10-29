@@ -43,7 +43,7 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
     if len(arr) < 1:
         return 0.0
 
-    arr_masked = sigma_clip(arr, sig=sigma, iters=niter)
+    arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
     arr = arr_masked.data[~arr_masked.mask]
 
     if len(arr) < 1:
