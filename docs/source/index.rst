@@ -73,32 +73,26 @@ start ginga, you can set your local configuration to do this autmatically.
 The key is to use ``ginga``'s builtin configuration machinery.  Create a
 ``$HOME/.ginga/ginga_config.py`` file with the following contents::
 
-    def pre_gui_config(ginga):
-        pass
-
     def post_gui_config(ginga):
-        from ginga.misc.Bunch import Bunch
-
-        # Prefix for custom plugins
-        qtpfx = 'stginga.qtw.plugins'  # Qt
-
-        # Add STScI local plugins (Qt)
-        ginga.add_local_plugin(
-            Bunch(module='BackgroundSub', ws='dialogs', pfx=qtpfx))
-        ginga.add_local_plugin(
-            Bunch(module='DQInspect', ws='dialogs', pfx=qtpfx))
+	    from stginga import load_plugins
+	    load_plugins(ginga)
 
 Then you can run Ginga natively as follows::
+
+    ginga [args]
+
+Depending on how your system is setup, you might need to specify the toolkit, 
+because ``stginga`` plugins are currently only available for QT::
 
     ginga --toolkit=qt [args]
 
 
-Manually Load the ``stginga`` pluins
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Manually load ``stginga`` plugins
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can also run Ginga natively and just specify the plugins directly::
+You can also run Ginga natively and just specify the plugins you want directly::
 
-    ginga --toolkit=qt --plugins=stginga.qtw.plugins.BackgroundSub,stginga.qtw.plugins.DQInspect [args]
+    ginga --plugins=stginga.qtw.plugins.BackgroundSub,stginga.qtw.plugins.DQInspect [args]
 
 
 Using ``stginga``
