@@ -13,7 +13,7 @@ from ginga.misc.Bunch import Bunch
 import logging
 logging.raiseExceptions = False
 
-__all__ = ['run_stginga', 'load_plugins']
+__all__ = ['run_stginga']
 
 
 def run_stginga(sys_argv):
