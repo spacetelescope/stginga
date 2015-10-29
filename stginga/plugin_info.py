@@ -52,7 +52,7 @@ Manually load ``stginga`` plugins
 
 You can also run Ginga natively and just specify the plugins you want directly::
 
-    ginga --plugins=stginga.qtw.plugins.BackgroundSub,stginga.qtw.plugins.DQInspect [args]
+    ginga --plugins=stginga.plugins.BackgroundSub,stginga.plugins.DQInspect [args]
 
 """
 
@@ -89,7 +89,7 @@ def load_plugins(ginga):
 
 
 def _get_stginga_plugins():
-    gpfx = 'stginga.qtw.plugins'  # To load custom Qt plugins in Ginga namespace
+    gpfx = 'stginga.plugins'  # To load custom Qt plugins in Ginga namespace
 
     global_plugins = []
     local_plugins = [Bunch(module='BackgroundSub', ws='dialogs', pfx=gpfx),
