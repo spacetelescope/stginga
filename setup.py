@@ -9,7 +9,7 @@ except ImportError:
 
 setup(
     name = 'stginga',
-    version = '0.1.0dev',
+    version = '0.1.0.dev0',
     provides = ['stginga'],
     packages = find_packages(),
     package_data = {'stginga': ['data/*', 'examples/*/*']},

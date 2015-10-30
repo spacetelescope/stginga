@@ -10,6 +10,7 @@ import warnings
 # THIRD-PARTY
 import numpy as np
 from astropy.io import ascii, fits
+from astropy.utils.data import get_pkg_data_filename
 
 # GINGA
 from ginga import GingaPlugin, colors
@@ -17,21 +18,6 @@ from ginga.misc import Future, Widgets
 from ginga.RGBImage import RGBImage
 from ginga.qtw.QtHelp import QtCore, QtGui
 from ginga.util.dp import masktorgb
-
-try:
-    from ginga.util.nstools import get_pkg_data_filename
-except ImportError:
-    def get_pkg_data_filename(data_name, package_name='ginga'):
-        data_name = os.path.normpath(data_name)
-        data_fn = ''
-        # Traverse through packages in shared namespace.
-        # Get the first match.
-        for path in __import__(package_name).__path__:
-            fn = os.path.join(path, data_name)
-            if os.path.isfile(fn):
-                data_fn = fn
-                break
-        return data_fn
 
 __all__ = []
 
@@ -239,20 +225,26 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             imfile = image.metadata['path']
             imname = image.metadata['name'].split('[')[0]
             extver = header.get(self._extver_key, self._dummy_value)
+            dq_extnum = (self._dq_extname, extver)
+            dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
 
             if instrument != 'WFPC2':
-                dq_extnum = (self._dq_extname, extver)
-                dqname = '{0}[{1},{2}]'.format(
-                    imname, self._dq_extname, extver)
-            else:  # Special handling for WFPC2, lots of assumptions
+                dqsrc = self._find_ext(imfile, dq_extnum)
+
+            # Special handling for WFPC2, lots of assumptions
+            else:
                 imfile = imfile.replace('c0m', 'c1m')
                 imname = imname.replace('c0m', 'c1m')
-                dq_extnum = (self._sci_extname, extver)
-                dqname = '{0}[{1},{2}]'.format(
-                    imname, self._sci_extname, extver)
+                dqsrc = self._find_ext(imfile, dq_extnum)
 
-            with fits.open(imfile) as pf:
-                dqsrc = dq_extnum in pf
+                # If DQ not found, could be SCI
+                if not dqsrc:
+                    self.logger.debug('{0} has no {1}, trying {2}'.format(
+                        imfile, self._dq_extname, self._sci_extname))
+                    dq_extnum = (self._sci_extname, extver)
+                    dqname = '{0}[{1},{2}]'.format(
+                        imname, self._sci_extname, extver)
+                    dqsrc = self._find_ext(imfile, dq_extnum)
 
             # Do not continue if no DQ extension
             if not dqsrc:
@@ -301,21 +293,25 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 'Creating new DQ parser for {0}'.format(instrument))
 
             if instrument in self.dqdict:
-                dqfile = get_pkg_data_filename(self.dqdict[instrument])
-                if dqfile:
-                    self.logger.info('Using package data {0}'.format(dqfile))
-                elif os.path.isfile(self.dqdict[instrument]):
+                try:
+                    dqfile = get_pkg_data_filename(
+                        self.dqdict[instrument], package='stginga')
+                except Exception as e:
                     dqfile = self.dqdict[instrument]
-                    self.logger.info('Using external data {0}'.format(dqfile))
+                    if os.path.isfile(dqfile):
+                        self.logger.info(
+                            'Using external data {0}'.format(dqfile))
+                    else:
+                        self.logger.warn(
+                            '{0} not found for {1}, using default'
+                            ''.format(dqfile, instrument))
+                        dqfile = _def_tab
                 else:
-                    dqfile = _def_tab
-                    self.logger.warn(
-                        '{0} not found for {1}, using default'.format(
-                            self.dqdict[instrument], instrument))
+                    self.logger.info('Using package data {0}'.format(dqfile))
             else:
-                dqfile = _def_tab
                 self.logger.warn(
                     '{0} is not supported, using default'.format(instrument))
+                dqfile = _def_tab
 
             dqparser = DQParser(dqfile)
             self._dqparser[instrument] = dqparser
@@ -360,6 +356,11 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             self.imdqlist.addItem(item)
 
         return True
+
+    def _find_ext(self, imfile, ext):
+        with fits.open(imfile) as pf:
+            has_ext = ext in pf
+        return has_ext
 
     def _reset_imdq_on_error(self):
         self._curpxmask = None
