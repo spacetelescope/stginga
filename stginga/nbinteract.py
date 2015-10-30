@@ -85,7 +85,7 @@ class GingaServer(object):
         return {name: viewer.top.url  for name, viewer in self.viewers.items()}
 
 
-    def load_fits_file(self, fileorhdu, viewer_name='Main Viewer'):
+    def load_fits(self, fileorhdu, viewer_name='Main Viewer'):
         if isinstance(fileorhdu, file):
             fileorhdu = fits.HDUList.fromfile(fileorhdu)
 
@@ -102,6 +102,11 @@ class GingaServer(object):
         else:
             raise ValueError('fileorhdu was not a fits file or HDU-ish thing')
 
-        aim = AstroImage(logger=self.logger)
-        aim.load_hdu(hdu)
-        self.viewers[viewer_name].fitsimage.set_image(aim)
+
+        viewer = self.viewers[viewer_name]
+        if viewer.fitsimage.get_image() is None:
+            aim = AstroImage(logger=self.logger)
+            aim.load_hdu(hdu)
+            viewer.fitsimage.set_image(aim)
+        else:
+            viewer.fitsimage.get_image().load_hdu(hdu)
