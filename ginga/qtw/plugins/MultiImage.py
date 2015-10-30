@@ -3,6 +3,11 @@ from math import sqrt
 from ginga import GingaPlugin
 from ginga.gw import Widgets, Viewers
 
+instructions = (
+    'To add images to the group, simply ensure that the plugin is active'
+    ' and display the image in the main viewer.'
+)
+
 
 class MultiImage(GingaPlugin.LocalPlugin):
     """Coordinate display between multiple images"""
@@ -27,6 +32,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
         canvas.setSurface(self.fitsimage)
         canvas.set_draw_mode('move')
         self.canvas = canvas
+
+        self.id_count = 0 # Create unique ids
 
         self.layertag = 'muimg-canvas'
         self.dx = 30
@@ -65,7 +72,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         container.add_widget(vtop, stretch=1)
 
     def instructions(self):
-        self.tw.set_text('These would be fun instructions.')
+        self.tw.set_text(instructions)
         self.tw.set_font(self.msgFont)
 
     def start(self):
@@ -93,14 +100,17 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def redo(self):
         self.logger.debug('Called.')
 
-        data = self.fitsimage.get_image()
-        if data is None:
+        fi_image = self.fitsimage.get_image()
+        if fi_image is None:
             return
+        fi_image_id = fi_image.get('path', None)
+        if fi_image_id is None:
+            fi_image_id = self.make_id()
         try:
-            pickimage = self.images[data]
+            _, pickimage = self.images[fi_image_id]
         except KeyError:
             pickimage = self.add_pickimage()
-            self.images[data] = pickimage
+            self.images[fi_image_id] = (fi_image, pickimage)
         self.fitsimage.copy_attributes(pickimage,
                                        ['transforms', 'cutlevels',
                                         'rgbmap'])
@@ -108,7 +118,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.set_region(finalize=True)
 
         # Loop through all images.
-        for image in self.images:
+        for image_id, (image, pickimage) in self.images.items():
 
             # Determine the region.
             x1, y1, \
@@ -122,8 +132,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
                                                   int(x1), int(y1),
                                                   int(x2), int(y2))
             self.logger.debug("cut box %f,%f %f,%f" % (x1, y1, x2, y2))
-            pickimage = self.images[image]
             pickimage.set_data(data)
+            pickimage.zoom_fit()
 
     def stop(self):
         self.logger.debug('Called.')
@@ -146,11 +156,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def __str__(self):
         return 'multi image'
-
-    def zoomset(self, setting, zoomlevel, fitsimage):
-        scalefactor = fitsimage.get_scale()
-        self.logger.debug("scalefactor = %.2f" % (scalefactor))
-        text = self.fv.scale2text(scalefactor)
 
     def btndown(self, canvas, event, data_x, data_y, viewer):
         self.set_region(data_x, data_y)
@@ -215,27 +220,14 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def add_pickimage(self):
 
         # Setup for thumbnail display
-        cm, im = self.fv.cm, self.fv.im
         di = Viewers.ImageViewCanvas(logger=self.logger)
         width, height = 200, 200
         di.configure_window(width, height)
-        di.enable_autozoom('off')
+        di.enable_autozoom('on')
         di.enable_autocuts('off')
-        di.zoom_to(3)
-        settings = di.get_settings()
-        settings.getSetting('zoomlevel').add_callback('set',
-                                                      self.zoomset, di)
-        di.set_cmap(cm)
-        di.set_imap(im)
-        di.set_callback('none-move', self.detailxy)
         di.set_bg(0.4, 0.4, 0.4)
         # for debugging
         di.set_name('pickimage')
-
-        bd = di.get_bindings()
-        bd.enable_pan(True)
-        bd.enable_zoom(True)
-        bd.enable_cuts(True)
 
         iw = Widgets.wrap(di.get_widget())
         self.vtop.add_widget(iw)
@@ -271,8 +263,14 @@ class MultiImage(GingaPlugin.LocalPlugin):
         if x is not None and y is not None:
             center_ra, center_dec = image.pixtoradec(x, y)
         else:
-            center_ra = self.center_ra
-            center_dec = self.center_dec
+            if self.center_ra is None or self.center_dec is None:
+                x = image.width // 2
+                y = image.height // 2
+                center_ra, center_dec = image.pixtoradec(x, y)
+            else:
+                center_ra = self.center_ra
+                center_dec = self.center_dec
+                x, y = image.radectopix(center_ra, center_dec)
         dsky = self.dsky
         if dsky is None:
             x1, y1 = x - self.dx, y - self.dy
@@ -292,3 +290,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         x1, x2 = (x1, x2) if x1 <= x2 else (x2, x1)
         y1, y2 = (y1, y2) if y1 <= y2 else (y2, y1)
         return (x1, y1, x2, y2, center_ra, center_dec, dsky)
+
+    def make_id(self):
+        self.id_count += 1
+        return 'Image_{:02}'.format(self.id_count)
