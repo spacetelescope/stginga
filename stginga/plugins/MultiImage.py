@@ -16,6 +16,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         super(MultiImage, self).__init__(fv, fitsimage)
 
         self.logger.debug('Called.')
+        self.logger.debug('fv.w="{}"'.format(self.fv.w))
 
         self.dc = self.fv.getDrawClasses()
 
@@ -33,7 +34,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         canvas.set_draw_mode('move')
         self.canvas = canvas
 
-        self.id_count = 0 # Create unique ids
+        self.id_count = 0  # Create unique ids
 
         self.layertag = 'muimg-canvas'
         self.dx = 30
@@ -48,18 +49,20 @@ class MultiImage(GingaPlugin.LocalPlugin):
         """Build the Dialog"""
         self.logger.debug('Called.')
 
+        # Postage stamps
+        self.logger.debug('pstamps="{}"'.format(self.fv.w['pstamps']))
+        pstamps = Widgets.HBox()
+        w = pstamps.get_widget()
+        self.fv.w['pstamps'].layout().addWidget(w)
+        self.pstamps = pstamps
+        return
+
         # Get container specs.
         vbox, sw, orientation = Widgets.get_oriented_box(container)
         vbox.set_border_width(4)
         vbox.set_spacing(2)
 
-        # Overall container
-        vtop = Widgets.VBox()
-        vtop.set_border_width(4)
-        vtop.add_widget(sw, stretch=1)
-        self.vtop = vtop
-
-        # Instructiopns
+        # Instructions
         self.msgFont = self.fv.getFont("sansFont", 12)
         tw = Widgets.TextArea(wrap=True, editable=False)
         tw.set_font(self.msgFont)
@@ -69,7 +72,9 @@ class MultiImage(GingaPlugin.LocalPlugin):
         fr.set_widget(tw)
         vbox.add_widget(fr, stretch=0)
 
-        container.add_widget(vtop, stretch=1)
+        vjunk = Widgets.VBox()
+        vjunk.set_border_width(4)
+        container.add_widget(vjunk, stretch=1)
 
     def instructions(self):
         self.tw.set_text(instructions)
@@ -78,7 +83,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def start(self):
         self.logger.debug('Called.')
 
-        self.instructions()
+        #self.instructions()
 
         # insert layer if it is not already
         p_canvas = self.fitsimage.get_canvas()
@@ -221,8 +226,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         # Setup for thumbnail display
         di = Viewers.ImageViewCanvas(logger=self.logger)
-        width, height = 200, 200
-        di.configure_window(width, height)
+        di.configure_window(50, 50)
         di.enable_autozoom('on')
         di.enable_autocuts('off')
         di.set_bg(0.4, 0.4, 0.4)
@@ -230,7 +234,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         di.set_name('pickimage')
 
         iw = Widgets.wrap(di.get_widget())
-        self.vtop.add_widget(iw)
+        self.pstamps.add_widget(iw)
 
         return di
 

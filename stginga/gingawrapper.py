@@ -15,6 +15,38 @@ logging.raiseExceptions = False
 
 __all__ = ['run_stginga']
 
+# Manage the default layout. Yes, OMG, hacky hacky
+gmain.default_layout = ['seq', {},
+                        ['vbox', dict(name='top', width=1520, height=900),
+                         dict(row=['hbox', dict(name='menu')],
+                              stretch=0),
+                         dict(row=['hpanel', dict(name='hpnl'),
+                                   ['ws', dict(name='left', width=300, group=2),
+                                    # (tabname, layout), ...
+                                    [("Info", ['vpanel', {},
+                                               ['ws', dict(name='uleft', height=300,
+                                                           show_tabs=False, group=3)],
+                                               ['ws', dict(name='lleft', height=430,
+                                                           show_tabs=True, group=3)],
+                                    ]
+                                    )]],
+                                   ['vbox', dict(name='main', width=700),
+                                    dict(row=['ws', dict(wstype='tabs', name='channels',
+                                                         group=1)], stretch=1)],
+                                   ['ws', dict(name='right', width=430, group=2),
+                                    # (tabname, layout), ...
+                                    [("Dialogs", ['ws', dict(name='dialogs', group=2)
+                                    ]
+                                    )]
+                                   ],
+                         ], stretch=1),
+                         dict(row=['ws', dict(name='toolbar', height=40,
+                                              show_tabs=False, group=2)],
+                              stretch=0),
+                         dict(row=['hbox', dict(name='pstamps')]),
+                         dict(row=['hbox', dict(name='status')], stretch=0),
+                        ]]
+
 
 def run_stginga(sys_argv):
     """Run this from command line.
