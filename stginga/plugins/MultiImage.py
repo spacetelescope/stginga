@@ -7,7 +7,7 @@ from ginga.qtw.QtHelp import QtCore
 instructions = (
     'To add images to the group, simply ensure that the plugin is active'
     'and display the image in the main viewer.'
-    '\n\nThen draw, drag, or edit the region to be examined.'
+    '\n\nThen move, drag, or edit the region as needed.'
 )
 
 
@@ -66,6 +66,33 @@ class MultiImage(GingaPlugin.LocalPlugin):
         fr = Widgets.Expander("Instructions")
         fr.set_widget(tw)
 
+        # Mode administration
+        mode = self.canvas.get_draw_mode()
+        hbox = Widgets.HBox()
+        btn1 = Widgets.RadioButton("Move")
+        btn1.set_state(mode == 'move')
+        btn1.add_callback('activated', lambda w, val: self.set_mode_cb('move', val))
+        btn1.set_tooltip("Choose this to position pick")
+        self.w.btn_move = btn1
+        hbox.add_widget(btn1)
+
+        btn2 = Widgets.RadioButton("Draw", group=btn1)
+        btn2.set_state(mode == 'draw')
+        btn2.add_callback('activated', lambda w, val: self.set_mode_cb('draw', val))
+        btn2.set_tooltip("Choose this to draw a replacement pick")
+        self.w.btn_draw = btn2
+        hbox.add_widget(btn2)
+
+        btn3 = Widgets.RadioButton("Edit", group=btn1)
+        btn3.set_state(mode == 'edit')
+        btn3.add_callback('activated', lambda w, val: self.set_mode_cb('edit', val))
+        btn3.set_tooltip("Choose this to edit a pick")
+        self.w.btn_edit = btn3
+        hbox.add_widget(btn3)
+
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        modes = hbox
+
         # Basic plugin admin buttons
         btns = Widgets.HBox()
         btns.set_spacing(4)
@@ -77,6 +104,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         # Layout the options
         vbox.add_widget(fr, stretch=0)
+        vbox.add_widget(modes, stretch=0)
 
         # Layout top level framing
         vtop = Widgets.VBox()
@@ -227,6 +255,16 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.logger.debug('obj="{}"'.format(obj))
         pt_obj = canvas.getObjectByTag(self.pstag)
         self.logger.debug('self.pstag="{}"'.format(pt_obj))
+        if obj != pt_obj:
+            return True
+        x1, y1, x2, y2 = pt_obj.get_llur()
+        dx = (x2 - x1) // 2
+        dy = (y2 - y1) // 2
+        if abs(dx -  self.dx) > 5 or abs(dy - self.dy) > 5:
+            self.dsky = None
+            self.dx = dx
+            self.dy = dy
+        self.set_region(x1 + dx, y1 + dy)
         self.redo()
         return True
 
@@ -306,6 +344,11 @@ class MultiImage(GingaPlugin.LocalPlugin):
         )
         x1, x2 = (x1, x2) if x1 <= x2 else (x2, x1)
         y1, y2 = (y1, y2) if y1 <= y2 else (y2, y1)
+
+        if self.dsky is None:
+            self.dx = (x2 - x1) // 2
+            self.dy = (y2 - y1) // 2
+
         return (x1, y1, x2, y2, center_ra, center_dec, dsky)
 
     def make_id(self):
@@ -319,3 +362,20 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def show_pstamps(self, show):
         """Show/hide the stamps"""
         self.pstamps_frame.setVisible(show)
+
+    def edit_region(self):
+        if self.pstag is not None:
+            obj = self.canvas.getObjectByTag(self.pstag)
+            if obj.kind != 'rectangle':
+                return True
+            self.canvas.edit_select(obj)
+        else:
+            self.canvas.clear_selected()
+        self.canvas.update_canvas()
+
+    def set_mode_cb(self, mode, tf):
+        if tf:
+            self.canvas.set_draw_mode(mode)
+            if mode == 'edit':
+                self.edit_region()
+        return True
