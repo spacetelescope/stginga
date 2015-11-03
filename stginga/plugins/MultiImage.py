@@ -6,7 +6,8 @@ from ginga.qtw.QtHelp import QtCore
 
 instructions = (
     'To add images to the group, simply ensure that the plugin is active'
-    ' and display the image in the main viewer.'
+    'and display the image in the main viewer.'
+    '\n\nThen draw, drag, or edit the region to be examined.'
 )
 
 
@@ -50,21 +51,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def build_gui(self, container):
         """Build the Dialog"""
         self.logger.debug('Called.')
-        if self.pstamps is not None:
-            return
 
-        # Postage stamps
-        pstamps_frame = self.fv.w['pstamps']
-        self.pstamps_show = False
-        pstamps = Widgets.HBox()
-        w = pstamps.get_widget()
-        pstamps_frame.layout().addWidget(w)
-        w.setMinimumHeight(100)
-        self.pstamps = pstamps
-        self.pstamps_frame = pstamps_frame
-        return
-
-        # Get container specs.
+        # Setup for options
         vbox, sw, orientation = Widgets.get_oriented_box(container)
         vbox.set_border_width(4)
         vbox.set_spacing(2)
@@ -79,9 +67,36 @@ class MultiImage(GingaPlugin.LocalPlugin):
         fr.set_widget(tw)
         vbox.add_widget(fr, stretch=0)
 
-        vjunk = Widgets.VBox()
-        vjunk.set_border_width(4)
-        container.add_widget(vjunk, stretch=1)
+        # Create top level framing
+        vtop = Widgets.VBox()
+        vtop.set_border_width(4)
+        vtop.add_widget(sw, stretch=1)
+
+        # Basic plugin admin buttons
+        btns = Widgets.HBox()
+        btns.set_spacing(4)
+
+        btn = Widgets.Button("Close")
+        btn.add_callback('activated', lambda w: self.close())
+        btns.add_widget(btn)
+        btns.add_widget(Widgets.Label(''), stretch=1)
+        vtop.add_widget(btns, stretch=0)
+
+        # Options completed
+        container.add_widget(vtop, stretch=1)
+
+        # Postage stamps
+        if self.pstamps is not None:
+            return
+
+        pstamps_frame = self.fv.w['pstamps']
+        self.pstamps_show = False
+        pstamps = Widgets.HBox()
+        w = pstamps.get_widget()
+        pstamps_frame.layout().addWidget(w)
+        w.setMinimumHeight(100)
+        self.pstamps = pstamps
+        self.pstamps_frame = pstamps_frame
 
     def instructions(self):
         self.tw.set_text(instructions)
@@ -90,7 +105,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def start(self):
         self.logger.debug('Called.')
 
-        #self.instructions()
+        self.instructions()
 
         # insert layer if it is not already
         p_canvas = self.fitsimage.get_canvas()
@@ -108,7 +123,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.logger.debug('Called.')
 
         self.canvas.ui_setActive(True)
-        self.fv.showStatus("Do something")
+        self.fv.showStatus("Draw a region to examine.")
 
     def redo(self):
         self.logger.debug('Called.')
@@ -173,7 +188,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.canvas.ui_setActive(False)
 
     def __str__(self):
-        return 'multi image'
+        return 'MultiImage'
 
     def btndown(self, canvas, event, data_x, data_y, viewer):
         self.set_region(data_x, data_y)
@@ -302,13 +317,3 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def show_pstamps(self, show):
         """Show/hide the stamps"""
         self.pstamps_frame.setVisible(show)
-
-    def pstamps_size_hint(self):
-        size = self.pstamps_frame.size()
-        self.logger.debug('size="{}"'.format(size.width()))
-        self.logger.debug('frame_size="{}"'.format(self.pstamps_frame_size))
-        if self.pstamps_show:
-            return QtCore.QSize(size.width(), self.pstamps_frame_size)
-        else:
-            self.pstamps_frame_size = size.height
-            return QtCore.QSize(size.width(), 0)
