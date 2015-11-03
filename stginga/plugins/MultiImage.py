@@ -124,18 +124,18 @@ class MultiImage(GingaPlugin.LocalPlugin):
             raise
             fi_image_id = self.make_id()
         try:
-            _, pickimage = self.images[fi_image_id]
+            _, pstamp = self.images[fi_image_id]
         except KeyError:
-            pickimage = self.add_pickimage()
-            self.images[fi_image_id] = (fi_image, pickimage)
-        self.fitsimage.copy_attributes(pickimage,
+            pstamp = self.add_pstamp()
+            self.images[fi_image_id] = (fi_image, pstamp)
+        self.fitsimage.copy_attributes(pstamp,
                                        ['transforms', 'cutlevels',
                                         'rgbmap'])
         # Ensure region is accurately reflected on displayed image.
         self.set_region(finalize=True)
 
         # Loop through all images.
-        for image_id, (image, pickimage) in self.images.items():
+        for image_id, (image, pstamp) in self.images.items():
 
             # Determine the region.
             x1, y1, \
@@ -143,13 +143,13 @@ class MultiImage(GingaPlugin.LocalPlugin):
                 center_ra, center_dec, \
                 dsky = self.sky_region(image)
 
-            # Cut and show pick image in pick window
+            # Cut and show postage stamp
             self.logger.debug("box %f,%f %f,%f" % (x1, y1, x2, y2))
             x1, y1, x2, y2, data = self.cutdetail(image,
                                                   int(x1), int(y1),
                                                   int(x2), int(y2))
             self.logger.debug("cut box %f,%f %f,%f" % (x1, y1, x2, y2))
-            pickimage.set_data(data)
+            pstamp.set_data(data)
 
     def stop(self):
         self.logger.debug('Called.')
@@ -192,8 +192,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.logger.debug('Called.')
         obj = canvas.getObjectByTag(tag)
         self.logger.debug('obj="{}"'.format(obj))
-        pt_obj = canvas.getObjectByTag(self.picktag)
-        self.logger.debug('self.picktag="{}"'.format(pt_obj))
+        pt_obj = canvas.getObjectByTag(self.pstag)
+        self.logger.debug('self.pstag="{}"'.format(pt_obj))
         if obj.kind != 'rectangle':
             return True
         canvas.deleteObjects([obj, pt_obj])
@@ -208,34 +208,16 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def edit_cb(self, canvas, obj):
         self.logger.debug('Called.')
         self.logger.debug('obj="{}"'.format(obj))
-        pt_obj = canvas.getObjectByTag(self.picktag)
-        self.logger.debug('self.picktag="{}"'.format(pt_obj))
+        pt_obj = canvas.getObjectByTag(self.pstag)
+        self.logger.debug('self.pstag="{}"'.format(pt_obj))
         self.redo()
         return True
-
-    def detailxy(self, canvas, button, data_x, data_y):
-        """Motion event in the pick fits window.  Show the pointing
-        information under the cursor.
-        """
-        if button == 0:
-            # TODO: we could track the focus changes to make this check
-            # more efficient
-            fitsimage = self.fv.getfocus_fitsimage()
-            # Don't update global information if our fitsimage isn't focused
-            if fitsimage != self.fitsimage:
-                return True
-
-            # Add offsets from cutout
-            data_x = data_x + self.pick_x1
-            data_y = data_y + self.pick_y1
-
-            return self.fv.showxy(self.fitsimage, data_x, data_y)
 
     def cutdetail(self, srcimage, x1, y1, x2, y2):
         data, x1, y1, x2, y2 = srcimage.cutout_adjust(x1, y1, x2, y2)
         return (x1, y1, x2, y2, data)
 
-    def add_pickimage(self):
+    def add_pstamp(self):
 
         # Setup for thumbnail display
         di = Viewers.ImageViewCanvas(logger=self.logger)
@@ -245,7 +227,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         di.enable_autocuts('off')
         di.set_bg(0.4, 0.4, 0.4)
         # for debugging
-        di.set_name('pickimage')
+        di.set_name('pstamp')
 
         iw = Widgets.wrap(di.get_widget())
         self.pstamps.add_widget(iw)
@@ -263,14 +245,14 @@ class MultiImage(GingaPlugin.LocalPlugin):
             self.dsky = self.sky_region(image, x, y)
 
         try:
-            obj = self.canvas.getObjectByTag(self.picktag)
+            obj = self.canvas.getObjectByTag(self.pstag)
         except: # Need be general due to ginga
-            self.picktag = self.canvas.add(
+            self.pstag = self.canvas.add(
                 self.dc.Rectangle(x1, y1, x2, y2,
                                   color='cyan',
                                   linestyle=linestyle)
             )
-            obj = self.canvas.getObjectByTag(self.picktag)
+            obj = self.canvas.getObjectByTag(self.pstag)
         else:
             obj.linestyle = linestyle
             obj.x1, obj.y1 = x1, y1
