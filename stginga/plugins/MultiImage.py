@@ -65,12 +65,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         fr = Widgets.Expander("Instructions")
         fr.set_widget(tw)
-        vbox.add_widget(fr, stretch=0)
-
-        # Create top level framing
-        vtop = Widgets.VBox()
-        vtop.set_border_width(4)
-        vtop.add_widget(sw, stretch=1)
 
         # Basic plugin admin buttons
         btns = Widgets.HBox()
@@ -80,9 +74,17 @@ class MultiImage(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn)
         btns.add_widget(Widgets.Label(''), stretch=1)
+
+        # Layout the options
+        vbox.add_widget(fr, stretch=0)
+
+        # Layout top level framing
+        vtop = Widgets.VBox()
+        vtop.set_border_width(4)
+        vtop.add_widget(sw, stretch=1)  # Magic: sw contains vbox
         vtop.add_widget(btns, stretch=0)
 
-        # Options completed
+        # Options completed.
         container.add_widget(vtop, stretch=1)
 
         # Postage stamps
