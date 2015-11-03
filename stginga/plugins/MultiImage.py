@@ -18,7 +18,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
         super(MultiImage, self).__init__(fv, fitsimage)
 
         self.logger.debug('Called.')
-        self.logger.debug('fv.w="{}"'.format(self.fv.w))
 
         self.dc = self.fv.getDrawClasses()
 
@@ -42,11 +41,12 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.dx = 30
         self.dy = 30
         self.max_side = 1024
-        self.images = {}
         self.center_ra = None
         self.center_dec = None
         self.dsky = None
+        self.images = {}
         self.pstamps = None
+        self.coords = 'wcs'
 
     def build_gui(self, container):
         """Build the Dialog"""
@@ -157,7 +157,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def redo(self):
         self.logger.debug('Called.')
-        self.logger.debug('pstamps.sizeHint="{}"'.format(self.pstamps_frame.sizeHint()))
 
         fi_image = self.fitsimage.get_image()
         if fi_image is None:
@@ -189,21 +188,27 @@ class MultiImage(GingaPlugin.LocalPlugin):
                 dsky = self.sky_region(image)
 
             # Cut and show postage stamp
-            self.logger.debug("box %f,%f %f,%f" % (x1, y1, x2, y2))
             x1, y1, x2, y2, data = self.cutdetail(image,
                                                   int(x1), int(y1),
                                                   int(x2), int(y2))
-            self.logger.debug("cut box %f,%f %f,%f" % (x1, y1, x2, y2))
             pstamp.set_data(data)
 
     def stop(self):
         self.logger.debug('Called.')
 
-        # deactivate the canvas
+        try:
+            obj = self.canvas.getObjectByTag(self.pstag)
+        except:
+            """Ignore"""
+        else:
+            self.canvas.delete_objects([obj])
         self.canvas.ui_setActive(False)
         self.fv.showStatus("")
 
-        self.show_pstamps(False)
+        self.pstamps_frame.layout().removeWidget(self.pstamps.get_widget())
+        self.pstamps.get_widget().setParent(None)
+        self.pstamps = None
+        self.images = {}
 
     def close(self):
         self.logger.debug('Called.')
@@ -236,9 +241,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def draw_cb(self, canvas, tag):
         self.logger.debug('Called.')
         obj = canvas.getObjectByTag(tag)
-        self.logger.debug('obj="{}"'.format(obj))
         pt_obj = canvas.getObjectByTag(self.pstag)
-        self.logger.debug('self.pstag="{}"'.format(pt_obj))
         if obj.kind != 'rectangle':
             return True
         canvas.deleteObjects([obj, pt_obj])
@@ -252,9 +255,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def edit_cb(self, canvas, obj):
         self.logger.debug('Called.')
-        self.logger.debug('obj="{}"'.format(obj))
         pt_obj = canvas.getObjectByTag(self.pstag)
-        self.logger.debug('self.pstag="{}"'.format(pt_obj))
         if obj != pt_obj:
             return True
         x1, y1, x2, y2 = pt_obj.get_llur()
