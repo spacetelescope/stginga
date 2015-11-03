@@ -2,6 +2,7 @@ from math import sqrt
 
 from ginga import GingaPlugin
 from ginga.gw import Widgets, Viewers
+from ginga.qtw.QtHelp import QtCore
 
 instructions = (
     'To add images to the group, simply ensure that the plugin is active'
@@ -44,17 +45,23 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.center_ra = None
         self.center_dec = None
         self.dsky = None
+        self.pstamps = None
 
     def build_gui(self, container):
         """Build the Dialog"""
         self.logger.debug('Called.')
+        if self.pstamps is not None:
+            return
 
         # Postage stamps
-        self.logger.debug('pstamps="{}"'.format(self.fv.w['pstamps']))
+        pstamps_frame = self.fv.w['pstamps']
+        self.pstamps_show = False
         pstamps = Widgets.HBox()
         w = pstamps.get_widget()
-        self.fv.w['pstamps'].layout().addWidget(w)
+        pstamps_frame.layout().addWidget(w)
+        w.setMinimumHeight(100)
         self.pstamps = pstamps
+        self.pstamps_frame = pstamps_frame
         return
 
         # Get container specs.
@@ -94,7 +101,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
             # Add canvas layer
             p_canvas.add(self.canvas, tag=self.layertag)
 
-        self.redo()
+        self.show_pstamps(True)
+        #self.redo()
 
     def resume(self):
         self.logger.debug('Called.')
@@ -104,10 +112,12 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def redo(self):
         self.logger.debug('Called.')
+        self.logger.debug('pstamps.sizeHint="{}"'.format(self.pstamps_frame.sizeHint()))
 
         fi_image = self.fitsimage.get_image()
         if fi_image is None:
             return
+
         try:
             fi_image_id = fi_image.get('path')
         except Exception as e:
@@ -140,7 +150,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
                                                   int(x2), int(y2))
             self.logger.debug("cut box %f,%f %f,%f" % (x1, y1, x2, y2))
             pickimage.set_data(data)
-            #pickimage.zoom_fit()
 
     def stop(self):
         self.logger.debug('Called.')
@@ -148,6 +157,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
         # deactivate the canvas
         self.canvas.ui_setActive(False)
         self.fv.showStatus("")
+
+        self.show_pstamps(False)
 
     def close(self):
         self.logger.debug('Called.')
@@ -228,7 +239,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         # Setup for thumbnail display
         di = Viewers.ImageViewCanvas(logger=self.logger)
-        di.configure_window(50, 50)
+        di.configure_window(100, 100)
         di.enable_autozoom('on')
         di.add_callback('configure', self.window_resized_cb)
         di.enable_autocuts('off')
@@ -305,3 +316,17 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def window_resized_cb(self, fitsimage, width, height):
         self.logger.debug('Called.')
         fitsimage.zoom_fit()
+
+    def show_pstamps(self, show):
+        """Show/hide the stamps"""
+        self.pstamps_frame.setVisible(show)
+
+    def pstamps_size_hint(self):
+        size = self.pstamps_frame.size()
+        self.logger.debug('size="{}"'.format(size.width()))
+        self.logger.debug('frame_size="{}"'.format(self.pstamps_frame_size))
+        if self.pstamps_show:
+            return QtCore.QSize(size.width(), self.pstamps_frame_size)
+        else:
+            self.pstamps_frame_size = size.height
+            return QtCore.QSize(size.width(), 0)
