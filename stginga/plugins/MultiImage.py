@@ -46,6 +46,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.dsky = None
         self.images = {}
         self.pstamps = None
+
+        self.coords_options = ('wcs', 'data')
         self.coords = 'wcs'
 
     def build_gui(self, container):
@@ -93,6 +95,19 @@ class MultiImage(GingaPlugin.LocalPlugin):
         hbox.add_widget(Widgets.Label(''), stretch=1)
         modes = hbox
 
+        # Coordinates
+        hbox = Widgets.HBox()
+        for option in self.coords_options:
+            btn = Widgets.RadioButton(option)
+            btn.set_state(self.coords == option)
+            btn.add_callback(
+                'activated',
+                lambda widget, state, option=option: self.set_coords(option, state)
+            )
+            hbox.add_widget(btn)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        coords = hbox
+
         # Basic plugin admin buttons
         btns = Widgets.HBox()
         btns.set_spacing(4)
@@ -104,6 +119,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         # Layout the options
         vbox.add_widget(fr, stretch=0)
+        vbox.add_widget(coords, stretch=0)
         vbox.add_widget(modes, stretch=0)
 
         # Layout top level framing
@@ -380,3 +396,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
             if mode == 'edit':
                 self.edit_region()
         return True
+
+    def set_coords(self, coords, state):
+        if state:
+            self.coords = coords
