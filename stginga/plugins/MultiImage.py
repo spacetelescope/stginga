@@ -162,7 +162,7 @@ class Region(object):
         to_coord = self.coord if to_coord is None else to_coord
         image = image if image is not None else self.image
         if from_coord == to_coord:
-            convert = lambda x, y: (x, y)
+            return lambda x, y: (x, y)
         elif image is None:
             raise RegionConversionError(
                 'No reference specified for conversion'
@@ -516,8 +516,10 @@ class MultiImage(GingaPlugin.LocalPlugin):
         return True
 
     def set_coords(self, coords, state):
+        self.logger.debug('Called.')
+        self.logger.debug('coords="{}" state="{}"'.format(coords, state))
         if state:
-            self.region.set_coords()
+            self.region.set_coords(coords)
 
     def init_region(self):
         image = self.fitsimage.get_image()
