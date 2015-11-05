@@ -132,7 +132,7 @@ class Region(object):
         cx2, cy2 = convert(x2, y2)
         self.x = (cx1 + cx2) / 2
         self.y = (cy1 + cy2) / 2
-        self.r = hypot(cx2 - cx1, cy2 - cy1)
+        self.r = hypot(cx2 - self.x, cy2 - self.y)
 
     def set_coords(self, coord, image=None):
         self.x, self.y, self.r = self(coord=coord, image=image)
