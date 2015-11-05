@@ -8,6 +8,8 @@ instructions = (
     'To add images to the group, simply ensure that the plugin is active'
     'and display the image in the main viewer.'
     '\n\nThen move, drag, or edit the region as needed.'
+    '\n\nThe WCS options select the common frame of reference to use between'
+    ' images.'
 )
 
 __all__ = ['MultiImage']
@@ -225,8 +227,10 @@ class MultiImage(GingaPlugin.LocalPlugin):
         fr.set_widget(tw)
 
         # Mode administration
+        modes = Widgets.Frame('Region Editing')
         mode = self.canvas.get_draw_mode()
         hbox = Widgets.HBox()
+        hbox.set_border_width(4)
         btn1 = Widgets.RadioButton("Move")
         btn1.set_state(mode == 'move')
         btn1.add_callback(
@@ -258,10 +262,13 @@ class MultiImage(GingaPlugin.LocalPlugin):
         hbox.add_widget(btn3)
 
         hbox.add_widget(Widgets.Label(''), stretch=1)
-        modes = hbox
+        modes.set_widget(hbox)
 
         # Coordinates
+        coords = Widgets.Frame('WCS Reference')
         hbox = Widgets.HBox()
+        hbox.set_border_width(4)
+        hbox.set_spacing(4)
         for option in self.coords_options:
             btn = Widgets.RadioButton(option)
             btn.set_state(option == _def_coords)
@@ -271,7 +278,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
             )
             hbox.add_widget(btn)
         hbox.add_widget(Widgets.Label(''), stretch=1)
-        coords = hbox
+        coords.set_widget(hbox)
 
         # Basic plugin admin buttons
         btns = Widgets.HBox()
