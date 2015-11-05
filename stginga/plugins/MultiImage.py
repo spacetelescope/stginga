@@ -1,5 +1,5 @@
 import logging
-from math import cos, sin, hypot, radians
+from math import cos, hypot, radians
 
 from ginga import GingaPlugin
 from ginga.gw import Widgets, Viewers
@@ -12,8 +12,7 @@ instructions = (
 
 __all__ = ['MultiImage']
 
-_cos45 = cos(radians(45))
-_sin45 = sin(radians(45))
+_radius_scale = cos(radians(45))
 _def_coords = 'wcs'
 
 class RegionError(Exception):
@@ -72,10 +71,11 @@ class Region(object):
             self.coord, self.image
         ))
         convert = self.get_convert(to_coord=coord, image=image)
+        dx, dy = self.delta()
         cx, cy = convert(self.x, self.y)
         cx1, cy1 = convert(
-            self.x + (self.r * _cos45),
-            self.y + (self.r * _sin45)
+            self.x + dx,
+            self.y + dy
         )
         cr = hypot(cx1 - cx, cy1 - cy)
         self.logger.debug('cx, cy, cr, coord, image="{}" "{}" "{}" "{}" "{}"'.format(
@@ -154,7 +154,8 @@ class Region(object):
         return (x1, y1, x2, y2)
 
     def delta(self):
-        return (self.r * _cos45, self.r * _sin45)
+        delta = self.r * _radius_scale
+        return (delta, delta)
 
     def get_convert(self, from_coord=None, to_coord=None, image=None):
         from_coord = self.coord if from_coord is None else from_coord
