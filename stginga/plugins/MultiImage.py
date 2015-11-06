@@ -12,7 +12,7 @@ instructions = (
     ' images.'
 )
 
-__all__ = ['MultiImage']
+__all__ = ['MultiImage', 'Region']
 
 _radius_scale = cos(radians(45))
 _def_coords = 'wcs'
@@ -296,8 +296,10 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.pstamps_show = False
         pstamps = Widgets.HBox()
         w = pstamps.get_widget()
-        pstamps_frame.layout().addWidget(w)
+        self.logger.debug('layout="{}"'.format(pstamps_frame.layout()))
+        self.logger.debug('pstamps.w="{}"'.format(w))
         w.setMinimumHeight(100)
+        pstamps_frame.layout().addWidget(w)
         self.pstamps = pstamps
         self.pstamps_frame = pstamps_frame
 
@@ -439,7 +441,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         return (x1, y1, x2, y2, data)
 
     def add_pstamp(self):
-
+        self.logger.debug('Called.')
         # Setup for thumbnail display
         di = Viewers.ImageViewCanvas(logger=self.logger)
         di.configure_window(100, 100)

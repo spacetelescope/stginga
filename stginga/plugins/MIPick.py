@@ -24,6 +24,8 @@ try:
 except ImportError:
     have_mpl = False
 
+from stginga.plugins.MultiImage import Region
+
 region_default_width = 30
 region_default_height = 30
 
@@ -39,6 +41,7 @@ class MIPick(GingaPlugin.LocalPlugin):
         self.pickcenter = None
         self.pick_qs = None
         self.picktag = None
+        self.region = None
 
         # get Pick preferences
         prefs = self.fv.get_preferences()
@@ -944,6 +947,12 @@ class MIPick(GingaPlugin.LocalPlugin):
         self.canvas.ui_setActive(True)
         self.fv.showStatus("Draw a rectangle with the right mouse button")
 
+        # Setup the region
+        if self.region is None:
+            self.region = Region()
+            self.region.coord = 'wcs'
+            self.region.image = self.fitsimage.get_image()
+
         # See if multiimage is active
         chname = self.fv.get_channelName(self.fitsimage)
         chinfo = self.fv.get_channelInfo(chname)
@@ -952,6 +961,7 @@ class MIPick(GingaPlugin.LocalPlugin):
         if opmon.is_active('MultiImage'):
             try:
                 multiimage = opmon.getPlugin('MultiImage')
+                multiimage.region = self.region
             except:
                 multiimage = None
         self.multiimage = multiimage
@@ -977,12 +987,16 @@ class MIPick(GingaPlugin.LocalPlugin):
         serialnum = self.bump_serial()
         self.ev_intr.set()
 
+        # Make sure the box is in the right spot.
         fig = self.canvas.getObjectByTag(self.picktag)
         if fig.kind != 'compound':
             return True
         bbox = fig.objects[0]
-        point = fig.objects[1]
-        text = fig.objects[2]
+        self.region.image = self.fitsimage.get_image()
+        self.draw_compound(bbox, self.canvas,
+                           *self.region.bbox(coord='data'))
+        fig = self.canvas.getObjectByTag(self.picktag)
+        bbox = fig.objects[0]
 
         # set the pick image to have the same cut levels and transforms
         self.fitsimage.copy_attributes(self.pickimage,
@@ -990,6 +1004,10 @@ class MIPick(GingaPlugin.LocalPlugin):
                                         'rgbmap'])
 
         try:
+            # Get other parts of the indicator
+            point = fig.objects[1]
+            text = fig.objects[2]
+
             # sanity check on region
             width = bbox.x2 - bbox.x1
             height = bbox.y2 - bbox.y1
@@ -1033,6 +1051,13 @@ class MIPick(GingaPlugin.LocalPlugin):
                 self.clear_contours()
                 self.clear_fwhm()
                 self.clear_radial()
+
+            # If multiimage, redo there also.
+            try:
+                self.multiimage.redo()
+            except:
+                """Doesn't matter"""
+                pass
 
             # Delete previous peak marks
             objs = self.canvas.getObjectsByTagpfx('peak')
@@ -1382,36 +1407,7 @@ class MIPick(GingaPlugin.LocalPlugin):
 
     def draw_cb(self, canvas, tag):
         obj = canvas.getObjectByTag(tag)
-        if obj.kind != 'rectangle':
-            return True
-        canvas.deleteObjectByTag(tag)
-
-        if self.picktag:
-            try:
-                canvas.deleteObjectByTag(self.picktag)
-            except:
-                pass
-
-        # determine center of rectangle
-        x1, y1, x2, y2 = obj.get_llur()
-        x = x1 + (x2 - x1) // 2
-        y = y1 + (y2 - y1) // 2
-
-        tag = canvas.add(self.dc.CompoundObject(
-            self.dc.Rectangle(x1, y1, x2, y2,
-                              color=self.pickcolor),
-            self.dc.Point(x, y, 10, color='red'),
-            self.dc.Text(x1, y2+4, "Pick: calc",
-                         color=self.pickcolor)))
-        self.picktag = tag
-
-        try:
-            self.multiimage.region.set_bbox(x1, y1, x2, y2, coord='data')
-            self.multiimage.redo()
-        except:
-            """No matter"""
-            pass
-
+        self.draw_compound(obj, canvas)
         return self.redo()
 
     def edit_cb(self, canvas, obj):
@@ -1422,7 +1418,7 @@ class MIPick(GingaPlugin.LocalPlugin):
         # Make sure edited rectangle was our pick rectangle.
         c_obj = self.canvas.getObjectByTag(self.picktag)
         if (c_obj.kind != 'compound') or (len(c_obj.objects) < 3) or \
-               (c_obj.objects[0] != obj):
+           (c_obj.objects[0] != obj):
             return False
 
         # determine center of rectangle
@@ -1435,6 +1431,8 @@ class MIPick(GingaPlugin.LocalPlugin):
         point.x, point.y = x, y
         text = c_obj.objects[2]
         text.x, text.y = x1, y2 + 4
+
+        self.regions.set_bbox(x1, y1, x2, y2, coord='data')
 
         return self.redo()
 
@@ -1457,6 +1455,9 @@ class MIPick(GingaPlugin.LocalPlugin):
         # calculate new coords
         bbox.x1, bbox.y1, bbox.x2, bbox.y2 = (x-self.dx, y-self.dy,
                                               x+self.dx, y+self.dy)
+
+        self.regions.set_bbox(bbox.x1, bbox.y1,
+                              bbox.x2, bbox.y2, coord='data')
 
         self.redo()
 
@@ -1608,4 +1609,33 @@ class MIPick(GingaPlugin.LocalPlugin):
     def __str__(self):
         return 'mipick'
 
-#END
+    def draw_compound(self, obj, canvas, *args):
+        """Draw the pick info box"""
+        if obj.kind != 'rectangle':
+            return True
+        canvas.deleteObject(obj)
+
+        if self.picktag:
+            try:
+                canvas.deleteObjectByTag(self.picktag)
+            except:
+                pass
+
+        # Get rectangle:
+        if len(args) == 4:
+            x1, y1, x2, y2 = args
+        else:
+            x1, y1, x2, y2 = obj.get_llur()
+
+        # determine center of rectangle
+        x = x1 + (x2 - x1) // 2
+        y = y1 + (y2 - y1) // 2
+
+        tag = canvas.add(self.dc.CompoundObject(
+            self.dc.Rectangle(x1, y1, x2, y2,
+                              color=self.pickcolor),
+            self.dc.Point(x, y, 10, color='red'),
+            self.dc.Text(x1, y2+4, "Pick: calc",
+                         color=self.pickcolor)))
+        self.picktag = tag
+        self.region.set_bbox(x1, y1, x2, y2, coord='data')
