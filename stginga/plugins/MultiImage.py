@@ -12,10 +12,15 @@ instructions = (
     ' images.'
 )
 
-__all__ = ['MultiImage']
+__all__ = ['MultiImage', 'Region']
 
 _radius_scale = cos(radians(45))
 _def_coords = 'wcs'
+_coords_options = (
+    ('wcs', 'Fix region to sky'),
+    ('data', 'Fix region to pixels')
+)
+
 
 class RegionError(Exception):
     """Generic Region errors"""
@@ -68,10 +73,6 @@ class Region(object):
             The center point and radius of the region.
         """
         self.logger.debug('Called.')
-        self.logger.debug('x, y, r, coord, image="{}" "{}" "{}" "{}" "{}"'.format(
-            self.x, self.y, self.r,
-            self.coord, self.image
-        ))
         convert = self.get_convert(to_coord=coord, image=image)
         dx, dy = self.delta()
         cx, cy = convert(self.x, self.y)
@@ -80,10 +81,6 @@ class Region(object):
             self.y + dy
         )
         cr = hypot(cx1 - cx, cy1 - cy)
-        self.logger.debug('cx, cy, cr, coord, image="{}" "{}" "{}" "{}" "{}"'.format(
-            cx, cy, cr,
-            coord, image
-        ))
         return (cx, cy, cr)
 
     def set(self, x, y, r, coord, as_coord=None, image=None):
@@ -104,10 +101,6 @@ class Region(object):
             The reference image.
         """
         self.logger.debug('Called.')
-        self.logger.debug('x, y, r, coord, image="{}" "{}" "{}" "{}" "{}"'.format(
-            x, y, r,
-            coord, image
-        ))
         self.x = x
         self.y = y
         self.r = r
@@ -117,16 +110,11 @@ class Region(object):
             self.coord = as_coord
         if image is not None:
             self.image = image
-        self.logger.debug('self: x, y, r, coord, image="{}" "{}" "{}" "{}" "{}"'.format(
-            self.x, self.y, self.r,
-            self.coord, self.image
-        ))
 
     def set_center(self, x, y, coord=None, image=None):
         self.logger.debug('Called.')
         convert = self.get_convert(from_coord=coord, image=image)
         self.x, self.y = convert(x, y)
-        self.logger.debug('self.(x, y)="({}, {})"'.format(self.x, self.y))
 
     def set_bbox(self, x1, y1, x2, y2, coord=None, image=None):
         convert = self.get_convert(from_coord=coord, image=image)
@@ -150,9 +138,6 @@ class Region(object):
         x2, y2 = convert(self.x + dx, self.y + dy)
         (x1, x2) = (x1, x2) if x1 <= x2 else (x2, x1)
         (y1, y2) = (y1, y2) if y1 <= y2 else (y2, y1)
-        self.logger.debug('(x1, y1)="({}, {})" (x2, y2)="({}, {})"'.format(
-            x1, y1, x2, y2
-        ))
         return (x1, y1, x2, y2)
 
     def delta(self):
@@ -203,7 +188,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.id_count = 0  # Create unique ids
 
         self.layertag = 'muimg-canvas'
-        self.coords_options = ('wcs', 'data')
         self.region = None
         self.images = {}
         self.pstamps = None
@@ -237,7 +221,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
             'activated',
             lambda w, val: self.set_mode_cb('move', val)
         )
-        btn1.set_tooltip("Choose this to position pick")
+        btn1.set_tooltip("Choose this to position region")
         self.w.btn_move = btn1
         hbox.add_widget(btn1)
 
@@ -247,7 +231,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
             'activated',
             lambda w, val: self.set_mode_cb('draw', val)
         )
-        btn2.set_tooltip("Choose this to draw a replacement pick")
+        btn2.set_tooltip("Choose this to draw a replacement region")
         self.w.btn_draw = btn2
         hbox.add_widget(btn2)
 
@@ -257,7 +241,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
             'activated',
             lambda w, val: self.set_mode_cb('edit', val)
         )
-        btn3.set_tooltip("Choose this to edit a pick")
+        btn3.set_tooltip("Choose this to edit a region")
         self.w.btn_edit = btn3
         hbox.add_widget(btn3)
 
@@ -269,13 +253,14 @@ class MultiImage(GingaPlugin.LocalPlugin):
         hbox = Widgets.HBox()
         hbox.set_border_width(4)
         hbox.set_spacing(4)
-        for option in self.coords_options:
+        for option, tooltip in _coords_options:
             btn = Widgets.RadioButton(option)
             btn.set_state(option == _def_coords)
             btn.add_callback(
                 'activated',
                 lambda widget, state, option=option: self.set_coords(option, state)
             )
+            btn.set_tooltip(tooltip)
             hbox.add_widget(btn)
         hbox.add_widget(Widgets.Label(''), stretch=1)
         coords.set_widget(hbox)
@@ -311,8 +296,10 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.pstamps_show = False
         pstamps = Widgets.HBox()
         w = pstamps.get_widget()
-        pstamps_frame.layout().addWidget(w)
+        self.logger.debug('layout="{}"'.format(pstamps_frame.layout()))
+        self.logger.debug('pstamps.w="{}"'.format(w))
         w.setMinimumHeight(100)
+        pstamps_frame.layout().addWidget(w)
         self.pstamps = pstamps
         self.pstamps_frame = pstamps_frame
 
@@ -373,8 +360,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         # Loop through all images.
         for image_id, (image, pstamp) in self.images.items():
-            self.logger.debug('image_id="{}"'.format(image_id))
-
             x1, y1, x2, y2 = self.region.bbox(coord='data', image=image)
             x1, y1, x2, y2, data = self.cutdetail(image,
                                                   int(x1), int(y1),
@@ -415,7 +400,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def btndown(self, canvas, event, data_x, data_y, viewer):
         self.logger.debug('Called.')
-        self.logger.debug('(x, y)="({}, {})"'.format(data_x, data_y))
         self.region.set_center(data_x, data_y, coord='data')
         self.redo()
         return True
@@ -457,7 +441,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         return (x1, y1, x2, y2, data)
 
     def add_pstamp(self):
-
+        self.logger.debug('Called.')
         # Setup for thumbnail display
         di = Viewers.ImageViewCanvas(logger=self.logger)
         di.configure_window(100, 100)
@@ -524,7 +508,6 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def set_coords(self, coords, state):
         self.logger.debug('Called.')
-        self.logger.debug('coords="{}" state="{}"'.format(coords, state))
         if state:
             self.region.set_coords(coords)
 
