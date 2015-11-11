@@ -563,6 +563,8 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         return self.redo()
 
     def close(self):
+        self._reset_imdq_on_error()
+
         chname = self.fv.get_channelName(self.fitsimage)
         self.fv.stop_local_plugin(chname, str(self))
         return True
@@ -591,6 +593,8 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         self.fv.showStatus('Draw a region with the right mouse button')
 
     def stop(self):
+        self._reset_imdq_on_error()
+
         # remove the canvas from the image
         p_canvas = self.fitsimage.get_canvas()
         try:
