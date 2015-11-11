@@ -253,6 +253,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 return self._reset_imdq_on_error()
 
             chname = self.fv.get_channelName(self.fitsimage)
+            chname = chname.capitalize()  # Temp fix?
             chinfo = self.fv.get_channelInfo(chname)
 
             if dqname in chinfo.datasrc:  # DQ already loaded
@@ -265,8 +266,8 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 future.freeze(self.fv.load_image, imfile, idx=dq_extnum)
                 dqsrc.set(path=imfile, idx=dq_extnum, name=dqname,
                           image_future=future)
-                chinfo.datasrc[dqname] = dqsrc
-                self.fv.make_callback('add-image', chname, dqsrc)
+                self.fv.add_image(dqname, dqsrc, chname=chname, silent=True)
+                self.fv.advertise_image(chname, dqsrc)
 
         # Use displayed image
         else:
