@@ -91,7 +91,7 @@ class GingaServer(object):
 
         if isiterable(fileorhdu):
             for hdui in fileorhdu:
-                if hasattr(hdu, 'is_image') and hdu.is_image:
+                if hasattr(hdui, 'is_image') and hdui.is_image:
                     hdu = hdui
                     break
             else:
