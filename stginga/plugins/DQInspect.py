@@ -253,7 +253,6 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 return self._reset_imdq_on_error()
 
             chname = self.fv.get_channelName(self.fitsimage)
-            chname = chname.capitalize()  # Temp fix?
             chinfo = self.fv.get_channelInfo(chname)
 
             if dqname in chinfo.datasrc:  # DQ already loaded
