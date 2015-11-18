@@ -4,9 +4,9 @@ from __future__ import (absolute_import, division, print_function,
 
 # THIRD-PARTY
 import numpy as np
+from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
 from astropy import version as astropy_version
-from scipy import stats
 
 __all__ = ['calc_stat']
 
@@ -44,10 +44,12 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
     if len(arr) < 1:
         return 0.0
 
-    if (astropy_version.major==1 and astropy_version.minor==0) or (astropy_version.major < 1):
+    if ((astropy_version.major==1 and astropy_version.minor==0) or
+            (astropy_version.major < 1)):
         arr_masked = sigma_clip(arr, sig=sigma, iters=niter)
     else:
         arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
+
     arr = arr_masked.data[~arr_masked.mask]
 
     if len(arr) < 1:
@@ -59,7 +61,7 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
     elif algorithm == 'median':
         val = np.median(arr)
     elif algorithm == 'mode':
-        val = stats.mode(arr)[0][0]
+        val = biweight_location(arr)
     elif algorithm == 'stddev':
         val = arr.std()
     else:
