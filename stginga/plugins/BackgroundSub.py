@@ -16,6 +16,7 @@ from ginga import GingaPlugin
 from ginga.canvas.types.astro import Annulus
 from ginga.gw.Widgets import SaveDialog
 from ginga.misc import Widgets
+from ginga.qtw.QtHelp import QtGui
 
 # LOCAL
 QUIP_LOG = None
@@ -143,10 +144,14 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
 
         vbox.add_widget(w, stretch=0)
 
-        captions = (('Save Parameters', 'button', 'Subtract', 'button',
-                     'Spacer2', 'spacer'), )
+        captions = (('Load Parameters', 'button',
+                     'Save Parameters', 'button',
+                     'Subtract', 'button'), )
         w, b = Widgets.build_info(captions, orientation=self.orientation)
         self.w.update(b)
+
+        b.load_parameters.set_tooltip('Load previously saved parameters')
+        b.load_parameters.widget.clicked.connect(self.load_params)
 
         b.save_parameters.set_tooltip('Save background subtraction parameters')
         b.save_parameters.widget.clicked.connect(self.save_params)
@@ -746,6 +751,86 @@ Click "Subtract" to remove background.""")
             json.dump(pardict, fout, indent=4, sort_keys=True,
                       cls=JsonCustomEncoder)
         self.logger.info('Parameters saved as {0}'.format(fname))
+
+    def load_params(self):
+        """Load previously saved parameters from a JSON file."""
+        res = QtGui.QFileDialog.getOpenFileName(
+            caption='Load JSON file', directory='.',
+            filter='JSON files (*.json)')
+        if isinstance(res, tuple):
+            res = res[0]
+        filename = str(res)
+        if len(filename) <= 0:
+            return True
+
+        with open(filename) as fin:
+            self.logger.info('Background subtraction parameters loaded from '
+                             '{0}'.format(filename))
+            pardict = json.load(fin)
+
+        if ((pardict['plugin'] != 'backgroundsub') or
+                ('bgtype' not in pardict) or
+                (pardict['bgtype'] not in self._bgtype_options)):
+            self.logger.error(
+                '{0} is not a valid JSON file'.format(filename))
+            return True
+
+        # Clear existing canvas
+        if self.bgsubtag:
+            try:
+                self.canvas.deleteObjectByTag(self.bgsubtag, redraw=True)
+            except:
+                pass
+
+        # Ingest values from file. Retain current value if not found.
+
+        self.set_bgtype(pardict['bgtype'])
+        self.w.bg_type.set_index(self._bgtype_options.index(self.bgtype))
+
+        if self.bgtype == 'constant':
+            self.w.background_value.set_text(
+                str(pardict.get('bgval', self._dummy_value)))
+            self.set_constant_bg()
+            return True
+
+        # Only annulus or box beyond this point
+
+        self.xcen = pardict.get('xcen', self.xcen)
+        self.ycen = pardict.get('ycen', self.ycen)
+        self.algorithm = pardict.get('algorithm', self.algorithm)
+        self.sigma = pardict.get('sigma', self.sigma)
+        self.niter = pardict.get('niter', self.niter)
+
+        if self.bgtype == 'annulus':
+            self.radius = pardict.get('radius', self.radius)
+            self.annulus_width = pardict.get('annulus_width',
+                                             self.annulus_width)
+
+            # The only text box not set by redo()
+            self.w.annulus_width.set_text(str(self.annulus_width))
+
+            bg_obj = self.dc.Annulus(
+                x=self.xcen, y=self.ycen, radius=self.radius,
+                width=self.annulus_width, color=self.bgsubcolor)
+            y2 = self.ycen + self.radius + self.annulus_width
+
+        else:  # box
+            self.boxwidth = pardict.get('boxwidth', self.boxwidth)
+            self.boxheight = pardict.get('boxheight', self.boxheight)
+
+            x1 = self.xcen - (self.boxwidth * 0.5)
+            x2 = x1 + self.boxwidth
+            y1 = self.ycen - (self.boxheight * 0.5)
+            y2 = y1 + self.boxheight
+            bg_obj = self.dc.Rectangle(
+                x1=x1, y1=y1, x2=x2, y2=y2, color=self.bgsubcolor)
+
+        # Draw on canvas
+        lbl_obj = self.dc.Text(self.xcen, y2 + self._text_label_offset,
+                               self._text_label, color=self.bgsubcolor)
+        self.bgsubtag = self.canvas.add(self.dc.CompoundObject(bg_obj, lbl_obj))
+
+        return self.redo()
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
