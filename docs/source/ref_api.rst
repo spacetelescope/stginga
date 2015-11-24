@@ -1,15 +1,15 @@
 Reference/API
 =============
 
-``stginga.gingawrapper``
-------------------------
+gingawrapper
+------------
 
 .. automodule:: stginga.gingawrapper
   :members:
 
 
-``stginga.utils``
------------------
+utils
+-----
 
 .. automodule:: stginga.utils
   :members:
