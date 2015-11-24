@@ -296,10 +296,11 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.pstamps_show = False
         pstamps = Widgets.HBox()
         w = pstamps.get_widget()
-        self.logger.debug('layout="{}"'.format(pstamps_frame.layout()))
+        self.logger.debug('layout="{}"'.format(
+            pstamps_frame.get_widget().layout()))
         self.logger.debug('pstamps.w="{}"'.format(w))
         w.setMinimumHeight(100)
-        pstamps_frame.layout().addWidget(w)
+        pstamps_frame.add_widget(pstamps)
         self.pstamps = pstamps
         self.pstamps_frame = pstamps_frame
 
@@ -444,7 +445,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.logger.debug('Called.')
         # Setup for thumbnail display
         di = Viewers.ImageViewCanvas(logger=self.logger)
-        di.configure_window(100, 100)
+        #di.configure_window(100, 100)
+        di.set_desired_size(100, 100)
         di.enable_autozoom('on')
         di.add_callback('configure', self.window_resized_cb)
         di.enable_autocuts('off')
@@ -487,7 +489,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def show_pstamps(self, show):
         """Show/hide the stamps"""
-        self.pstamps_frame.setVisible(show)
+        self.pstamps_frame.get_widget().setVisible(show)
 
     def edit_region(self):
         if self.pstag is not None:
