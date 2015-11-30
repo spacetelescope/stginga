@@ -8,41 +8,18 @@
 
 ``stginga`` is a package that customizes
 `Ginga <https://ginga.readthedocs.org/en/latest/>`_ in order to aid data
-analysis for the data supported by STScI (e.g., HST or JWST).
+analysis for the data supported by `STScI <http://www.stsci.edu/>`_ (e.g.,
+`HST <http://www.stsci.edu/hst/>`_ or `JWST <http://www.stsci.edu/jwst/>`_).
 
 
-Installation
-------------
+Installation and Setup
+----------------------
 
-``stginga`` requires:
+.. toctree::
+   :maxdepth: 2
 
-* Astropy 1.0 or later, available from
-  `Astropy's GitHub page <https://github.com/astropy/astropy>`_.
-* The latest version of Ginga, available from
-  `Ginga's GitHub page <https://github.com/ejeschke/ginga/>`_.
-* The latest version of ``stginga`` available from
-  `stginga's GitHub page <https://github.com/spacetelescope/stginga>`_.
-
-We suggest using  `Anaconda <https://www.continuum.io/downloads>`_ as a
-python distribution that is known to work with ``stginga``.
-
-To install ``stginga`` from source::
-
-    python setup.py install [--prefix=/my/install/path]
-
-
-Configuration Files
--------------------
-
-To use STScI recommended settings, copy the ``*.cfg`` files from
-``stginga/ginga/examples/configs`` to your ``$HOME/.ginga`` directory.
-If you already have existing Ginga configuration files, it is recommended that
-you **back up your existing Ginga configurations** before copying the files
-over. You can further customize Ginga according to your own preferences
-afterwards by modifying them manually.
-
-
-.. automodule:: stginga.plugin_info
+   install
+   config
 
 
 Using ``stginga``
@@ -51,7 +28,9 @@ Using ``stginga``
 .. toctree::
    :maxdepth: 2
 
+   run
    plugins
+   ipynb
    ref_api
 
 
