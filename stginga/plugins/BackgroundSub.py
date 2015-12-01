@@ -239,14 +239,19 @@ Click "Subtract" to remove background.""")
                 self.boxwidth, self.boxheight)
 
         # Extract background data
-        bg_masked = image.cutout_shape(bg_obj)
-        bg_data = bg_masked[~bg_masked.mask]
-        self.bgval = calc_stat(bg_data, sigma=self.sigma, niter=self.niter,
-                               algorithm=self.algorithm)
+        try:
+            bg_masked = image.cutout_shape(bg_obj)
+            bg_data = bg_masked[~bg_masked.mask]
+        except Exception as e:
+            self.logger.warn('{0}: {1}'.format(e.__class__.__name__, str(e)))
+            self.bgval = self._dummy_value
+        else:
+            self.bgval = calc_stat(bg_data, sigma=self.sigma, niter=self.niter,
+                                   algorithm=self.algorithm)
+
         self._debug_str += (', bgval={0}, salgo={1}, sigma={2}, '
                             'niter={3}'.format(
-                self.bgval, self.algorithm, self.sigma, self.niter))
-
+            self.bgval, self.algorithm, self.sigma, self.niter))
         self.logger.debug(self._debug_str)
         self.w.background_value.set_text(str(self.bgval))
 

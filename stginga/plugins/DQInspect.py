@@ -329,13 +329,19 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             dqsrc.metadata[self._cache_key] = pixmask_by_flag
 
         # Parse DQ into individual flag definitions
-        pixval = data[int(self.ycen), int(self.xcen)]
-        dqs = dqparser.interpret_dqval(pixval)
-        self.w.dq.set_text(str(pixval))
-        for row in dqs:
-            item = QtGui.QListWidgetItem(
-                '{0:<5d}\t{1}'.format(row[dqparser._dqcol], row[self.dqstr]))
-            self.pxdqlist.addItem(item)
+        ix = int(self.xcen)
+        iy = int(self.ycen)
+        if (0 <= iy < data.shape[0]) and (0 <= ix < data.shape[1]):
+            pixval = data[iy, ix]
+            dqs = dqparser.interpret_dqval(pixval)
+            self.w.dq.set_text(str(pixval))
+            for row in dqs:
+                item = QtGui.QListWidgetItem('{0:<5d}\t{1}'.format(
+                    row[dqparser._dqcol], row[self.dqstr]))
+                self.pxdqlist.addItem(item)
+        else:
+            self.logger.warn('{0}[{1}, {2}] is out of range; data shape is '
+                             '{3}'.format(dqname, iy, ix, data.shape))
 
         # No need to do the rest if image has not changed
         if pixmask_by_flag is self._curpxmask:
