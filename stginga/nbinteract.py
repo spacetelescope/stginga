@@ -15,10 +15,44 @@ from ginga.misc import log, Task
 from ginga.AstroImage import AstroImage
 from ginga.web.pgw import Widgets, js, PgHelp, ipg
 
-__all__ = ['start_server', 'GingaServer', '']
+__all__ = ['GingaServer']
 
 
 class GingaServer(object):
+    """IPython Notebook server for ``stginga``.
+
+    Parameters
+    ----------
+    host : str
+        Host name or IP address.
+
+    port : int
+        Port number.
+
+    logger
+        Python logger. This uses ``nbinteract_server`` logger by default.
+
+    numthreads : int
+        Number of multiprocessing threads to use.
+
+    Attributes
+    ----------
+    host, port, logger
+        Same as inputs
+
+    thread_pool
+        Thread pool for the given number of threads.
+
+    tornado_app
+        Tornado web application.
+
+    app
+        Ginga widget application.
+
+    viewers : dict
+        Maps viewer name to Ginga image viewer.
+
+    """
     def __init__(self, host='localhost', port=9909, logger=None, numthreads=5):
         self.tornado_app = None
         self.viewers = {}
@@ -30,10 +64,12 @@ class GingaServer(object):
         self.logger = logger
 
         self.thread_pool = Task.ThreadPool(numthreads, logger)
-        self.app = Widgets.Application(logger=self.logger, base_url=self.base_url)
+        self.app = Widgets.Application(logger=self.logger,
+                                       base_url=self.base_url)
 
     @property
     def base_url(self):
+        """Base URL for this server."""
         return "http://{0}:{1}/app".format(self.host, self.port)
 
     def __repr__(self):
@@ -44,8 +80,15 @@ class GingaServer(object):
             urlstr = 'URL={0}'.format(self.url)
         return repr_str.replace('object at', urlstr + ' at')
 
-
     def start(self, create_main_window=True):
+        """Start server.
+
+        Parameters
+        ----------
+        create_main_window : bool
+            Create new Ginga image viewer.
+
+        """
         self.thread_pool.startall()
 
         #TODO: DONT DO THIS.  Use package data instead
@@ -68,24 +111,69 @@ class GingaServer(object):
             self.new_viewer('Main Viewer')
 
     def stop(self):
+        """Stop server (**NOT IMPLEMENTED**)."""
         raise NotImplementedError
 
-    def new_viewer(self, viewer_name,):
-        """
-        Create a new viewer with the given name
+    def new_viewer(self, viewer_name):
+        """Create a new viewer with the given name.
+
+        Parameters
+        ----------
+        viewer_name : str
+            Name of the new Ginga image viewer.
+
+        Returns
+        -------
+        viewer
+            Ginga image viewer.
+
+        Raises
+        ------
+        ValueError
+            Viewer name already exists.
+
         """
         if viewer_name in self.viewers:
             raise ValueError('Viewer {} already exists'.format(viewer_name))
 
         # our own viewer object, customized with methods (see above)
-        self.viewers[viewer_name] = ipg.ImageViewer(self.logger, self.app.make_window(viewer_name))
+        self.viewers[viewer_name] = ipg.ImageViewer(
+            self.logger, self.app.make_window(viewer_name))
+
         return self.viewers[viewer_name]
 
     def get_viewer_urls(self):
-        return {name: viewer.top.url  for name, viewer in self.viewers.items()}
+        """Get viewer URLs.
 
+        Returns
+        -------
+        urls : dict
+            Maps viewer name to corresponding URL.
+
+        """
+        return {name: viewer.top.url for name, viewer in self.viewers.items()}
 
     def load_fits(self, fileorhdu, viewer_name='Main Viewer'):
+        """Load FITS image into the desired Ginga image viewer.
+
+        Parameters
+        ----------
+        fileorhdu
+            File or HDU list object.
+
+        viewer_name : str
+            Name of Ginga image viewer to display to.
+
+        Raises
+        ------
+        KeyError
+            Viewer name does not exist.
+
+        ValueError
+            Invalid file or HDU list object, or HDU list does not contain any
+            image.
+
+        """
         if isinstance(fileorhdu, file):
             fileorhdu = fits.HDUList.fromfile(fileorhdu)
 
@@ -95,13 +183,13 @@ class GingaServer(object):
                     hdu = hdui
                     break
             else:
-                raise ValueError('fileorhdu was iterable but did not contain any image HDUs')
+                raise ValueError(
+                    'fileorhdu was iterable but did not contain any image HDUs')
         elif hasattr(fileorhdu, 'data') and hasattr(fileorhdu,'header'):
             #quacks like an HDU - give it a shot
             hdu = fileorhdu
         else:
             raise ValueError('fileorhdu was not a fits file or HDU-ish thing')
-
 
         viewer = self.viewers[viewer_name]
         if viewer.fitsimage.get_image() is None:
