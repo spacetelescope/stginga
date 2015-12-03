@@ -214,8 +214,11 @@ Click "Subtract" to remove background.""")
 
         header = image.get_header()
         extname = header.get(self._ext_key, self._no_keyword).upper()
-        if extname != self._sci_extname:
-            self.logger.debug(
+
+        # Only calculate for science extension.
+        # If EXTNAME does not exist, just assume user knows best.
+        if extname not in (self._sci_extname, self._no_keyword):
+            self.logger.warn(
                 'Background calculation not possible for {0} extension in '
                 '{1}'.format(extname, image.get('name')))
             return True
