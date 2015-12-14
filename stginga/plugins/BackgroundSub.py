@@ -19,7 +19,6 @@ from ginga.misc import Widgets
 from ginga.qtw.QtHelp import QtGui
 
 # LOCAL
-QUIP_LOG = None
 try:
     from stginga.utils import calc_stat
 except ImportError:
@@ -684,34 +683,14 @@ Click "Subtract" to remove background.""")
             s += ' ({0})'.format(self._debug_str)
         self.logger.info(s)
 
-        # Also record action in QUIP log, if available
-        if QUIP_LOG is not None:
-            imname = image.metadata['name'].split('[')[0]
-            s = QUIP_LOG.add_entry(imname, 'Background subtracted', s, 'status')
-
-        # Update history listing
-        try:
-            history_plugin_obj = self.fv.gpmon.getPlugin('History')
-        except Exception as e:
-            self.logger.debug(
-                'Failed to update History plugin: {0}'.format(str(e)))
-        else:
-            history_plugin_obj.add_entry(s)
-
         # Change data in Ginga object and recalculate BG in annulus
         image.set_data(new_data, metadata=image.metadata)
-        self.fitsimage.auto_levels()
-        self.redo()
+        #self.fitsimage.auto_levels()
 
         # Update file listing
-        try:
-            list_plugin_obj = self.fv.gpmon.getPlugin('ContentsManager')
-        except Exception as e:
-            self.logger.debug(
-                'Failed to update ContentsManager plugin: {0}'.format(str(e)))
-        else:
-            chname = self.fv.get_channelName(self.fitsimage)
-            list_plugin_obj.set_modified_status(chname, image, 'yes')
+        chname = self.fv.get_channelName(self.fitsimage)
+        channel = self.fv.get_channelInfo(chname)
+        channel.image_data_modified(image)  # Also calls self.redo()
 
         return True
 
