@@ -762,7 +762,9 @@ Click "Subtract" to remove background.""")
         self.logger.info(s)
 
         # Change data in Ginga object and recalculate BG in annulus
-        image.set_data(new_data, metadata=image.metadata)
+        metadata = image.metadata
+        metadata['_latest_modification'] = s  # For ChangeHistory plugin
+        image.set_data(new_data, metadata=metadata)
         #self.fitsimage.auto_levels()
 
         # Update file listing

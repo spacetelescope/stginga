@@ -44,6 +44,32 @@ It is customizable using ``~/.ginga/plugin_BackgroundSub.cfg``::
   sigma = 1.8
   niter = 10
 
+  # If set to True, only use good pixels for calculations.
+  # This is only applicable if there is an associated DQ extension.
+  # Can also be changed in the GUI.
+  ignore_bad_pixels = False
+
+
+.. _local-plugin-changehistory:
+
+ChangeHistory
+-------------
+
+This plugin is used to log any changes to data buffer. It is customizable using
+``~/.ginga/plugin_ChangeHistory.cfg``::
+
+  #
+  # ChangeHistory plugin preferences file
+  #
+  # Place this in file under ~/.ginga with the name "plugin_ChangeHistory.cfg"
+
+  # If set to True, will always expand the tree in ChangeHistory when
+  # new entries are added
+  always_expand = True
+
+  # If set to True, rows will have alternate colors
+  color_alternate_rows = True
+
 
 .. _local-plugin-dqinspect:
 
@@ -98,6 +124,7 @@ update dynamically.
 Options include fixing the region either to sky coordinates, the
 default, or to pixels (data). Standard editing controls over the box
 are also available.
+
 
 .. _local-plugin-mipick:
 

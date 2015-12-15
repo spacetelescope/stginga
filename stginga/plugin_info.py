@@ -38,13 +38,16 @@ def load_plugins(ginga):
 def _get_stginga_plugins():
     gpfx = 'stginga.plugins'  # To load custom Qt plugins in Ginga namespace
 
-    global_plugins = []
+    global_plugins = [
+        Bunch(module='ChangeHistory', tab='History', ws='right', pfx=gpfx,
+              start=True),
+        ]
     local_plugins = [
         Bunch(module='BackgroundSub', ws='dialogs', pfx=gpfx),
         Bunch(module='DQInspect', ws='dialogs', pfx=gpfx),
         Bunch(module='MultiImage', ws='dialogs', pfx=gpfx),
         Bunch(module='MIPick', ws='dialogs', pfx=gpfx),
-    ]
+        ]
     return global_plugins, local_plugins
 
 
