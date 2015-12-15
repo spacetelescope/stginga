@@ -9,13 +9,14 @@ import warnings
 
 # THIRD-PARTY
 import numpy as np
+from astropy.io import fits
 from astropy.utils.misc import JsonCustomEncoder
 
 # GINGA
 from ginga import GingaPlugin
 from ginga.canvas.types.astro import Annulus
 from ginga.gw.Widgets import SaveDialog
-from ginga.misc import Widgets
+from ginga.misc import Future, Widgets
 from ginga.qtw.QtHelp import QtGui
 
 # LOCAL
@@ -57,12 +58,16 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         self.algorithm = settings.get('algorithm', 'median')
         self.sigma = settings.get('sigma', 1.8)
         self.niter = settings.get('niter', 10)
+        self.ignore_badpix = settings.get('ignore_bad_pixels', False)
 
         # FITS keywords and values from general config
         gen_settings = prefs.createCategory('general')
         gen_settings.load(onError='silent')
         self._sci_extname = gen_settings.get('sciextname', 'SCI')
+        self._dq_extname = gen_settings.get('dqextname', 'DQ')
         self._ext_key = gen_settings.get('extnamekey', 'EXTNAME')
+        self._extver_key = gen_settings.get('extverkey', 'EXTVER')
+        self._ins_key = gen_settings.get('instrumentkey', 'INSTRUME')
 
         # Used for calculation
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
@@ -240,10 +245,67 @@ Click "Subtract" to remove background.""")
             self._debug_str += ', w={0}, h={1}'.format(
                 self.boxwidth, self.boxheight)
 
+        # Extract DQ info
+        if self.ignore_badpix:
+            imfile = image.metadata['path']
+            imname = image.metadata['name'].split('[')[0]
+            instrument = header.get(self._ins_key, None)
+            extver = header.get(self._extver_key, self._dummy_value)
+            dq_extnum = (self._dq_extname, extver)
+            dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
+
+            if instrument != 'WFPC2':
+                dqsrc = self._find_ext(imfile, dq_extnum)
+
+            # Special handling for WFPC2, lots of assumptions
+            else:
+                imfile = imfile.replace('c0m', 'c1m')
+                imname = imname.replace('c0m', 'c1m')
+                dqsrc = self._find_ext(imfile, dq_extnum)
+
+                # If DQ not found, could be SCI
+                if not dqsrc:
+                    self.logger.debug('{0} has no {1}, trying {2}'.format(
+                        imfile, self._dq_extname, self._sci_extname))
+                    dq_extnum = (self._sci_extname, extver)
+                    dqname = '{0}[{1},{2}]'.format(
+                        imname, self._sci_extname, extver)
+                    dqsrc = self._find_ext(imfile, dq_extnum)
+
+            if not dqsrc:
+                self.logger.error('{0} extension not found for '
+                                  '{1}'.format(dq_extnum, imfile))
+        else:
+            dqsrc = False
+
+        # Extract DQ mask
+        if dqsrc:
+            chname = self.fv.get_channelName(self.fitsimage)
+            chinfo = self.fv.get_channelInfo(chname)
+
+            if dqname in chinfo.datasrc:  # DQ already loaded
+                self.logger.debug('Loading {0} from cache'.format(dqname))
+                dqsrc = chinfo.datasrc[dqname]
+            else:  # Force load DQ data
+                self.logger.debug('Loading {0} from {1}'.format(dqname, imfile))
+                dqsrc = self.fv.load_image(imfile, idx=dq_extnum)
+                future = Future.Future()
+                future.freeze(self.fv.load_image, imfile, idx=dq_extnum)
+                dqsrc.set(path=imfile, idx=dq_extnum, name=dqname,
+                          image_future=future)
+                self.fv.add_image(dqname, dqsrc, chname=chname, silent=True)
+                self.fv.advertise_image(chname, dqsrc)
+
+            dqsrc_masked = dqsrc.cutout_shape(bg_obj)
+            mask = (~dqsrc_masked.mask) & (dqsrc_masked.data == 0)
+
         # Extract background data
         try:
             bg_masked = image.cutout_shape(bg_obj)
-            bg_data = bg_masked[~bg_masked.mask]
+            if dqsrc:
+                bg_data = bg_masked.data[mask]
+            else:
+                bg_data = bg_masked[~bg_masked.mask]
         except Exception as e:
             self.logger.warn('{0}: {1}'.format(e.__class__.__name__, str(e)))
             self.bgval = self._dummy_value
@@ -252,8 +314,9 @@ Click "Subtract" to remove background.""")
                                    algorithm=self.algorithm)
 
         self._debug_str += (', bgval={0}, salgo={1}, sigma={2}, '
-                            'niter={3}'.format(
-            self.bgval, self.algorithm, self.sigma, self.niter))
+                            'niter={3}, ignore_badpix={4}'.format(
+            self.bgval, self.algorithm, self.sigma, self.niter,
+            self.ignore_badpix))
         self.logger.debug(self._debug_str)
         self.w.background_value.set_text(str(self.bgval))
 
@@ -261,6 +324,11 @@ Click "Subtract" to remove background.""")
             self.w.subtract.widget.setEnabled(True)
 
         return True
+
+    def _find_ext(self, imfile, ext):
+        with fits.open(imfile) as pf:
+            has_ext = ext in pf
+        return has_ext
 
     def update(self, canvas, button, data_x, data_y):
         try:
@@ -407,7 +475,8 @@ Click "Subtract" to remove background.""")
             captions += [
                 ('Algorithm:', 'label', 'Algorithm', 'combobox'),
                 ('Sigma:', 'label', 'Sigma', 'entry'),
-                ('Number of Iterations:', 'label', 'NIter', 'entry')]
+                ('Number of Iterations:', 'label', 'NIter', 'entry'),
+                ('Ignore bad pixels', 'checkbutton')]
             w, b = Widgets.build_info(captions, orientation=self.orientation)
             self.w.update(b)
 
@@ -451,6 +520,11 @@ Click "Subtract" to remove background.""")
             b.niter.set_tooltip('Number of clipping iterations')
             b.niter.set_text(str(self.niter))
             b.niter.widget.editingFinished.connect(self.set_niter)
+
+            b.ignore_bad_pixels.set_tooltip(
+                'Only use good pixels (DQ=0) for calculations')
+            b.ignore_bad_pixels.set_state(self.ignore_badpix)
+            b.ignore_bad_pixels.add_callback('activated', self.set_igbadpix)
 
             self.w.bgtype_attr_vbox.add_widget(w, stretch=1)
             self.w.background_value.widget.setReadOnly(True)
@@ -655,6 +729,10 @@ Click "Subtract" to remove background.""")
             return True
         return self.redo()
 
+    def set_igbadpix(self, w, val):
+        self.ignore_badpix = val
+        return self.redo()
+
     def set_constant_bg(self):
         self.w.subtract.widget.setEnabled(False)
         try:
@@ -715,6 +793,7 @@ Click "Subtract" to remove background.""")
         pardict['algorithm'] = self.algorithm
         pardict['sigma'] = self.sigma
         pardict['niter'] = self.niter
+        pardict['ignore_badpix'] = self.ignore_badpix
 
         if self.bgtype == 'annulus':
             pardict['radius'] = self.radius
@@ -787,6 +866,10 @@ Click "Subtract" to remove background.""")
         self.algorithm = pardict.get('algorithm', self.algorithm)
         self.sigma = pardict.get('sigma', self.sigma)
         self.niter = pardict.get('niter', self.niter)
+        self.ignore_badpix = pardict.get('ignore_badpix', self.ignore_badpix)
+
+        # Checkbox is not set by redo()
+        self.w.ignore_bad_pixels.set_state(self.ignore_badpix)
 
         if self.bgtype == 'annulus':
             self.radius = pardict.get('radius', self.radius)
