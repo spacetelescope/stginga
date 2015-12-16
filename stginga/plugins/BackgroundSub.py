@@ -14,7 +14,6 @@ from astropy.utils.misc import JsonCustomEncoder
 
 # GINGA
 from ginga import GingaPlugin
-from ginga.canvas.types.astro import Annulus
 from ginga.gw.Widgets import SaveDialog
 from ginga.misc import Future, Widgets
 from ginga.qtw.QtHelp import QtGui
@@ -761,16 +760,18 @@ Click "Subtract" to remove background.""")
             s += ' ({0})'.format(self._debug_str)
         self.logger.info(s)
 
-        # Change data in Ginga object and recalculate BG in annulus
-        metadata = image.metadata
-        metadata['_latest_modification'] = s  # For ChangeHistory plugin
-        image.set_data(new_data, metadata=metadata)
+        # Change data in Ginga object and recalculate BG in annulus.
+        # This issues a 'modified' callback, which calls redo().
+        image.set_data(new_data, metadata=image.metadata)
         #self.fitsimage.auto_levels()
 
-        # Update file listing
         chname = self.fv.get_channelName(self.fitsimage)
         channel = self.fv.get_channelInfo(chname)
-        channel.image_data_modified(image)  # Also calls self.redo()
+
+        # Update file listing.
+        # This issues a 'image-modified' callback, which sets
+        # the timestamp and reason.
+        channel.image_data_modified(image, reason=s)
 
         return True
 

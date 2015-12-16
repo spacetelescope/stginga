@@ -25,7 +25,7 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         # superclass defines some variables for us, like logger
         super(ChangeHistory, self).__init__(fv)
 
-        self.columns = [ ('Modification Timestamp', 'MODIFIED'),
+        self.columns = [ ('Timestamp', 'MODIFIED'),
                          ('Description', 'DESCRIP'),
                          ]
         # For table-of-contents pane
@@ -50,8 +50,7 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         ``container``.
 
         This method could be called several times if the plugin is opened
-        and closed.  The method may be omitted if there is no GUI for the
-        plugin.
+        and closed.
 
         """
         top = Widgets.VBox()
@@ -109,26 +108,14 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
                'Description:\n\n{3}'.format(chname, imname, timestamp, descrip))
         self.w.history_details.set_text(msg)
 
-    def image_modified_cb(self, viewer, chname, image):
-        """Add an entry with image modification info.
-
-        .. code-block:: python
-
-            timestamp = image.get_header().get('MODIFIED', None)
-            descrip = image.metadata.get('_latest_modification', 'N/A')
-
-        """
+    def image_modified_cb(self, viewer, chname, image, timestamp, reason):
+        """Add an entry with image modification info."""
         imname = image.get('name', 'none')
-        timestamp = image.get_header().get('MODIFIED', None)
 
         # Image fell out of cache and lost its history
         if timestamp is None:
-            path = image.get('path')
-            self.remove_image_cb(viewer, chname, imname, path)
+            self.remove_image_cb(viewer, chname, imname, image.get('path'))
             return
-
-        # TODO: A bit hacky, can this be improved?
-        descrip = image.metadata.get('_latest_modification', 'N/A')
 
         # Add info to internal log
         if chname not in self.name_dict:
@@ -139,8 +126,10 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         if imname not in fileDict:
             fileDict[imname] = {}
 
+        # Z: Zulu time, GMT, UTC
+        timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%SZ')
         bnch = Bunch.Bunch(CHNAME=chname, NAME=imname, MODIFIED=timestamp,
-                           DESCRIP=descrip)
+                           DESCRIP=reason)
         entries = fileDict[imname]
 
         # timestamp is guaranteed to be unique?
@@ -168,6 +157,7 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         if not self.gui_up:
             return False
         self.recreate_toc()
+        self.w.history_details.set_text('')
 
     def delete_channel_cb(self, viewer, chinfo):
         """Called when a channel is deleted from the main interface.
@@ -179,10 +169,12 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         if not self.gui_up:
             return False
         self.recreate_toc()
+        self.w.history_details.set_text('')
 
     def clear(self):
         self.name_dict = Bunch.caselessDict()
         self.recreate_toc()
+        self.w.history_details.set_text('')
 
     def __str__(self):
         return 'changehistory'
