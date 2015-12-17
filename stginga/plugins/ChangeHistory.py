@@ -25,7 +25,7 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         # superclass defines some variables for us, like logger
         super(ChangeHistory, self).__init__(fv)
 
-        self.columns = [ ('Timestamp', 'MODIFIED'),
+        self.columns = [ ('Timestamp (UTC)', 'MODIFIED'),
                          ('Description', 'DESCRIP'),
                          ]
         # For table-of-contents pane
@@ -72,22 +72,50 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         vbox.add_widget(treeview, stretch=1)
 
         fr = Widgets.Frame('Selected History')
-        captions = (('History Details', 'textarea'), )
+
+        captions = (('Channel:', 'label', 'chname', 'llabel'),
+                    ('Image:', 'label', 'imname', 'llabel'),
+                    ('Timestamp:', 'label', 'modified', 'llabel'),
+                    ('Description:', 'label'))
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
-        b.history_details.set_editable(False)
-        b.history_details.set_wrap(True)
-        b.history_details.set_text('')
-        b.history_details.set_tooltip('Displays selected history entry')
+        b.chname.set_text('')
+        b.chname.set_tooltip('Channel name')
 
-        fr.set_widget(w)
+        b.imname.set_text('')
+        b.imname.set_tooltip('Image name')
+
+        b.modified.set_text('')
+        b.modified.set_tooltip('Timestamp (UTC)')
+
+        captions = (('descrip', 'textarea'), )
+        w2, b = Widgets.build_info(captions)
+        self.w.update(b)
+
+        b.descrip.set_editable(False)
+        b.descrip.set_wrap(True)
+        b.descrip.set_text('')
+        b.descrip.set_tooltip('Displays selected history entry')
+
+        splitter = Widgets.Splitter('vertical')
+        splitter.add_widget(w)
+        splitter.add_widget(w2)
+        fr.set_widget(splitter, stretch=1)
         vbox.add_widget(fr, stretch=0)
 
-        top.add_widget(sw, stretch=1)
-        container.add_widget(top, stretch=1)
+        container.add_widget(vbox, stretch=1)
 
         self.gui_up = True
+
+    def clear_selected_history(self):
+        if not self.gui_up:
+            return
+
+        self.w.chname.set_text('')
+        self.w.imname.set_text('')
+        self.w.modified.set_text('')
+        self.w.descrip.set_text('')
 
     def stop(self):
         self.gui_up = False
@@ -95,6 +123,7 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
     def recreate_toc(self):
         self.logger.debug("Recreating table of contents...")
         self.treeview.set_tree(self.name_dict)
+        #self.treeview.sort_on_column(self.treeview.leaf_idx)
 
     def show_more(self, widget, res_dict):
         chname = list(res_dict.keys())[0]
@@ -103,10 +132,12 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         entries = img_dict[imname]
         timestamp = list(entries.keys())[0]
         bnch = entries[timestamp]
-        descrip = bnch.DESCRIP
-        msg = ('Channel: {0}\nImage: {1}\nTimestamp: {2}\n'
-               'Description:\n\n{3}'.format(chname, imname, timestamp, descrip))
-        self.w.history_details.set_text(msg)
+
+        # Display on GUI
+        self.w.chname.set_text(chname)
+        self.w.imname.set_text(imname)
+        self.w.modified.set_text(timestamp)
+        self.w.descrip.set_text(bnch.DESCRIP)
 
     def image_modified_cb(self, viewer, chname, image, timestamp, reason):
         """Add an entry with image modification info."""
@@ -156,25 +187,29 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
 
         if not self.gui_up:
             return False
+        self.clear_selected_history()
         self.recreate_toc()
-        self.w.history_details.set_text('')
 
     def delete_channel_cb(self, viewer, chinfo):
         """Called when a channel is deleted from the main interface.
         Parameter is chinfo (a bunch)."""
         chname = chinfo.name
+
+        if chname not in self.name_dict:
+            return
+
         del self.name_dict[chname]
         self.logger.debug('{0} removed from ChangeHistory'.format(chname))
 
         if not self.gui_up:
             return False
+        self.clear_selected_history()
         self.recreate_toc()
-        self.w.history_details.set_text('')
 
     def clear(self):
         self.name_dict = Bunch.caselessDict()
+        self.clear_selected_history()
         self.recreate_toc()
-        self.w.history_details.set_text('')
 
     def __str__(self):
         return 'changehistory'

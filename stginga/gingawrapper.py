@@ -95,7 +95,6 @@ def run_stginga(sys_argv):
     This does the following:
 
     * Set up custom STScI plugins.
-    * Enforce Qt toolkit.
     * Pass command line arguments directly into Ginga.
 
     .. warning::
@@ -123,13 +122,13 @@ def run_stginga(sys_argv):
     gmain.global_plugins += stglobal_plugins
     gmain.local_plugins += stlocal_plugins
 
-    # Enforce Qt (--toolkit or -t)
-    new_argv = ['--toolkit=qt' if 'toolkit' in s else s for s in sys_argv]
-    if '-t' in new_argv:
-        new_argv[new_argv.index('-t') + 1] = 'qt'
+    # Enforce Qt (--toolkit or -t) -- DISABLED
+    #new_argv = ['--toolkit=qt' if 'toolkit' in s else s for s in sys_argv]
+    #if '-t' in new_argv:
+    #    new_argv[new_argv.index('-t') + 1] = 'qt'
 
     # Start Ginga
-    gmain.reference_viewer(new_argv)
+    gmain.reference_viewer(sys_argv)
 
 
 def _locate_plugin(plist, name):

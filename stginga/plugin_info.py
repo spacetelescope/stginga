@@ -36,7 +36,7 @@ def load_plugins(ginga):
 
 
 def _get_stginga_plugins():
-    gpfx = 'stginga.plugins'  # To load custom Qt plugins in Ginga namespace
+    gpfx = 'stginga.plugins'  # To load custom plugins in Ginga namespace
 
     global_plugins = [
         Bunch(module='ChangeHistory', tab='History', ws='right', pfx=gpfx,

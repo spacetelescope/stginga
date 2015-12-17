@@ -3,7 +3,7 @@
 Plugins
 =======
 
-By using ``stginga``, the following plugins (in alphabetical order) are also
+By using ``stginga``, the following plugins are also
 available, in addition to the ones that already come with Ginga. Some are
 customizable via plugin configuration files, which are available in the
 `stginga/examples/configs <https://github.com/spacetelescope/stginga/tree/master/stginga/examples/configs>`_ directory.
@@ -14,7 +14,7 @@ customizable via plugin configuration files, which are available in the
 BackgroundSub
 -------------
 
-This plugin is used to calculate and subtract background value. Currently,
+This local plugin is used to calculate and subtract background value. Currently,
 it only handles constant background and there is no way to save the subtracted
 image. However, subtraction parameters can be saved to a JSON file, which then
 can be reloaded as well.
@@ -50,13 +50,16 @@ It is customizable using ``~/.ginga/plugin_BackgroundSub.cfg``::
   ignore_bad_pixels = False
 
 
-.. _local-plugin-changehistory:
+.. _global-plugin-changehistory:
 
 ChangeHistory
 -------------
 
-This plugin is used to log any changes to data buffer. It is customizable using
-``~/.ginga/plugin_ChangeHistory.cfg``::
+This global plugin is used to log any changes to data buffer. For example,
+a change log would appear here if background is subtracted off an image using
+:ref:`local-plugin-backgroundsub` plugin.
+
+It is customizable using ``~/.ginga/plugin_ChangeHistory.cfg``::
 
   #
   # ChangeHistory plugin preferences file
@@ -76,7 +79,7 @@ This plugin is used to log any changes to data buffer. It is customizable using
 DQInspect
 ---------
 
-This plugin is used to inspect the associated DQ array of a given image.
+This local plugin is used to inspect the associated DQ array of a given image.
 It shows the different DQ flags that went into a given pixel (middle right)
 and also the overall mask of the selected DQ flag(s) (bottom right).
 
@@ -110,7 +113,7 @@ It is customizable using ``~/.ginga/plugin_DQInspect.cfg``::
 MultiImage
 ----------
 
-This plugin is used to view a selectable region of sky in multiple
+This local plugin is used to view a selectable region of sky in multiple
 images. A box on the image in the main display defines the right
 ascension/declination region of sky to view. Along the bottom, postage
 stamps of that same region from other images loaded into Ginga are
@@ -119,7 +122,7 @@ update dynamically.
 
 .. image:: _static/multiimage_screenshot.png
   :width: 800px
-  :alt: DQInspect plugin
+  :alt: MultiImage plugin
 
 Options include fixing the region either to sky coordinates, the
 default, or to pixels (data). Standard editing controls over the box
@@ -131,16 +134,16 @@ are also available.
 MIPick
 ------
 
-This plugin is mainly a demonstration on how custom plugins can be
-integrated with existing plugins. This plugin is based on the ``Pick``
-plugin. However, the pick region, instead of being fixed to image
+This local plugin is mainly a demonstration on how custom plugins can be
+integrated with existing plugins. This plugin is based on the
+`Pick plugin <https://ginga.readthedocs.org/en/latest/manual/plugins.html#pick>`_.
+However, the pick region, instead of being fixed to image
 pixel coordinates, uses the image sky coordinates. If run with
-``MultiImage``, the postage stamps will show the same region in different
-images. Also, as images are cycled through the main viewer, the region
-will automatically update, again always fixed on the same section of
-sky.
+:ref:`local-plugin-multiimage`, the postage stamps will show the same region
+in different images.
+Also, as images are cycled through the main viewer, the region
+will automatically update, again always fixed on the same section of sky.
 
 .. image:: _static/mipick_screenshot.png
   :width: 800px
-  :alt: DQInspect plugin
-
+  :alt: MIPick plugin
