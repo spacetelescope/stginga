@@ -79,17 +79,41 @@ It is customizable using ``~/.ginga/plugin_DQInspect.cfg``::
   imdqalpha = 1.0
 
 
-.. _local-plugin-mipick:
-
-MIPick
-------
-
-TBD
-
-
 .. _local-plugin-multiimage:
 
 MultiImage
 ----------
 
-TBD
+This plugin is used to view a selectable region of sky in multiple
+images. A box on the image in the main display defines the right
+ascension/declination region of sky to view. Along the bottom, postage
+stamps of that same region from other images loaded into ginga are
+displayed. If the box size and position change, all the postage stamps
+update dynamically.
+
+.. image:: _static/multiimage_screenshot.png
+  :width: 800px
+  :alt: DQInspect plugin
+
+Options include fixing the region either to sky coordinates, the
+default, or to pixels (data). Standard editing controls over the box
+are also available.
+
+.. _local-plugin-mipick:
+
+MIPick
+------
+
+This plugin is mainly a demonstration on how custom plugins can be
+integrated with existing plugins. This plugin is based on the ``Pick``
+plugin. However, the pick region, instead of being fixed to image
+pixel coordinates, uses the image sky coordinates. If run with
+``MultiImage``, the postage stamps will show the same region in different
+images. Also, as images are cycled through the main viewer, the region
+will automatically update, again always fixed on the same section of
+sky.
+
+.. image:: _static/mipick_screenshot.png
+  :width: 800px
+  :alt: DQInspect plugin
+
