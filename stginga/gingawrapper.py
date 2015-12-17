@@ -44,6 +44,18 @@ gmain.default_layout = ['seq', {}, [
                                'group': 1}
                     ],
                      'stretch': 1
+                    },
+                    {'row': [
+                        'ws', {'wstype': 'stack', 'name': 'cbar',
+                               'group': 99}
+                    ],
+                     'stretch': 0
+                    },
+                    {'row': [
+                        'ws', {'wstype': 'stack', 'name': 'readout',
+                               'group': 99}
+                    ],
+                     'stretch': 0
                     }
                 ],
                 [
