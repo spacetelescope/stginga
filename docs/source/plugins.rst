@@ -105,10 +105,10 @@ MIPick
 ------
 
 This plugin is mainly a demonstration on how custom plugins can be
-integrated with existing plugins. This plugin is based on the Pick
+integrated with existing plugins. This plugin is based on the ``Pick``
 plugin. However, the pick region, instead of being fixed to image
 pixel coordinates, uses the image sky coordinates. If run with
-MultiImage, the postage stamps will show the same region in different
+``MultiImage``, the postage stamps will show the same region in different
 images. Also, as images are cycled through the main viewer, the region
 will automatically update, again always fixed on the same section of
 sky.
