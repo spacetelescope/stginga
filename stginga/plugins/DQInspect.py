@@ -60,17 +60,30 @@ class DQInspect(GingaPlugin.LocalPlugin):
         self._no_keyword = 'N/A'
         self._text_label = 'DQInspect'
         self._text_label_offset = 4
-        self._def_parser = DQParser(_def_tab)
 
-        # User preferences and related internal cache
+        # TODO: Could be improved and expanded?
+        self._def_imdqcolors = ['blue', 'magenta', 'green']
+
+        # TODO: Need better DQ definitions for supported instruments.
+        # For DQ parser. Default defines only existing pkg data.
+        self._def_parser = DQParser(_def_tab)
+        self._def_dqdict = {'NIRCAM': 'data/dqflags_jwst.txt',
+                            'NIRSPEC': 'data/dqflags_jwst.txt',
+                            'NIRISS': 'data/dqflags_jwst.txt',
+                            'MIRI': 'data/dqflags_jwst.txt',
+                            'ACS': 'data/dqflags_acs.txt',
+                            'WFC3': 'data/dqflags_wfc3.txt',
+                            'COS': 'data/dqflags_hstgen.txt',
+                            'STIS': 'data/dqflags_hstgen.txt',
+                            'WFPC2': 'data/dqflags_hstgen.txt'}
+
+        # User preferences
         prefs = self.fv.get_preferences()
-        settings = prefs.createCategory('plugin_DQInspect')
-        settings.load(onError='silent')
-        self.dqstr = settings.get('dqstr', 'long')
-        self.dqdict = settings.get('dqdict', {None: self._def_parser})
-        self.pxdqcolor = settings.get('pxdqcolor', 'red')
-        self.imdqcolor = settings.get('imdqcolor', 'blue')
-        self.imdqalpha = settings.get('imdqalpha', 1.0)
+        self.settings = prefs.createCategory('plugin_DQInspect')
+        self.settings.load(onError='silent')
+        self.pxdqcolor = self.settings.get('pxdqcolor', 'red')
+
+        # Internal cache
         self._dqparser = {}
         self._curpxmask = {}
         self._curshape = None
@@ -88,9 +101,10 @@ class DQInspect(GingaPlugin.LocalPlugin):
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
         self._point_radius = 3
 
-        # For DQ tables
-        self.columns = [('Flag', 'FLAG'), ('Description', 'DESCRIP')]
+        # For DQ treeviews
+        self.pxdqcolumns = [('Flag', 'FLAG'), ('Description', 'DESCRIP')]
         self.pxdqlist = None
+        self.imdqcolumns = self.pxdqcolumns
         self.imdqllist = None
 
         self.dc = self.fv.getDrawClasses()
@@ -161,7 +175,7 @@ class DQInspect(GingaPlugin.LocalPlugin):
                                          sortable=True,
                                          selection='multiple',
                                          use_alt_row_color=True)
-        self.pxdqlist.setup_table(self.columns, 1, 'FLAG')
+        self.pxdqlist.setup_table(self.pxdqcolumns, 1, 'FLAG')
 
         splitter = Widgets.Splitter('vertical')
         splitter.add_widget(w)
@@ -186,7 +200,7 @@ class DQInspect(GingaPlugin.LocalPlugin):
                                          sortable=True,
                                          selection='multiple',
                                          use_alt_row_color=True)
-        self.imdqlist.setup_table(self.columns, 1, 'FLAG')
+        self.imdqlist.setup_table(self.imdqcolumns, 1, 'FLAG')
         self.imdqlist.add_callback('selected', self.mark_dqs_cb)
 
         splitter = Widgets.Splitter('vertical')
@@ -227,11 +241,12 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         if not self.gui_up:
             return
 
+        dqstr = self.settings.get('dqstr', 'long')
         treedict = Bunch.caselessDict()
 
         for row in dqs:
             flag = row[dqparser._dqcol]
-            val = row[self.dqstr]
+            val = row[dqstr]
             treedict[str(flag)] = Bunch.Bunch(FLAG=flag, DESCRIP=val)
 
         self.pxdqlist.set_tree(treedict)
@@ -243,6 +258,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         if not self.gui_up:
             return
 
+        dqstr = self.settings.get('dqstr', 'long')
         treedict = Bunch.caselessDict()
 
         for key in self._curpxmask:
@@ -251,7 +267,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 
             row = dqparser.tab[dqparser.tab[dqparser._dqcol] == key]
             flag = row[dqparser._dqcol][0]
-            val = row[self.dqstr][0]
+            val = row[dqstr][0]
             treedict[str(flag)] = Bunch.Bunch(FLAG=flag, DESCRIP=val)
 
         self.imdqlist.set_tree(treedict)
@@ -285,16 +301,18 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 
     def _load_dqparser(self, instrument):
         """Create new DQParser for given instrument."""
-        if instrument not in self.dqdict:
+        dqdict = self.settings.get('dqdict', self._def_dqdict)
+
+        if instrument not in dqdict:
             self.logger.warn(
                 '{0} is not supported, using default'.format(instrument))
             return self._def_parser
 
         try:
-            dqfile = get_pkg_data_filename(self.dqdict[instrument],
+            dqfile = get_pkg_data_filename(dqdict[instrument],
                                            package='stginga')
         except Exception as e:
-            dqfile = self.dqdict[instrument]
+            dqfile = dqdict[instrument]
             if os.path.isfile(dqfile):
                 self.logger.info('Using external data {0}'.format(dqfile))
             else:
@@ -497,25 +515,43 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 
         # Pixel list is set by redo().
         # To save memory, composite mask is generated on the fly.
+        imdqcolors = self.settings.get('imdqcolors', self._def_imdqcolors)
+        n_color = len(imdqcolors)
         mask = np.zeros(self._curshape, dtype=np.bool)
-        for key in res_dict:
-            ikey = int(key)
-            mask[self._curpxmask[ikey]] = True
+        m_objs = []
 
-        # Generate canvas mask overlay
+        # Evenly distribute alpha between all individual masks
+        n_key = len(res_dict)
+        if n_key > 0:
+            imdqalpha = 1.0 / n_key
+
+        # Only valid DQs are selectable and passed in here
+        for i, key in enumerate(res_dict):
+            ikey = int(key)
+            mask[self._curpxmask[ikey]] = True  # Composite mask for npix count
+
+            # Mask only for that DQ flag, for individual color display
+            cur_col = imdqcolors[i % n_color]
+            cur_mask = np.zeros(self._curshape, dtype=np.bool)
+            cur_mask[self._curpxmask[ikey]] = True
+            m_objs.append(self.dc.Image(
+                0, 0, masktorgb(cur_mask, color=cur_col, alpha=imdqalpha)))
+
+            # TODO: Better way to report colors used? Cannot set as treeview
+            # columns because treeview resets on update.
+            self.logger.info('{0}: {1}'.format(key, cur_col))
+
+        # Report number of affected pixels
         npix = np.count_nonzero(mask)
         if npix > 0:
-            self.logger.debug('Overlaying mask for {0} pixels'.format(npix))
             self.w.npix.set_text('{0}/{1} ({2:.3f}%)'.format(
                 npix, mask.size, 100 * npix / mask.size))
-            m_obj = self.dc.Image(0, 0,
-                masktorgb(mask, color=self.imdqcolor, alpha=self.imdqalpha))
-            self.pxdqtag = self.canvas.add(
-                self.dc.CompoundObject(m_obj, p_obj, lbl_obj))
         else:
             self.w.npix.set_text('0')
-            self.pxdqtag = self.canvas.add(
-                self.dc.CompoundObject(p_obj, lbl_obj))
+
+        # Generate canvas mask overlay
+        m_objs += [p_obj, lbl_obj]
+        self.pxdqtag = self.canvas.add(self.dc.CompoundObject(*m_objs))
 
         self.fitsimage.redraw()  # Need this to clear mask immediately
         return True
@@ -662,11 +698,6 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 
         self.fitsimage.redraw(whence=3)
         return self.redo()
-
-    def image_modified_cb(self, viewer, chname, image, timestamp, reason):
-        """Clear associated cache and redo if buffer is modified."""
-        # UNTIL  HERE
-
 
     def close(self):
         self._reset_imdq_on_error()

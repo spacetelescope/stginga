@@ -104,8 +104,7 @@ It is customizable using ``~/.ginga/plugin_DQInspect.cfg``::
   pxdqcolor = 'red'
 
   # Color and opacity to mark all affected pixels
-  imdqcolor = 'blue'
-  imdqalpha = 1.0
+  imdqcolors = ['blue', 'magenta', 'green', ...]
 
 
 .. _local-plugin-multiimage:
