@@ -1,7 +1,7 @@
 .. _stginga-ipynb:
 
-Running stginga with IPython Notebook
-=====================================
+Running stginga with Jupyter/IPython Notebooks
+==============================================
 
 :mod:`stginga` includes the :mod:`~stginga.nbinteract`, a module to simplify the use of
 the ginga viewer inside, or in close association with,
