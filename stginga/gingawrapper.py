@@ -56,6 +56,12 @@ gmain.default_layout = ['seq', {}, [
                                'group': 99}
                     ],
                      'stretch': 0
+                    },
+                    {'row': [
+                        'ws', {'wstype': 'stack', 'name': 'operations',
+                               'group': 99}
+                    ],
+                     'stretch': 0
                     }
                 ],
                 [
