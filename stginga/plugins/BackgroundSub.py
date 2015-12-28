@@ -1,4 +1,4 @@
-"""Background subtraction local plugin for Ginga (Qt)."""
+"""Background subtraction local plugin for Ginga."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -9,17 +9,16 @@ import warnings
 
 # THIRD-PARTY
 import numpy as np
+from astropy.io import fits
 from astropy.utils.misc import JsonCustomEncoder
 
 # GINGA
 from ginga import GingaPlugin
-from ginga.canvas.types.astro import Annulus
+from ginga.gw.GwHelp import FileSelection
 from ginga.gw.Widgets import SaveDialog
-from ginga.misc import Widgets
-from ginga.qtw.QtHelp import QtGui
+from ginga.misc import Future, Widgets
 
 # LOCAL
-QUIP_LOG = None
 try:
     from stginga.utils import calc_stat
 except ImportError:
@@ -58,12 +57,16 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         self.algorithm = settings.get('algorithm', 'median')
         self.sigma = settings.get('sigma', 1.8)
         self.niter = settings.get('niter', 10)
+        self.ignore_badpix = settings.get('ignore_bad_pixels', False)
 
         # FITS keywords and values from general config
         gen_settings = prefs.createCategory('general')
         gen_settings.load(onError='silent')
         self._sci_extname = gen_settings.get('sciextname', 'SCI')
+        self._dq_extname = gen_settings.get('dqextname', 'DQ')
         self._ext_key = gen_settings.get('extnamekey', 'EXTNAME')
+        self._extver_key = gen_settings.get('extverkey', 'EXTVER')
+        self._ins_key = gen_settings.get('instrumentkey', 'INSTRUME')
 
         # Used for calculation
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
@@ -85,6 +88,8 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         canvas.set_callback('cursor-up', self.update)
         canvas.setSurface(self.fitsimage)
         self.canvas = canvas
+
+        fv.add_callback('remove-image', lambda *args: self.redo())
 
         self.gui_up = False
 
@@ -117,7 +122,7 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         for name in self._bgtype_options:
             combobox.append_text(name)
         b.bg_type.set_index(self._bgtype_options.index(self.bgtype))
-        b.bg_type.widget.activated[str].connect(self.set_bgtype)
+        b.bg_type.add_callback('activated', self.set_bgtype_cb)
 
         fr.set_widget(w)
         vbox.add_widget(fr, stretch=0)
@@ -136,11 +141,10 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
 
         b.background_value.set_tooltip('Background value')
         b.background_value.set_text(str(self.bgval))
-        b.background_value.widget.editingFinished.connect(self.set_constant_bg)
-        b.background_value.widget.setReadOnly(True)
-        b.background_value.widget.setEnabled(True)
-        b.background_value.widget.setStyleSheet(
-            'QLineEdit{background: white;}')
+        b.background_value.add_callback(
+            'activated', lambda w: self.set_constant_bg())
+        b.background_value.set_editable(False)
+        b.background_value.set_enabled(True)
 
         vbox.add_widget(w, stretch=0)
 
@@ -151,14 +155,16 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         self.w.update(b)
 
         b.load_parameters.set_tooltip('Load previously saved parameters')
-        b.load_parameters.widget.clicked.connect(self.load_params)
+        b.load_parameters.add_callback(
+            'activated', lambda w: self.load_params_cb())
 
         b.save_parameters.set_tooltip('Save background subtraction parameters')
-        b.save_parameters.widget.clicked.connect(self.save_params)
+        b.save_parameters.add_callback(
+            'activated', lambda w: self.save_params())
 
         b.subtract.set_tooltip('Subtract background')
-        b.subtract.widget.clicked.connect(self.sub_bg)
-        b.subtract.widget.setEnabled(False)
+        b.subtract.add_callback('activated', lambda w: self.sub_bg())
+        b.subtract.set_enabled(False)
 
         vbox.add_widget(w, stretch=0)
         top.add_widget(sw, stretch=1)
@@ -174,6 +180,9 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
 
         top.add_widget(btns, stretch=0)
         container.add_widget(top, stretch=1)
+
+        # Initialize file save dialog
+        self.filesel = FileSelection(self.fv.w.root.get_widget())
 
         # Populate default attributes frame
         self.set_bgtype(self.bgtype)
@@ -192,8 +201,11 @@ Click "Save Parameters" to save current subtraction parameters to a file. To sav
 Click "Subtract" to remove background.""")
 
     def redo(self):
+        if not self.gui_up:
+            return True
+
         self.w.background_value.set_text(str(self._dummy_value))
-        self.w.subtract.widget.setEnabled(False)
+        self.w.subtract.set_enabled(False)
 
         if self.bgtype not in ('annulus', 'box'):
             return True
@@ -241,10 +253,67 @@ Click "Subtract" to remove background.""")
             self._debug_str += ', w={0}, h={1}'.format(
                 self.boxwidth, self.boxheight)
 
+        # Extract DQ info
+        if self.ignore_badpix:
+            imfile = image.metadata['path']
+            imname = image.metadata['name'].split('[')[0]
+            instrument = header.get(self._ins_key, None)
+            extver = header.get(self._extver_key, self._dummy_value)
+            dq_extnum = (self._dq_extname, extver)
+            dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
+
+            if instrument != 'WFPC2':
+                dqsrc = self._find_ext(imfile, dq_extnum)
+
+            # Special handling for WFPC2, lots of assumptions
+            else:
+                imfile = imfile.replace('c0m', 'c1m')
+                imname = imname.replace('c0m', 'c1m')
+                dqsrc = self._find_ext(imfile, dq_extnum)
+
+                # If DQ not found, could be SCI
+                if not dqsrc:
+                    self.logger.debug('{0} has no {1}, trying {2}'.format(
+                        imfile, self._dq_extname, self._sci_extname))
+                    dq_extnum = (self._sci_extname, extver)
+                    dqname = '{0}[{1},{2}]'.format(
+                        imname, self._sci_extname, extver)
+                    dqsrc = self._find_ext(imfile, dq_extnum)
+
+            if not dqsrc:
+                self.logger.error('{0} extension not found for '
+                                  '{1}'.format(dq_extnum, imfile))
+        else:
+            dqsrc = False
+
+        # Extract DQ mask
+        if dqsrc:
+            chname = self.fv.get_channelName(self.fitsimage)
+            chinfo = self.fv.get_channelInfo(chname)
+
+            if dqname in chinfo.datasrc:  # DQ already loaded
+                self.logger.debug('Loading {0} from cache'.format(dqname))
+                dqsrc = chinfo.datasrc[dqname]
+            else:  # Force load DQ data
+                self.logger.debug('Loading {0} from {1}'.format(dqname, imfile))
+                dqsrc = self.fv.load_image(imfile, idx=dq_extnum)
+                future = Future.Future()
+                future.freeze(self.fv.load_image, imfile, idx=dq_extnum)
+                dqsrc.set(path=imfile, idx=dq_extnum, name=dqname,
+                          image_future=future)
+                self.fv.add_image(dqname, dqsrc, chname=chname, silent=True)
+                self.fv.advertise_image(chname, dqsrc)
+
+            dqsrc_masked = dqsrc.cutout_shape(bg_obj)
+            mask = (~dqsrc_masked.mask) & (dqsrc_masked.data == 0)
+
         # Extract background data
         try:
             bg_masked = image.cutout_shape(bg_obj)
-            bg_data = bg_masked[~bg_masked.mask]
+            if dqsrc:
+                bg_data = bg_masked.data[mask]
+            else:
+                bg_data = bg_masked[~bg_masked.mask]
         except Exception as e:
             self.logger.warn('{0}: {1}'.format(e.__class__.__name__, str(e)))
             self.bgval = self._dummy_value
@@ -253,15 +322,21 @@ Click "Subtract" to remove background.""")
                                    algorithm=self.algorithm)
 
         self._debug_str += (', bgval={0}, salgo={1}, sigma={2}, '
-                            'niter={3}'.format(
-            self.bgval, self.algorithm, self.sigma, self.niter))
+                            'niter={3}, ignore_badpix={4}'.format(
+            self.bgval, self.algorithm, self.sigma, self.niter,
+            self.ignore_badpix))
         self.logger.debug(self._debug_str)
         self.w.background_value.set_text(str(self.bgval))
 
         if self.bgval != 0:
-            self.w.subtract.widget.setEnabled(True)
+            self.w.subtract.set_enabled(True)
 
         return True
+
+    def _find_ext(self, imfile, ext):
+        with fits.open(imfile) as pf:
+            has_ext = ext in pf
+        return has_ext
 
     def update(self, canvas, button, data_x, data_y):
         try:
@@ -363,6 +438,10 @@ Click "Subtract" to remove background.""")
         self.bgsubtag = canvas.add(self.dc.CompoundObject(bg_obj, lbl_obj))
         return self.redo()
 
+    def set_bgtype_cb(self, w, index):
+        bgtype = self._bgtype_options[index]
+        return self.set_bgtype(bgtype)
+
     def set_bgtype(self, bgtype):
         if bgtype not in self._bgtype_options:
             self.logger.error(
@@ -374,7 +453,8 @@ Click "Subtract" to remove background.""")
         # Remove old params
         self.w.bgtype_attr_vbox.remove_all()
         self.w.background_value.set_text(str(self._dummy_value))
-        self.w.subtract.widget.setEnabled(False)
+        self.w.subtract.set_enabled(False)
+
         self.canvas.deleteAllObjects()
 
         # Reset parameters
@@ -387,7 +467,7 @@ Click "Subtract" to remove background.""")
 
         if bgtype == 'constant':
             self.canvas.enable_draw(False)
-            self.w.background_value.widget.setReadOnly(False)
+            self.w.background_value.set_editable(True)
 
         else:  # annulus, box
             self.canvas.enable_draw(True)
@@ -408,53 +488,60 @@ Click "Subtract" to remove background.""")
             captions += [
                 ('Algorithm:', 'label', 'Algorithm', 'combobox'),
                 ('Sigma:', 'label', 'Sigma', 'entry'),
-                ('Number of Iterations:', 'label', 'NIter', 'entry')]
+                ('Number of Iterations:', 'label', 'NIter', 'entry'),
+                ('Ignore bad pixels', 'checkbutton')]
             w, b = Widgets.build_info(captions, orientation=self.orientation)
             self.w.update(b)
 
             b.x.set_tooltip('X of centroid')
             b.x.set_text(str(self.xcen))
-            b.x.widget.editingFinished.connect(self.set_xcen)
+            b.x.add_callback('activated', lambda w: self.set_xcen())
 
             b.y.set_tooltip('Y of centroid')
             b.y.set_text(str(self.ycen))
-            b.y.widget.editingFinished.connect(self.set_ycen)
+            b.y.add_callback('activated', lambda w: self.set_ycen())
 
             if bgtype == 'annulus':
                 b.r.set_tooltip('Inner radius of annulus')
                 b.r.set_text(str(self.radius))
-                b.r.widget.editingFinished.connect(self.set_radius)
+                b.r.add_callback('activated', lambda w: self.set_radius())
 
                 b.annulus_width.set_tooltip('Set annulus width manually')
                 b.annulus_width.set_text(str(self.annulus_width))
-                b.annulus_width.widget.editingFinished.connect(
-                    self.set_annulus_width)
+                b.annulus_width.add_callback(
+                    'activated', lambda w: self.set_annulus_width())
 
             else:  # box
                 b.box_w.set_tooltip('Width of box')
                 b.box_w.set_text(str(self.boxwidth))
-                b.box_w.widget.editingFinished.connect(self.set_boxwidth)
+                b.box_w.add_callback('activated', lambda w: self.set_boxwidth())
 
                 b.box_h.set_tooltip('Height of box')
                 b.box_h.set_text(str(self.boxheight))
-                b.box_h.widget.editingFinished.connect(self.set_boxheight)
+                b.box_h.add_callback(
+                    'activated', lambda w: self.set_boxheight())
 
             for name in self._algorithm_options:
                 b.algorithm.append_text(name)
             b.algorithm.set_index(
                 self._algorithm_options.index(self.algorithm))
-            b.algorithm.widget.activated[str].connect(self.set_algorithm)
+            b.algorithm.add_callback('activated', self.set_algorithm_cb)
 
             b.sigma.set_tooltip('Sigma for clipping')
             b.sigma.set_text(str(self.sigma))
-            b.sigma.widget.editingFinished.connect(self.set_sigma)
+            b.sigma.add_callback('activated', lambda w: self.set_sigma())
 
             b.niter.set_tooltip('Number of clipping iterations')
             b.niter.set_text(str(self.niter))
-            b.niter.widget.editingFinished.connect(self.set_niter)
+            b.niter.add_callback('activated', lambda w: self.set_niter())
+
+            b.ignore_bad_pixels.set_tooltip(
+                'Only use good pixels (DQ=0) for calculations')
+            b.ignore_bad_pixels.set_state(self.ignore_badpix)
+            b.ignore_bad_pixels.add_callback('activated', self.set_igbadpix)
 
             self.w.bgtype_attr_vbox.add_widget(w, stretch=1)
-            self.w.background_value.widget.setReadOnly(True)
+            self.w.background_value.set_editable(False)
 
         return True
 
@@ -637,6 +724,10 @@ Click "Subtract" to remove background.""")
         self.fitsimage.redraw(whence=3)
         return self.redo()
 
+    def set_algorithm_cb(self, w, index):
+        salgo = self._algorithm_options[index]
+        return self.set_algorithm(salgo)
+
     def set_algorithm(self, salgo):
         self.logger.debug('BGSub algorithm: {0}'.format(salgo))
         self.algorithm = salgo
@@ -656,14 +747,18 @@ Click "Subtract" to remove background.""")
             return True
         return self.redo()
 
+    def set_igbadpix(self, w, val):
+        self.ignore_badpix = val
+        return self.redo()
+
     def set_constant_bg(self):
-        self.w.subtract.widget.setEnabled(False)
+        self.w.subtract.set_enabled(False)
         try:
             self.bgval = float(self.w.background_value.get_text())
         except ValueError:
             return True
         if self.bgval != 0:
-            self.w.subtract.widget.setEnabled(True)
+            self.w.subtract.set_enabled(True)
         self._debug_str = ''
         return True
 
@@ -684,34 +779,18 @@ Click "Subtract" to remove background.""")
             s += ' ({0})'.format(self._debug_str)
         self.logger.info(s)
 
-        # Also record action in QUIP log, if available
-        if QUIP_LOG is not None:
-            imname = image.metadata['name'].split('[')[0]
-            s = QUIP_LOG.add_entry(imname, 'Background subtracted', s, 'status')
-
-        # Update history listing
-        try:
-            history_plugin_obj = self.fv.gpmon.getPlugin('History')
-        except Exception as e:
-            self.logger.debug(
-                'Failed to update History plugin: {0}'.format(str(e)))
-        else:
-            history_plugin_obj.add_entry(s)
-
-        # Change data in Ginga object and recalculate BG in annulus
+        # Change data in Ginga object and recalculate BG in annulus.
+        # This issues a 'modified' callback, which sets timestamp and
+        # calls redo().
         image.set_data(new_data, metadata=image.metadata)
-        self.fitsimage.auto_levels()
-        self.redo()
+        #self.fitsimage.auto_levels()
 
-        # Update file listing
-        try:
-            list_plugin_obj = self.fv.gpmon.getPlugin('ContentsManager')
-        except Exception as e:
-            self.logger.debug(
-                'Failed to update ContentsManager plugin: {0}'.format(str(e)))
-        else:
-            chname = self.fv.get_channelName(self.fitsimage)
-            list_plugin_obj.set_modified_status(chname, image, 'yes')
+        chname = self.fv.get_channelName(self.fitsimage)
+        channel = self.fv.get_channelInfo(chname)
+
+        # Store change history in metadata
+        iminfo = channel.get_image_info(image.get('name'))
+        iminfo.reason_modified = s
 
         return True
 
@@ -736,6 +815,7 @@ Click "Subtract" to remove background.""")
         pardict['algorithm'] = self.algorithm
         pardict['sigma'] = self.sigma
         pardict['niter'] = self.niter
+        pardict['ignore_badpix'] = self.ignore_badpix
 
         if self.bgtype == 'annulus':
             pardict['radius'] = self.radius
@@ -760,15 +840,14 @@ Click "Subtract" to remove background.""")
                       cls=JsonCustomEncoder)
         self.logger.info('Parameters saved as {0}'.format(fname))
 
-    def load_params(self):
+    def load_params_cb(self):
+        """Allow user to select JSON file to load."""
+        self.filesel.popup('Load JSON file', self.load_params, initialdir='.',
+                           filename='JSON files (*.json)')
+
+    def load_params(self, filename):
         """Load previously saved parameters from a JSON file."""
-        res = QtGui.QFileDialog.getOpenFileName(
-            caption='Load JSON file', directory='.',
-            filter='JSON files (*.json)')
-        if isinstance(res, tuple):
-            res = res[0]
-        filename = str(res)
-        if len(filename) <= 0:
+        if not os.path.isfile(filename):
             return True
 
         with open(filename) as fin:
@@ -808,6 +887,10 @@ Click "Subtract" to remove background.""")
         self.algorithm = pardict.get('algorithm', self.algorithm)
         self.sigma = pardict.get('sigma', self.sigma)
         self.niter = pardict.get('niter', self.niter)
+        self.ignore_badpix = pardict.get('ignore_badpix', self.ignore_badpix)
+
+        # Checkbox is not set by redo()
+        self.w.ignore_bad_pixels.set_state(self.ignore_badpix)
 
         if self.bgtype == 'annulus':
             self.radius = pardict.get('radius', self.radius)

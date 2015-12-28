@@ -31,14 +31,12 @@ import shlex
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'numpydoc',
+    'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.pngmath',
     'sphinx.ext.viewcode',
 ]
-
-numpydoc_show_class_members = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -292,14 +290,14 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
-
-# Example configuration for intersphinx: refer to the Python standard library.
+# Configuration for intersphinx
 intersphinx_mapping = {
     'python': ('http://docs.python.org/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
     'matplotlib': ('http://matplotlib.org/', None),
-    'astropy': ('http://docs.astropy.org/en/stable/', None)
+    'astropy': ('http://docs.astropy.org/en/latest/', None),
+    'ginga': ('http://ginga.readthedocs.org/en/latest/', None)
     }
 
 # a simple/non-configurable extension that generates the rst files for ipython

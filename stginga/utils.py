@@ -69,18 +69,3 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
                          'calculations'.format(algorithm))
 
     return val
-
-
-# -------------- #
-# FITS FUNCTIONS #
-# -------------- #
-
-def _fits_extnamever_lookup(filename, extname, extver):
-    """Return ext num for given name and ver."""
-    extnum = -1
-    with fits.open(filename) as pf:
-        for i, hdu in enumerate(pf):
-            if hdu.name.startswith(extname) and hdu.ver == extver:
-                extnum = i
-                break
-    return extnum
