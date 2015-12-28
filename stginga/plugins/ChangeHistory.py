@@ -38,7 +38,6 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
                                   color_alternate_rows=True)
         self.settings.load(onError='silent')
 
-        fv.add_callback('image-modified', self.image_modified_cb)
         fv.add_callback('remove-image', self.remove_image_cb)
         fv.add_callback('delete-channel', self.delete_channel_cb)
 
@@ -139,13 +138,16 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         self.w.modified.set_text(timestamp)
         self.w.descrip.set_text(bnch.DESCRIP)
 
-    def image_modified_cb(self, viewer, chname, image, timestamp, reason):
+    def redo(self, channel, image):
         """Add an entry with image modification info."""
+        chname = channel.name
         imname = image.get('name', 'none')
+        iminfo = channel.get_image_info(imname)
+        timestamp = iminfo.time_modified
 
         # Image fell out of cache and lost its history
         if timestamp is None:
-            self.remove_image_cb(viewer, chname, imname, image.get('path'))
+            self.remove_image_cb(self.fv, chname, imname, image.get('path'))
             return
 
         # Add info to internal log
@@ -158,7 +160,8 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
             fileDict[imname] = {}
 
         # Z: Zulu time, GMT, UTC
-        timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%SZ')
+        timestamp = timestamp.strftime('%Y-%m-%dZ %H:%M:%SZ')
+        reason = iminfo.get('reason_modified', 'Not given')
         bnch = Bunch.Bunch(CHNAME=chname, NAME=imname, MODIFIED=timestamp,
                            DESCRIP=reason)
         entries = fileDict[imname]

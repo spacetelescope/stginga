@@ -780,17 +780,17 @@ Click "Subtract" to remove background.""")
         self.logger.info(s)
 
         # Change data in Ginga object and recalculate BG in annulus.
-        # This issues a 'modified' callback, which calls redo().
+        # This issues a 'modified' callback, which sets timestamp and
+        # calls redo().
         image.set_data(new_data, metadata=image.metadata)
         #self.fitsimage.auto_levels()
 
         chname = self.fv.get_channelName(self.fitsimage)
         channel = self.fv.get_channelInfo(chname)
 
-        # Update file listing.
-        # This issues a 'image-modified' callback, which sets
-        # the timestamp and reason.
-        channel.image_data_modified(image, reason=s)
+        # Store change history in metadata
+        iminfo = channel.get_image_info(image.get('name'))
+        iminfo.reason_modified = s
 
         return True
 

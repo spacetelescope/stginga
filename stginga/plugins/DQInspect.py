@@ -123,7 +123,7 @@ class DQInspect(GingaPlugin.LocalPlugin):
         # TODO: Need to test this when we have a plugin that modifies DQ.
         # Overrides redo() issued by image.set_data() by recalculating.
         fv.add_callback(
-            'image-modified', lambda *args: self.redo(ignore_image_cache=True))
+            'add-image-info', lambda *args: self.redo(ignore_image_cache=True))
 
         fv.add_callback('remove-image', lambda *args: self.redo())
 
