@@ -146,3 +146,11 @@ will automatically update, again always fixed on the same section of sky.
 .. image:: _static/mipick_screenshot.png
   :width: 800px
   :alt: MIPick plugin
+
+
+.. _local-plugin-snrcalc:
+
+SNRCalc
+-------
+
+TBD

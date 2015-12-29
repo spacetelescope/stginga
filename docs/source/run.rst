@@ -56,4 +56,4 @@ Manually Load stginga Plugins
 
 You can also run Ginga natively and just specify the plugins you want directly::
 
-    ginga --plugins=stginga.plugins.BackgroundSub,stginga.plugins.DQInspect,stginga.plugins.MIPick,stginga.plugins.MultiImage --modules=stginga.plugins.ChangeHistory [args]
+    ginga --plugins=stginga.plugins.BackgroundSub,stginga.plugins.DQInspect,stginga.plugins.MIPick,stginga.plugins.MultiImage,stginga.plugins.SNRCalc --modules=stginga.plugins.ChangeHistory [args]
