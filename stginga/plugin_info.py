@@ -47,6 +47,7 @@ def _get_stginga_plugins():
         Bunch(module='DQInspect', ws='dialogs', pfx=gpfx),
         Bunch(module='MultiImage', ws='dialogs', pfx=gpfx),
         Bunch(module='MIPick', ws='dialogs', pfx=gpfx),
+        Bunch(module='SNRCalc', ws='dialogs', pfx=gpfx),
         ]
     return global_plugins, local_plugins
 
