@@ -1,9 +1,9 @@
-"""ChangeHistory global plugin for Ginga."""
+#
+# ChangeHistory.py -- ChangeHistory global plugin for Ginga.
+#
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-
-# THIRD-PARTY
-from astropy.extern.six import iteritems
+from ginga.util.six import iteritems
 
 # GINGA
 from ginga import GingaPlugin
@@ -20,6 +20,32 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
     New history can be added, but old history cannot be deleted,
     unless the image/channel itself is deleted.
 
+    The :meth:`redo` method picks up a ``'modified'`` event and displays
+    related metadata here. The metadata is obtained as follows:
+
+    .. code-block:: python
+
+        channel = self.fv.get_channelInfo(chname)
+        iminfo = channel.get_image_info(imname)
+        timestamp = iminfo.time_modified
+        description = iminfo.reason_modified  # Optional
+
+    While ``'time_modified'`` is automatically added by Ginga,
+    ``'reason_modified'`` is optional and has be to explicitly set
+    by the calling plugin in the same method that issues the
+    ``'modified'`` callback, like this:
+
+    .. code-block:: python
+
+        # This issues the 'modified' callback and sets the timestamp
+        image.set_data(new_data, ...)
+
+        # Manually add the description
+        chname = self.fv.get_channelName(self.fitsimage)
+        channel = self.fv.get_channelInfo(chname)
+        iminfo = channel.get_image_info(image.get('name'))
+        iminfo.reason_modified = 'Something was done to this image buffer'
+
     """
     def __init__(self, fv):
         # superclass defines some variables for us, like logger
@@ -35,7 +61,8 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         prefs = self.fv.get_preferences()
         self.settings = prefs.createCategory('plugin_ChangeHistory')
         self.settings.addDefaults(always_expand=True,
-                                  color_alternate_rows=True)
+                                  color_alternate_rows=True,
+                                  ts_colwidth=250)
         self.settings.load(onError='silent')
 
         fv.add_callback('remove-image', self.remove_image_cb)
@@ -52,9 +79,6 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         and closed.
 
         """
-        top = Widgets.VBox()
-        top.set_border_width(4)
-
         vbox, sw, self.orientation = Widgets.get_oriented_box(container)
         vbox.set_border_width(4)
         vbox.set_spacing(2)
@@ -67,6 +91,7 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
                                     use_alt_row_color=color_alternate)
         self.treeview = treeview
         treeview.setup_table(self.columns, 3, 'MODIFIED')
+        treeview.set_column_width(0, self.settings.get('ts_colwidth', 250))
         treeview.add_callback('selected', self.show_more)
         vbox.add_widget(treeview, stretch=1)
 
@@ -74,8 +99,7 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
 
         captions = (('Channel:', 'label', 'chname', 'llabel'),
                     ('Image:', 'label', 'imname', 'llabel'),
-                    ('Timestamp:', 'label', 'modified', 'llabel'),
-                    ('Description:', 'label'))
+                    ('Timestamp:', 'label', 'modified', 'llabel'))
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
@@ -88,7 +112,7 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         b.modified.set_text('')
         b.modified.set_tooltip('Timestamp (UTC)')
 
-        captions = (('descrip', 'textarea'), )
+        captions = (('Description:-', 'llabel'), ('descrip', 'textarea'))
         w2, b = Widgets.build_info(captions)
         self.w.update(b)
 
@@ -97,13 +121,25 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         b.descrip.set_text('')
         b.descrip.set_tooltip('Displays selected history entry')
 
-        splitter = Widgets.Splitter('vertical')
-        splitter.add_widget(w)
-        splitter.add_widget(w2)
-        fr.set_widget(splitter, stretch=1)
+        vbox2 = Widgets.VBox()
+        vbox2.set_border_width(4)
+        vbox2.add_widget(w)
+        vbox2.add_widget(w2)
+
+        fr.set_widget(vbox2, stretch=0)
         vbox.add_widget(fr, stretch=0)
 
         container.add_widget(vbox, stretch=1)
+
+        btns = Widgets.HBox()
+        btns.set_spacing(3)
+
+        btn = Widgets.Button('Close')
+        btn.add_callback('activated', lambda w: self.close())
+        btns.add_widget(btn, stretch=0)
+        btns.add_widget(Widgets.Label(''), stretch=1)
+
+        container.add_widget(btns, stretch=0)
 
         self.gui_up = True
 
@@ -116,13 +152,9 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
         self.w.modified.set_text('')
         self.w.descrip.set_text('')
 
-    def stop(self):
-        self.gui_up = False
-
     def recreate_toc(self):
         self.logger.debug("Recreating table of contents...")
         self.treeview.set_tree(self.name_dict)
-        #self.treeview.sort_on_column(self.treeview.leaf_idx)
 
     def show_more(self, widget, res_dict):
         chname = list(res_dict.keys())[0]
@@ -190,6 +222,7 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
 
         if not self.gui_up:
             return False
+
         self.clear_selected_history()
         self.recreate_toc()
 
@@ -206,12 +239,24 @@ class ChangeHistory(GingaPlugin.GlobalPlugin):
 
         if not self.gui_up:
             return False
+
         self.clear_selected_history()
         self.recreate_toc()
 
     def clear(self):
         self.name_dict = Bunch.caselessDict()
         self.clear_selected_history()
+        self.recreate_toc()
+
+    def close(self):
+        self.fv.stop_global_plugin(str(self))
+        return True
+
+    def stop(self):
+        self.gui_up = False
+        self.fv.showStatus('')
+
+    def start(self):
         self.recreate_toc()
 
     def __str__(self):

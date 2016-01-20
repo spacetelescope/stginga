@@ -5,27 +5,18 @@ from __future__ import (absolute_import, division, print_function,
 # STDLIB
 import json
 import os
-import warnings
 
 # THIRD-PARTY
 import numpy as np
-from astropy.io import fits
 from astropy.utils.misc import JsonCustomEncoder
 
 # GINGA
 from ginga import GingaPlugin
 from ginga.gw.GwHelp import FileSelection
-from ginga.gw.Widgets import SaveDialog
-from ginga.misc import Future, Widgets
+from ginga.gw import Widgets
 
-# LOCAL
-try:
-    from stginga.utils import calc_stat
-except ImportError:
-    warnings.warn('stginga not found, using np.mean() for statistics')
-
-    def calc_stat(*args, **kwargs):
-        return np.mean(args[0])
+# STGINGA
+from stginga import utils
 
 __all__ = []
 
@@ -106,7 +97,7 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         tw.set_font(msgFont)
         self.tw = tw
 
-        fr = Widgets.Frame('Instructions')
+        fr = Widgets.Expander('Instructions')
         vbox2 = Widgets.VBox()
         vbox2.add_widget(tw)
         vbox2.add_widget(Widgets.Label(''), stretch=1)
@@ -259,26 +250,16 @@ Click "Subtract" to remove background.""")
             imname = image.metadata['name'].split('[')[0]
             instrument = header.get(self._ins_key, None)
             extver = header.get(self._extver_key, self._dummy_value)
-            dq_extnum = (self._dq_extname, extver)
-            dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
 
             if instrument != 'WFPC2':
-                dqsrc = self._find_ext(imfile, dq_extnum)
+                dq_extnum = (self._dq_extname, extver)
+                dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
+                dqsrc = utils.find_ext(imfile, dq_extnum)
 
             # Special handling for WFPC2, lots of assumptions
             else:
-                imfile = imfile.replace('c0m', 'c1m')
-                imname = imname.replace('c0m', 'c1m')
-                dqsrc = self._find_ext(imfile, dq_extnum)
-
-                # If DQ not found, could be SCI
-                if not dqsrc:
-                    self.logger.debug('{0} has no {1}, trying {2}'.format(
-                        imfile, self._dq_extname, self._sci_extname))
-                    dq_extnum = (self._sci_extname, extver)
-                    dqname = '{0}[{1},{2}]'.format(
-                        imname, self._sci_extname, extver)
-                    dqsrc = self._find_ext(imfile, dq_extnum)
+                dqsrc, imfile, dq_extnum, dqname = utils.find_wfpc2_dq(
+                    imfile, imname, extver)
 
             if not dqsrc:
                 self.logger.error('{0} extension not found for '
@@ -286,40 +267,28 @@ Click "Subtract" to remove background.""")
         else:
             dqsrc = False
 
+        bg_masked = image.cutout_shape(bg_obj)
+
         # Extract DQ mask
         if dqsrc:
             chname = self.fv.get_channelName(self.fitsimage)
-            chinfo = self.fv.get_channelInfo(chname)
-
-            if dqname in chinfo.datasrc:  # DQ already loaded
-                self.logger.debug('Loading {0} from cache'.format(dqname))
-                dqsrc = chinfo.datasrc[dqname]
-            else:  # Force load DQ data
-                self.logger.debug('Loading {0} from {1}'.format(dqname, imfile))
-                dqsrc = self.fv.load_image(imfile, idx=dq_extnum)
-                future = Future.Future()
-                future.freeze(self.fv.load_image, imfile, idx=dq_extnum)
-                dqsrc.set(path=imfile, idx=dq_extnum, name=dqname,
-                          image_future=future)
-                self.fv.add_image(dqname, dqsrc, chname=chname, silent=True)
-                self.fv.advertise_image(chname, dqsrc)
-
+            dqsrc = utils.autoload_ginga_image(
+                self.fv, chname, imfile, dq_extnum, dqname)
             dqsrc_masked = dqsrc.cutout_shape(bg_obj)
             mask = (~dqsrc_masked.mask) & (dqsrc_masked.data == 0)
+        else:
+            mask = ~bg_masked.mask
 
         # Extract background data
         try:
-            bg_masked = image.cutout_shape(bg_obj)
-            if dqsrc:
-                bg_data = bg_masked.data[mask]
-            else:
-                bg_data = bg_masked[~bg_masked.mask]
+            bg_data = bg_masked.data[mask]
         except Exception as e:
             self.logger.warn('{0}: {1}'.format(e.__class__.__name__, str(e)))
             self.bgval = self._dummy_value
         else:
-            self.bgval = calc_stat(bg_data, sigma=self.sigma, niter=self.niter,
-                                   algorithm=self.algorithm)
+            self.bgval = utils.calc_stat(
+                bg_data, sigma=self.sigma, niter=self.niter,
+                algorithm=self.algorithm)
 
         self._debug_str += (', bgval={0}, salgo={1}, sigma={2}, '
                             'niter={3}, ignore_badpix={4}'.format(
@@ -332,11 +301,6 @@ Click "Subtract" to remove background.""")
             self.w.subtract.set_enabled(True)
 
         return True
-
-    def _find_ext(self, imfile, ext):
-        with fits.open(imfile) as pf:
-            has_ext = ext in pf
-        return has_ext
 
     def update(self, canvas, button, data_x, data_y):
         try:
@@ -829,7 +793,7 @@ Click "Subtract" to remove background.""")
     def save_params(self):
         """Save parameters to a JSON file."""
         pardict = self.params_dict()
-        fname = SaveDialog(
+        fname = Widgets.SaveDialog(
             title='Save parameters', selectedfilter='*.json').get_path()
         if not fname:  # Cancel
             return
@@ -855,8 +819,7 @@ Click "Subtract" to remove background.""")
                              '{0}'.format(filename))
             pardict = json.load(fin)
 
-        if ((pardict['plugin'] != 'backgroundsub') or
-                ('bgtype' not in pardict) or
+        if ((pardict['plugin'] != str(self)) or
                 (pardict['bgtype'] not in self._bgtype_options)):
             self.logger.error(
                 '{0} is not a valid JSON file'.format(filename))
@@ -871,6 +834,12 @@ Click "Subtract" to remove background.""")
 
         # Ingest values from file. Retain current value if not found.
 
+        self.algorithm = pardict.get('algorithm', self.algorithm)
+        self.annulus_width = pardict.get('annulus_width', self.annulus_width)
+        self.sigma = pardict.get('sigma', self.sigma)
+        self.niter = pardict.get('niter', self.niter)
+        self.ignore_badpix = pardict.get('ignore_badpix', self.ignore_badpix)
+
         self.set_bgtype(pardict['bgtype'])
         self.w.bg_type.set_index(self._bgtype_options.index(self.bgtype))
 
@@ -884,21 +853,9 @@ Click "Subtract" to remove background.""")
 
         self.xcen = pardict.get('xcen', self.xcen)
         self.ycen = pardict.get('ycen', self.ycen)
-        self.algorithm = pardict.get('algorithm', self.algorithm)
-        self.sigma = pardict.get('sigma', self.sigma)
-        self.niter = pardict.get('niter', self.niter)
-        self.ignore_badpix = pardict.get('ignore_badpix', self.ignore_badpix)
-
-        # Checkbox is not set by redo()
-        self.w.ignore_bad_pixels.set_state(self.ignore_badpix)
 
         if self.bgtype == 'annulus':
             self.radius = pardict.get('radius', self.radius)
-            self.annulus_width = pardict.get('annulus_width',
-                                             self.annulus_width)
-
-            # The only text box not set by redo()
-            self.w.annulus_width.set_text(str(self.annulus_width))
 
             bg_obj = self.dc.Annulus(
                 x=self.xcen, y=self.ycen, radius=self.radius,
