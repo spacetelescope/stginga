@@ -1,23 +1,23 @@
 """DQ flag inspection local plugin for Ginga."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from astropy.extern.six.moves import map
 
 # STDLIB
 import os
-import warnings
 
 # THIRD-PARTY
 import numpy as np
-from astropy.io import ascii, fits
 from astropy.utils.data import get_pkg_data_filename
 
 # GINGA
-from ginga import GingaPlugin, colors
+from ginga import GingaPlugin
 from ginga.gw import Widgets
-from ginga.misc import Bunch, Future
+from ginga.misc import Bunch
 from ginga.RGBImage import RGBImage
 from ginga.util.dp import masktorgb
+
+# STGINGA
+from stginga import utils
 
 __all__ = []
 
@@ -66,7 +66,7 @@ class DQInspect(GingaPlugin.LocalPlugin):
 
         # TODO: Need better DQ definitions for supported instruments.
         # For DQ parser. Default defines only existing pkg data.
-        self._def_parser = DQParser(_def_tab)
+        self._def_parser = utils.DQParser(_def_tab)
         self._def_dqdict = {'NIRCAM': 'data/dqflags_jwst.txt',
                             'NIRSPEC': 'data/dqflags_jwst.txt',
                             'NIRISS': 'data/dqflags_jwst.txt',
@@ -142,7 +142,7 @@ class DQInspect(GingaPlugin.LocalPlugin):
         tw.set_font(msgFont)
         self.tw = tw
 
-        fr = Widgets.Frame('Instructions')
+        fr = Widgets.Expander('Instructions')
         vbox2 = Widgets.VBox()
         vbox2.add_widget(tw)
         vbox2.add_widget(Widgets.Label(''), stretch=1)
@@ -326,7 +326,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             return self._def_parser
 
         try:
-            dqp = DQParser(dqfile)
+            dqp = utils.DQParser(dqfile)
         except Exception as e:
             self.logger.warn('Cannot extract DQ info from {0}, using '
                              'default'.format(dqfile))
@@ -375,26 +375,16 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             imfile = image.metadata['path']
             imname = image.metadata['name'].split('[')[0]
             extver = header.get(self._extver_key, self._dummy_value)
-            dq_extnum = (self._dq_extname, extver)
-            dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
 
             if instrument != 'WFPC2':
-                dqsrc = self._find_ext(imfile, dq_extnum)
+                dq_extnum = (self._dq_extname, extver)
+                dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
+                dqsrc = utils.find_ext(imfile, dq_extnum)
 
             # Special handling for WFPC2, lots of assumptions
             else:
-                imfile = imfile.replace('c0m', 'c1m')
-                imname = imname.replace('c0m', 'c1m')
-                dqsrc = self._find_ext(imfile, dq_extnum)
-
-                # If DQ not found, could be SCI
-                if not dqsrc:
-                    self.logger.debug('{0} has no {1}, trying {2}'.format(
-                        imfile, self._dq_extname, self._sci_extname))
-                    dq_extnum = (self._sci_extname, extver)
-                    dqname = '{0}[{1},{2}]'.format(
-                        imname, self._sci_extname, extver)
-                    dqsrc = self._find_ext(imfile, dq_extnum)
+                dqsrc, imfile, dq_extnum, dqname = utils.find_wfpc2_dq(
+                    imfile, imname, extver)
 
             # Do not continue if no DQ extension
             if not dqsrc:
@@ -403,20 +393,8 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 return self._reset_imdq_on_error()
 
             chname = self.fv.get_channelName(self.fitsimage)
-            chinfo = self.fv.get_channelInfo(chname)
-
-            if dqname in chinfo.datasrc:  # DQ already loaded
-                self.logger.debug('Loading {0} from cache'.format(dqname))
-                dqsrc = chinfo.datasrc[dqname]
-            else:  # Force load DQ data
-                self.logger.debug('Loading {0} from {1}'.format(dqname, imfile))
-                dqsrc = self.fv.load_image(imfile, idx=dq_extnum)
-                future = Future.Future()
-                future.freeze(self.fv.load_image, imfile, idx=dq_extnum)
-                dqsrc.set(path=imfile, idx=dq_extnum, name=dqname,
-                          image_future=future)
-                self.fv.add_image(dqname, dqsrc, chname=chname, silent=True)
-                self.fv.advertise_image(chname, dqsrc)
+            dqsrc = utils.autoload_ginga_image(
+                self.fv, chname, imfile, dq_extnum, dqname)
 
         # Use displayed image
         else:
@@ -480,12 +458,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         self.clear_imdq(keep_cache=True)
         self.recreate_imdq(dqparser)
 
-        return self.mark_dqs_cb(self.w, {})
-
-    def _find_ext(self, imfile, ext):
-        with fits.open(imfile) as pf:
-            has_ext = ext in pf
-        return has_ext
+        return self.mark_dqs_cb(self.w, self.imdqlist.get_selected())
 
     def _reset_imdq_on_error(self):
         self.clear_imdq()
@@ -747,137 +720,3 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         name of the plugin.
         """
         return 'dqinspect'
-
-
-# -------------------------------------------------------------------- #
-# STScI reftools.interpretdq.DQParser class modified for Ginga plugin. #
-# -------------------------------------------------------------------- #
-
-class DQParser(object):
-    """Class to handle parsing of DQ flags.
-
-    **Definition Table**
-
-    A "definition table" is an ASCII table that defines
-    each DQ flag and its short and long descriptions.
-    It can have optional comment line(s) for metadata,
-    e.g.::
-
-        # TELESCOPE = ANY
-        # INSTRUMENT = ANY
-
-    It must have three columns:
-
-    1. ``DQFLAG`` contains the flag value (``uint16``).
-    2. ``SHORT_DESCRIPTION`` (string).
-    3. ``LONG_DESCRIPTION`` (string).
-
-    Example file contents::
-
-        # INSTRUMENT = HSTGENERIC
-        DQFLAG SHORT_DESCRIPTION LONG_DESCRIPTION
-        0      "OK"              "Good pixel"
-        1      "LOST"            "Lost during compression"
-        ...    ...               ...
-
-    The table format must be readable by ``astropy.io.ascii``.
-
-    Parameters
-    ----------
-    definition_file : str
-        ASCII table that defines the DQ flags (see above).
-
-    Attributes
-    ----------
-    tab : ``astropy.table.Table``
-        Table object from given definition file.
-
-    metadata : ``astropy.table.Table``
-        Table object from file metadata.
-
-    """
-    def __init__(self, definition_file):
-        self._dqcol = 'DQFLAG'
-        self._sdcol = 'short'  # SHORT_DESCRIPTION
-        self._ldcol = 'long'   # LONG_DESCRIPTION
-
-        # Need to replace ~ with $HOME
-        self.tab = ascii.read(
-            os.path.expanduser(definition_file),
-            names = (self._dqcol, self._sdcol, self._ldcol),
-            converters = {self._dqcol: [ascii.convert_numpy(np.uint16)],
-                          self._sdcol: [ascii.convert_numpy(np.str)],
-                          self._ldcol: [ascii.convert_numpy(np.str)]})
-
-        # Another table to store metadata
-        self.metadata = ascii.read(self.tab.meta['comments'], delimiter='=',
-                                   format='no_header', names=['key', 'val'])
-
-        # Ensure table has OK flag to detect good pixel
-        self._okflag = 0
-        if self._okflag not in self.tab[self._dqcol]:
-            self.tab.add_row([self._okflag, 'OK', 'Good pixel'])
-
-        # Sort table in ascending order
-        self.tab.sort(self._dqcol)
-
-        # Compile a list of flags
-        self._valid_flags = self.tab[self._dqcol]
-
-    def interpret_array(self, data):
-        """Interpret DQ values for an array.
-
-        .. warning::
-
-            If the array is large and has a lot of flagged elements,
-            this can be resource intensive.
-
-        Parameters
-        ----------
-        data : ndarray
-            DQ values.
-
-        Returns
-        -------
-        dqs_by_flag : dict
-            Dictionary mapping each interpreted DQ value to indices
-            of affected array elements.
-
-        """
-        data = np.asarray(data, dtype=np.int)  # Ensure int array
-        dqs_by_flag = {}
-
-        def _one_flag(vf):
-            dqs_by_flag[vf] = np.where((data & vf) != 0)
-
-        # Skip good flag
-        list(map(_one_flag, self._valid_flags[1:]))
-
-        return dqs_by_flag
-
-    def interpret_dqval(self, dqval):
-        """Interpret DQ values for a single pixel.
-
-        Parameters
-        ----------
-        dqval : int
-            DQ value.
-
-        Returns
-        -------
-        dqs : ``astropy.table.Table``
-            Table object containing a list of interpreted DQ values and
-            their meanings.
-
-        """
-        dqval = int(dqval)
-
-        # Good pixel, nothing to do
-        if dqval == self._okflag:
-            idx = np.where(self.tab[self._dqcol] == self._okflag)
-
-        # Find all the possible DQ flags
-        else:
-            idx = (dqval & self._valid_flags) != 0
-
-        return self.tab[idx]

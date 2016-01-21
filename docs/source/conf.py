@@ -34,7 +34,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.pngmath',
+    'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
 ]
 
@@ -332,6 +332,8 @@ def notebooks_to_rst(app):
         app.notebooks = nbs
 
         app.start()
+    except:
+        pass
     finally:
         os.chdir(olddir)
 

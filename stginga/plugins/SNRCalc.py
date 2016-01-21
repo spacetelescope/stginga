@@ -3,24 +3,20 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 # STDLIB
-import warnings
+import json
+import os
 
 # THIRD-PARTY
 import numpy as np
-from astropy.io import fits
+from astropy.utils.misc import JsonCustomEncoder
 
 # GINGA
 from ginga import GingaPlugin
-from ginga.misc import Future, Widgets
+from ginga.gw.GwHelp import FileSelection
+from ginga.gw import Widgets
 
-# LOCAL
-try:
-    from stginga.utils import calc_stat
-except ImportError:
-    warnings.warn('stginga not found, using np.mean() for statistics')
-
-    def calc_stat(*args, **kwargs):
-        return np.mean(args[0])
+# STGINGA
+from stginga import utils
 
 __all__ = []
 
@@ -55,14 +51,15 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         self.annulus_width = settings.get('annulus_width', 10)
         self.sigma = settings.get('sigma', 1.8)
         self.niter = settings.get('niter', 10)
-
-# UNTIL HERE - Turn min SBR limits into prefs, also option to exclude bad pix?
+        self.default_minsbr = settings.get('default_minsbr', 100)
+        self.ignore_badpix = settings.get('ignore_bad_pixels', False)
 
         # FITS keywords and values from general config
         gen_settings = prefs.createCategory('general')
         gen_settings.load(onError='silent')
         self._sci_extname = gen_settings.get('sciextname', 'SCI')
         self._err_extname = gen_settings.get('errextname', 'ERR')
+        self._dq_extname = gen_settings.get('dqextname', 'DQ')
         self._ext_key = gen_settings.get('extnamekey', 'EXTNAME')
         self._extver_key = gen_settings.get('extverkey', 'EXTVER')
         self._ins_key = gen_settings.get('instrumentkey', 'INSTRUME')
@@ -71,6 +68,7 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
         self.radius = self._dummy_value
         self.boxwidth, self.boxheight = self._dummy_value, self._dummy_value
+        self._poly_pts = None
 
         # Used for background calculation
         self.bgxcen, self.bgycen = self._dummy_value, self._dummy_value
@@ -107,8 +105,6 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         tw.set_font(msgFont)
         self.tw = tw
 
-# UNTIL HERE - Add buttons to save/load params? Add checkbox to exclude badpix?
-
         fr = Widgets.Expander('Instructions')
         vbox2 = Widgets.VBox()
         vbox2.add_widget(tw)
@@ -130,7 +126,7 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         vbox.add_widget(fr, stretch=0)
 
-        fr = Widgets.Frame('Signal Attributes')
+        fr = Widgets.Expander('Signal Attributes')
         vbox2 = Widgets.VBox()
         self.w.sigtype_attr_vbox = Widgets.VBox()
         vbox2.add_widget(self.w.sigtype_attr_vbox, stretch=1)
@@ -150,11 +146,9 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         self.w.update(b)
 
         b.bg_x.set_tooltip('X of background annulus')
-        b.bg_x.set_text(str(self.bgxcen))
         b.bg_x.add_callback('activated', lambda w: self.set_bgxcen())
 
         b.bg_y.set_tooltip('Y of background annulus')
-        b.bg_y.set_text(str(self.bgycen))
         b.bg_y.add_callback('activated', lambda w: self.set_bgycen())
 
         b.align_with_centroid.set_tooltip(
@@ -163,26 +157,23 @@ class SNRCalc(GingaPlugin.LocalPlugin):
             'activated', lambda w: self.align_centers())
 
         b.bg_r.set_tooltip('Inner radius of background annulus')
-        b.bg_r.set_text(str(self.bgradius))
         b.bg_r.add_callback('activated', lambda w: self.set_bgradius())
 
         b.annulus_width.set_tooltip('Set background annulus width manually')
-        b.annulus_width.set_text(str(self.annulus_width))
         b.annulus_width.add_callback(
             'activated', lambda w: self.set_annulus_width())
 
         b.sigma.set_tooltip('Sigma for clipping')
-        b.sigma.set_text(str(self.sigma))
         b.sigma.add_callback('activated', lambda w: self.set_sigma())
 
         b.niter.set_tooltip('Number of clipping iterations')
-        b.niter.set_text(str(self.niter))
         b.niter.add_callback('activated', lambda w: self.set_niter())
 
         fr.set_widget(w)
         vbox.add_widget(fr, stretch=0)
 
         captions = (
+            ('Ignore bad pixels', 'checkbutton'),
             ('Min SNR:', 'label', 'Min SNR', 'llabel'),
             ('Mean SNR:', 'label', 'Mean SNR', 'llabel'),
             ('Max SNR:', 'label', 'Max SNR', 'llabel'),
@@ -195,6 +186,11 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions, orientation=self.orientation)
         self.w.update(b)
 
+        b.ignore_bad_pixels.set_tooltip(
+            'Only use good pixels (DQ=0) for calculations')
+        b.ignore_bad_pixels.set_state(self.ignore_badpix)
+        b.ignore_bad_pixels.add_callback('activated', self.set_igbadpix)
+
         for bitem, tt_text in (
                 (b.min_snr, 'Min SNR in inner circle'),
                 (b.mean_snr, 'Mean SNR in inner circle'),
@@ -204,9 +200,6 @@ class SNRCalc(GingaPlugin.LocalPlugin):
                 (b.sbr_value, 'SBR value'),
                 (b.min_sbr, 'Calculated SBR below this value raises red flag')):
             bitem.set_tooltip(tt_text)
-
-# UNTIL HERE - Does not work anymore!
-            #bitem.widget.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
 
         vbox.add_widget(w, stretch=0)
 
@@ -219,12 +212,24 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         self.sbr_status_frame.set_widget(vbox2)
         vbox.add_widget(self.sbr_status_frame, stretch=0)
 
-        captions = (('Update Header', 'button', 'Spacer5', 'spacer'), )
+        captions = (('Load Param', 'button',
+                     'Save Param', 'button',
+                     'Update HDR', 'button'), )
         w, b = Widgets.build_info(captions, orientation=self.orientation)
         self.w.update(b)
-        b.update_header.set_tooltip('Update header with SBR and SNR values')
-        b.update_header.add_callback(
+
+        b.load_param.set_tooltip('Load previously saved parameters')
+        b.load_param.add_callback(
+            'activated', lambda w: self.load_params_cb())
+
+        b.save_param.set_tooltip('Save SNR/SBR parameters')
+        b.save_param.add_callback(
+            'activated', lambda w: self.save_params())
+
+        b.update_hdr.set_tooltip('Update header with SBR and SNR values')
+        b.update_hdr.add_callback(
             'activated', lambda w: self.update_header())
+
         vbox.add_widget(w, stretch=0)
 
         btns = Widgets.HBox()
@@ -240,7 +245,11 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         top.add_widget(btns, stretch=0)
         container.add_widget(top, stretch=1)
 
+        # Initialize file save dialog
+        self.filesel = FileSelection(self.fv.w.root.get_widget())
+
         # Populate default attributes frame, results, and status
+        self._display_bg_params()
         self.set_sigtype(self.sigtype)
 
         self.gui_up = True
@@ -275,9 +284,11 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
 
         header = image.get_header()
         extname = header.get(self._ext_key, self._no_keyword).upper()
+        imfile = image.metadata['path']
+        imname = image.metadata['name'].split('[')[0]
         instrument = header.get(self._ins_key, None)
-
-# UNTIL HERE - set self.w.min_sbr here and put in log
+        extver = header.get(self._extver_key, self._dummy_value)
+        chname = self.fv.get_channelName(self.fitsimage)
 
         # Only calculate for science extension.
         # If EXTNAME does not exist, just assume user knows best.
@@ -305,64 +316,72 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
             self.w.r.set_text(str(self.radius))
             self._debug_str += ', r={0}'.format(self.radius)
         else:  # polygon
-            self._debug_str += ', pts={0}'.format(sig_obj.points)
+            self._poly_pts = sig_obj.points
+            self._debug_str += ', pts={0}'.format(self._poly_pts)
 
-        # Extract signal and background
+        # Set min SBR here, in case subclass reimplement this method to use
+        # image metadata as selection criteria.
+        minsbr = self.set_minsbr()
+
+        sci_masked = image.cutout_shape(sig_obj)
+        bg_masked = image.cutout_shape(bg_obj)
+
+        # Extract ERR info
+        errsrc = False
+        if instrument != 'WFPC2':
+            err_extnum = (self._err_extname, extver)
+            errname = '{0}[{1},{2}]'.format(imname, self._err_extname, extver)
+            errsrc = utils.find_ext(imfile, err_extnum)
+            if errsrc:
+                errsrc = utils.autoload_ginga_image(
+                    self.fv, chname, imfile, err_extnum, errname)
+                err_masked = errsrc.cutout_shape(sig_obj)
+            else:
+                self.logger.warn('{0} extension not found for '
+                                 '{1}'.format(err_extnum, imfile))
+
+        # Extract DQ info
+        dqsrc = False
+        if self.ignore_badpix:
+            if instrument != 'WFPC2':
+                dqimfile = imfile
+                dq_extnum = (self._dq_extname, extver)
+                dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
+                dqsrc = utils.find_ext(dqimfile, dq_extnum)
+            else:  # Special handling for WFPC2
+                dqsrc, dqimfile, dq_extnum, dqname = utils.find_wfpc2_dq(
+                    imfile, imname, extver)
+            if dqsrc:
+                dqsrc = utils.autoload_ginga_image(
+                    self.fv, chname, dqimfile, dq_extnum, dqname)
+                dq_sci_masked = dqsrc.cutout_shape(sig_obj)
+                dq_bg_masked = dqsrc.cutout_shape(bg_obj)
+            else:
+                self.logger.error('{0} extension not found for '
+                                  '{1}'.format(dq_extnum, dqimfile))
+
+        # Extract signal and background masks for SBR.
+        # If DQ is present, use drawn regions with good pixels only.
+        # Otherwise, use all drawn regions.
+        if dqsrc is False:
+            mask_sci = ~sci_masked.mask
+            mask_bg = ~bg_masked.mask
+        else:
+            mask_sci = (~dq_sci_masked.mask) & (dq_sci_masked.data == 0)
+            mask_bg = (~dq_bg_masked.mask) & (dq_bg_masked.data == 0)
+
+        # Extract signal and background for SBR
         try:
-            sci_masked = image.cutout_shape(sig_obj)
-            sci_data = sci_masked[~sci_masked.mask]
-            bg_masked = image.cutout_shape(bg_obj)
-            bg_data = bg_masked[~bg_masked.mask]
+            sci_data = sci_masked.data[mask_sci]
+            bg_data = bg_masked.data[mask_bg]
         except Exception as e:
             self.logger.error('{0}: {1}'.format(e.__class__.__name__, str(e)))
             return
 
-        imfile = image.metadata['path']
-        imname = image.metadata['name'].split('[')[0]
-        extver = header.get(self._extver_key, self._dummy_value)
-        err_extnum = (self._err_extname, extver)
-        errname = '{0}[{1},{2}]'.format(imname, self._err_extname, extver)
-        err_data = None
-
-        # Special handling for WFPC2, lots of assumptions
-        if instrument != 'WFPC2':
-            errsrc = self._find_ext(imfile, err_extnum)
-        else:
-            errsrc = False
-
-        # Extract ERR extension; errsrc is ERR version of image.
-        if errsrc:
-            chname = self.fv.get_channelName(self.fitsimage)
-            chinfo = self.fv.get_channelInfo(chname)
-
-            if errname in chinfo.datasrc:  # ERR already loaded
-                self.logger.debug('Loading {0} from cache'.format(errname))
-                errsrc = chinfo.datasrc[errname]
-            else:  # Force load ERR data
-                self.logger.debug(
-                    'Loading {0} from {1}'.format(errname, imfile))
-                errsrc = self.fv.load_image(imfile, idx=err_extnum)
-                future = Future.Future()
-                future.freeze(self.fv.load_image, imfile, idx=err_extnum)
-                errsrc.set(path=imfile, idx=err_extnum, name=errname,
-                           image_future=future)
-                self.fv.add_image(errname, errsrc, chname=chname, silent=True)
-                self.fv.advertise_image(chname, errsrc)
-
-            # Extract ERR data
-            try:
-                err_masked = errsrc.cutout_shape(sig_obj)
-                err_data = err_masked[~err_masked.mask]
-            except Exception as e:
-                self.logger.error(
-                    '{0}: {1}'.format(e.__class__.__name__, str(e)))
-        else:
-            self.logger.warn('{0} not found'.format(errname))
-
         # Calculate SBR
         sig_med = np.median(sci_data)
-        bg_std = calc_stat(bg_data, sigma=self.sigma, niter=self.niter,
-                           algorithm='stddev')
+        bg_std = utils.calc_stat(bg_data, sigma=self.sigma, niter=self.niter,
+                                 algorithm='stddev')
         self.w.sig_med.set_text(str(sig_med))
         self.w.bg_std.set_text(str(bg_std))
         self._debug_str += (
@@ -374,21 +393,35 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
         if bg_std != 0:
             sbrval = sig_med / bg_std
             self.w.sbr_value.set_text(str(sbrval))
-            self._debug_str += ', sbr={0}'.format(sbrval)
+            self._debug_str += ', sbr={0}, minsbr={1}'.format(sbrval, minsbr)
 
             # Update SBR status
-            sbrmin = float(self.w.min_sbr.get_text())
-            if sbrval > sbrmin:
+            if sbrval > minsbr:
                 self.set_sbr_status(ok_status=True)
             else:
                 self.set_sbr_status(ok_status=False)
 
-        else:
-            self._debug_str += ', no sbr'
+        if errsrc is not False:
+            # Extract signal mask for SNR.
+            # Only use drawn region with non-zero ERR to avoid div by zero.
+            # If DQ is present, also exclude non-good pixels.
+            if dqsrc is False:
+                mask_snr = (~err_masked.mask) & (err_masked.data != 0)
+            else:
+                mask_snr = ((~err_masked.mask) & (err_masked.data != 0) &
+                            (dq_sci_masked.data == 0))
 
-        # Calculate SNR, only if ERR is available and not all zeroes
-        if np.any(err_data):
-            snr_data = sci_data / err_data
+            # Extract science and error arrays for SNR
+            try:
+                snr_sci_data = sci_masked.data[mask_snr]
+                snr_err_data = err_masked.data[mask_snr]
+            except Exception as e:
+                self.logger.error(
+                    '{0}: {1}'.format(e.__class__.__name__, str(e)))
+                return
+
+            # Calculate SNR
+            snr_data = snr_sci_data / snr_err_data
             snrmin = snr_data.min()
             snrmean = snr_data.mean()
             snrmax = snr_data.max()
@@ -397,20 +430,23 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
             self.w.max_snr.set_text(str(snrmax))
             self._debug_str += ', snrmin={0}, snrmean={1}, snrmax={2}'.format(
                 snrmin, snrmean, snrmax)
-        else:
-            self._debug_str += ', no snr'
 
         self.logger.debug(self._debug_str)
-        self.w.update_header.set_enabled(True)
+        self.w.update_hdr.set_enabled(True)
         return True
 
-    def _find_ext(self, imfile, ext):
-        with fits.open(imfile) as pf:
-            has_ext = ext in pf
-        return has_ext
+    def _display_bg_params(self):
+        """Display background parameters on GUI."""
+        self.w.bg_x.set_text(str(self.bgxcen))
+        self.w.bg_y.set_text(str(self.bgycen))
+        self.w.bg_r.set_text(str(self.bgradius))
+        self.w.annulus_width.set_text(str(self.annulus_width))
+        self.w.sigma.set_text(str(self.sigma))
+        self.w.niter.set_text(str(self.niter))
 
     def _clear_results(self):
         # Clear previous results
+        self._poly_pts = None
         dummy_text = str(self._dummy_value)
         self.w.min_snr.set_text(dummy_text)
         self.w.mean_snr.set_text(dummy_text)
@@ -424,7 +460,7 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
         self.set_sbr_status()
 
         # Disable update header button
-        self.w.update_header.set_enabled(False)
+        self.w.update_hdr.set_enabled(False)
 
     def set_sbr_status(self, ok_status=None):
         """Set a very obvious SBR status display.
@@ -898,40 +934,16 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
             return True
         return self.redo()
 
-# UNTIL HERE - Turn this into user prefs? op_type can be key1, instrume can be optional key2; prefs can be nested dict; user can set op_type as yet another pref; need to keep this function to change things programmatically.
-    def set_minsbr(self, key):
-        """Set SBR limit using the given key."""
-        if op_type == 'MIMF':
-            # ---- Extract header ----
-            try:
-                image = self.fitsimage.get_image()
-                imhdr = image.get_header()
-            except:
-                intrume = ''
-            else:
-                instrume = imhdr.get('INSTRUME', '').upper()
+    def set_igbadpix(self, w, val):
+        self.ignore_badpix = val
+        return self.redo()
 
-            if instrume in ('NIRCAM', 'NIRISS'):
-                val = 1500
-            elif instrume in ('NIRSPEC', 'MIRI', 'FGS'):
-                val = 750
-            else:
-                val = 0
-        elif op_type in ('FINE_PHASING', 'WAVEFRONT_MAINTENANCE'):
-            val = 1500
-        elif op_type in ('THUMBNAIL', 'FOCUS_SWEEP', 'SEGMENT_ID',
-                         'SEGMENT_SEARCH', 'IMAGE_ARRAY', 'GLOBAL_ALIGNMENT',
-                         'FVA_COARSE_MIMF', 'IMAGE_STACKING',
-                         'FVA_FIELD_VIGNETTING_SCAN'):
-            val = 500
-        elif op_type == 'COARSE_PHASING':
-            val = 30
-        elif op_type == 'PUPIL_IMAGING':
-            val = 25
-        else:
-            val = 0
-
+    def set_minsbr(self):
+        """Set SBR limit. This returns value from user preference until
+        reimplemented properly by subclass."""
+        val = self.default_minsbr
         self.w.min_sbr.set_text(str(val))
+        return val
 
     def update_header(self):
         """Save values to header metadata."""
@@ -969,6 +981,145 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
         iminfo.reason_modified = s
 
         return True
+
+    def params_dict(self):
+        """Return current parameters as a dictionary."""
+        pardict = {'plugin': str(self), 'sigtype': self.sigtype}
+
+        image = self.fitsimage.get_image()
+        if image is None:
+            return pardict
+
+        pardict['image'] = image.get('path')
+        pardict['ext'] = image.get('idx')
+        pardict['xcen'] = self.xcen
+        pardict['ycen'] = self.ycen
+
+        pardict['bgxcen'] = self.bgxcen
+        pardict['bgycen'] = self.bgycen
+        pardict['bgradius'] = self.bgradius
+        pardict['annulus_width'] = self.annulus_width
+        pardict['sigma'] = self.sigma
+        pardict['niter'] = self.niter
+
+        pardict['ignore_badpix'] = self.ignore_badpix
+
+        pardict['min_snr'] = float(self.w.min_snr.get_text())
+        pardict['mean_snr'] = float(self.w.mean_snr.get_text())
+        pardict['max_snr'] = float(self.w.max_snr.get_text())
+
+        pardict['sig_med'] = float(self.w.sig_med.get_text())
+        pardict['bg_std'] = float(self.w.bg_std.get_text())
+        pardict['sbr_value'] = float(self.w.sbr_value.get_text())
+        pardict['min_sbr'] = float(self.w.min_sbr.get_text())
+        pardict['sbr_status_label'] = self.sbr_status_label.get_text()
+
+        if self.sigtype == 'box':
+            pardict['boxwidth'] = self.boxwidth
+            pardict['boxheight'] = self.boxheight
+        elif self.sigtype == 'circular':
+            pardict['radius'] = self.radius
+        else:  # polygon
+            pardict['poly_pts'] = self._poly_pts
+
+        return pardict
+
+    def save_params(self):
+        """Save parameters to a JSON file."""
+        pardict = self.params_dict()
+        fname = Widgets.SaveDialog(
+            title='Save parameters', selectedfilter='*.json').get_path()
+        if not fname:  # Cancel
+            return
+        if os.path.exists(fname):
+            self.logger.warn('{0} will be overwritten'.format(fname))
+        with open(fname, 'w') as fout:
+            json.dump(pardict, fout, indent=4, sort_keys=True,
+                      cls=JsonCustomEncoder)
+        self.logger.info('Parameters saved as {0}'.format(fname))
+
+    def load_params_cb(self):
+        """Allow user to select JSON file to load."""
+        self.filesel.popup('Load JSON file', self.load_params, initialdir='.',
+                           filename='JSON files (*.json)')
+
+    def load_params(self, filename):
+        """Load previously saved parameters from a JSON file."""
+        if not os.path.isfile(filename):
+            return True
+
+        with open(filename) as fin:
+            self.logger.info(
+                'SNR/SBR parameters loaded from {0}'.format(filename))
+            pardict = json.load(fin)
+
+        if ((pardict['plugin'] != str(self)) or
+                (pardict['sigtype'] not in self._sigtype_options)):
+            self.logger.error(
+                '{0} is not a valid JSON file'.format(filename))
+            return True
+
+        # Clear existing canvas
+        if self.sbrtag:
+            try:
+                self.canvas.deleteObjectByTag(self.sbrtag, redraw=True)
+            except:
+                pass
+
+        # Ingest values from file. Retain current value if not found.
+
+        self.set_sigtype(pardict['sigtype'])
+        self.w.sig_type.set_index(self._sigtype_options.index(self.sigtype))
+
+        self.xcen = pardict.get('xcen', self.xcen)
+        self.ycen = pardict.get('ycen', self.ycen)
+
+        self.bgxcen = pardict.get('bgxcen', self.bgxcen)
+        self.bgycen = pardict.get('bgycen', self.bgycen)
+        self.bgradius = pardict.get('bgradius', self.bgradius)
+        self.annulus_width = pardict.get('annulus_width', self.annulus_width)
+        self.sigma = pardict.get('sigma', self.sigma)
+        self.niter = pardict.get('niter', self.niter)
+        self._display_bg_params()
+
+        self.ignore_badpix = pardict.get('ignore_badpix', self.ignore_badpix)
+        self.w.ignore_bad_pixels.set_state(self.ignore_badpix)
+
+        if self.sigtype == 'box':
+            self.boxwidth = pardict.get('boxwidth', self.boxwidth)
+            self.boxheight = pardict.get('boxheight', self.boxheight)
+
+            x1 = self.xcen - (self.boxwidth * 0.5)
+            x2 = x1 + self.boxwidth
+            y1 = self.ycen - (self.boxheight * 0.5)
+            y2 = y1 + self.boxheight
+            sig_obj = self.dc.Rectangle(
+                x1=x1, y1=y1, x2=x2, y2=y2, color=self.sbrcolor)
+
+        elif self.sigtype == 'circular':
+            self.radius = pardict.get('radius', self.radius)
+
+            sig_obj = self.dc.Circle(x=self.xcen, y=self.ycen,
+                                     radius=self.radius, color=self.sbrcolor)
+
+        else:  # polygon
+            self._poly_pts = pardict.get('poly_pts', self._poly_pts)
+
+            sig_obj = self.dc.Polygon(
+                points=self._poly_pts, color=self.sbrcolor)
+
+        # Draw on canvas
+        yt = (self.bgycen + self.bgradius + self.annulus_width +
+              self._text_label_offset)
+        bg_obj = self.dc.Annulus(
+            x=self.bgxcen, y=self.bgycen, radius=self.bgradius,
+            width=self.annulus_width, color=self.sbrbgcolor)
+        lbl_obj = self.dc.Text(
+            self.bgxcen, yt, self._text_label, color=self.sbrcolor)
+        self.sbrtag = self.canvas.add(self.dc.CompoundObject(
+            sig_obj, bg_obj, lbl_obj))
+
+        return self.redo()
 
     def close(self):
         chname = self.fv.get_channelName(self.fitsimage)
