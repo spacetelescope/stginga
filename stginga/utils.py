@@ -11,13 +11,9 @@ import numpy as np
 from astropy.io import ascii, fits
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
-from astropy import version as astropy_version
+#from astropy import version as astropy_version
 
-# GINGA
-from ginga.misc import Future
-
-__all__ = ['calc_stat', 'find_ext', 'find_wfpc2_dq', 'DQParser',
-           'autoload_ginga_image']
+__all__ = ['calc_stat', 'interpolate_badpix', 'find_ext', 'DQParser']
 
 
 def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
@@ -53,11 +49,13 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
     if len(arr) < 1:
         return 0.0
 
-    if ((astropy_version.major==1 and astropy_version.minor==0) or
-            (astropy_version.major < 1)):
-        arr_masked = sigma_clip(arr, sig=sigma, iters=niter)
-    else:
-        arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
+    # NOTE: Now requires Astropy 1.1 or later, so this check is not needed.
+    #if ((astropy_version.major==1 and astropy_version.minor==0) or
+    #        (astropy_version.major < 1)):
+    #    arr_masked = sigma_clip(arr, sig=sigma, iters=niter)
+    #else:
+    #    arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
+    arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
 
     arr = arr_masked.data[~arr_masked.mask]
 
@@ -78,6 +76,34 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
                          'calculations'.format(algorithm))
 
     return val
+
+
+def interpolate_badpix(image, badpix_mask, basis_mask, method='linear'):
+    """Use spline interpolation to fix bad pixel(s).
+
+    .. note::
+
+        Requires SciPy.
+
+    Parameters
+    ----------
+    image : ndarray
+        Image to be fixed in-place.
+
+    badpix_mask, basis_mask : ndarray
+        Boolean masks of bad pixel(s) and the region used
+        as basis for interpolation.
+
+    method : {'nearest', 'linear', 'cubic'}
+        See :func:`~scipy.interpolate.griddata`.
+
+    """
+    from scipy.interpolate import griddata
+
+    y, x = np.where(basis_mask)
+    z = image[basis_mask]
+    ynew, xnew = np.where(badpix_mask)
+    image[badpix_mask] = griddata((x, y), z, (xnew, ynew), method=method)
 
 
 def find_ext(imfile, ext):
@@ -104,52 +130,6 @@ def find_ext(imfile, ext):
     with fits.open(imfile) as pf:
         has_ext = ext in pf
     return has_ext
-
-
-def find_wfpc2_dq(imfile, cachekeyprefix, chipnum):
-    """Find DQ file for WFPC2 data.
-
-    The DQ file has ``c1m`` in its name.
-    However, extension name could be either ``'DQ'`` or ``'SCI'``.
-
-    Parameters
-    ----------
-    imfile : str
-        Filename for science data (``c0m``).
-
-    cachekeyprefix : str
-        Prefix for Ginga cache key. Extension info will be appended to
-        create the actual cache key.
-
-    chipnum : int
-        Chip number, which is same as extension version.
-
-    Returns
-    -------
-    has_dq : bool
-        `True` if DQ data exist.
-
-    dqfile : str
-        Filename for DQ data.
-
-    dqextnum : tuple
-        ``(EXTNAME, EXTVER)`` for DQ data.
-
-    cachekey : str
-        Ginga cache key for DQ data.
-
-    """
-    dqfile = imfile.replace('c0m', 'c1m')
-    cachekeyprefix = cachekeyprefix.replace('c0m', 'c1m')
-    dqextnum = ('DQ', chipnum)
-    has_dq = find_ext(dqfile, dqextnum)
-
-    if not has_dq:
-        dqextnum = ('SCI', chipnum)
-        has_dq = find_ext(dqfile, dqextnum)
-
-    cachekey = '{0}[{1},{2}]'.format(cachekeyprefix, dqextnum[0], chipnum)
-    return has_dq, dqfile, dqextnum, cachekey
 
 
 # STScI reftools.interpretdq.DQParser class modified for Ginga plugin.
@@ -281,56 +261,3 @@ class DQParser(object):
             idx = (dqval & self._valid_flags) != 0
 
         return self.tab[idx]
-
-
-#####################################
-# Functions tied in with Ginga API. #
-#####################################
-
-# TODO: Is this better off as a method in new Ginga plugin mixin class?
-def autoload_ginga_image(fv, chname, filename, extnum, cachekey):
-    """Automatically load a given image extension into Ginga viewer.
-    This is to be called from within a Ginga local plugin.
-
-    Parameters
-    ----------
-    fv
-        Ginga viewer object. This is ``self.fv`` in the plugin.
-
-    chname : str
-        Ginga channel name to display the image in.
-
-    filename : str
-        Image filename.
-
-    extnum : int
-        Image extension number.
-
-    cachekey : str
-        Key for Ginga data cache. Usually, this is in the format of
-        ``prefix[extname, extver]``.
-
-    Returns
-    -------
-    image
-        Ginga image object.
-
-    """
-    chinfo = fv.get_channelInfo(chname)
-
-    # Image already loaded
-    if cachekey in chinfo.datasrc:
-        #print('Loading {0} from cache'.format(cachekey))
-        image = chinfo.datasrc[cachekey]
-
-    # Auto load image data
-    else:
-        #print('Loading {0} from {1}'.format(cachekey, filename))
-        image = fv.load_image(filename, idx=extnum)
-        future = Future.Future()
-        future.freeze(fv.load_image, filename, idx=extnum)
-        image.set(path=filename, idx=extnum, name=cachekey, image_future=future)
-        fv.add_image(cachekey, image, chname=chname, silent=True)
-        fv.advertise_image(chname, image)
-
-    return image

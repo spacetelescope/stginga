@@ -3,29 +3,11 @@
 Reference/API
 =============
 
-gingawrapper
-------------
+.. toctree::
+   :maxdepth: 2
 
-.. automodule:: stginga.gingawrapper
-  :members:
-
-
-nbinteract
-----------
-
-.. automodule:: stginga.nbinteract
-  :members:
-
-
-plugin_info
------------
-
-.. automodule:: stginga.plugin_info
-  :members:
-
-
-utils
------
-
-.. automodule:: stginga.utils
-  :members:
+   api/gingawrapper
+   api/nbinteract
+   api/plugin_info
+   api/utils
+   api/local_plugin_mixin

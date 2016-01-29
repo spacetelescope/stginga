@@ -681,8 +681,7 @@ class MIPick(GingaPlugin.LocalPlugin):
                 self.pick_log = None
 
     def close(self):
-        chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_local_plugin(chname, str(self))
+        self.fv.stop_local_plugin(self.chname, str(self))
         return True
 
     def start(self):
@@ -717,9 +716,7 @@ class MIPick(GingaPlugin.LocalPlugin):
             self.region.image = self.fitsimage.get_image()
 
         # See if multiimage is active
-        chname = self.fv.get_channelName(self.fitsimage)
-        chinfo = self.fv.get_channelInfo(chname)
-        opmon = chinfo.opmon
+        opmon = self.chinfo.opmon
         multiimage = None
         if opmon.is_active('MultiImage'):
             try:

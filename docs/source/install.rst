@@ -7,7 +7,7 @@ Installation
 
 * Astropy 1.1 or later, available from
   `Astropy's GitHub page <https://github.com/astropy/astropy>`_.
-* The latest version of Ginga, available from
+* Ginga 2.5.20160128021834 or later, available from
   `Ginga's GitHub page <https://github.com/ejeschke/ginga/>`_.
 * The latest version of ``stginga`` available from
   `stginga's GitHub page <https://github.com/spacetelescope/stginga>`_.

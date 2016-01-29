@@ -2,26 +2,21 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-# STDLIB
-import json
-import os
-
 # THIRD-PARTY
 import numpy as np
-from astropy.utils.misc import JsonCustomEncoder
 
 # GINGA
-from ginga import GingaPlugin
-from ginga.gw.GwHelp import FileSelection
+from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
 
 # STGINGA
 from stginga import utils
+from stginga.plugins.local_plugin_mixin import MEFMixin, ParamMixin
 
 __all__ = []
 
 
-class SNRCalc(GingaPlugin.LocalPlugin):
+class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
     """SNR and SBR calculations on an image."""
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
@@ -32,7 +27,6 @@ class SNRCalc(GingaPlugin.LocalPlugin):
 
         self._sigtype_options = ['box', 'circular', 'polygon']
         self._dummy_value = 0
-        self._no_keyword = 'N/A'
         #self._default_bgradius_offset = 10
         self._text_label = 'SNR/SBR'
         self._text_label_offset = 4
@@ -55,14 +49,7 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         self.ignore_badpix = settings.get('ignore_bad_pixels', False)
 
         # FITS keywords and values from general config
-        gen_settings = prefs.createCategory('general')
-        gen_settings.load(onError='silent')
-        self._sci_extname = gen_settings.get('sciextname', 'SCI')
-        self._err_extname = gen_settings.get('errextname', 'ERR')
-        self._dq_extname = gen_settings.get('dqextname', 'DQ')
-        self._ext_key = gen_settings.get('extnamekey', 'EXTNAME')
-        self._extver_key = gen_settings.get('extverkey', 'EXTVER')
-        self._ins_key = gen_settings.get('instrumentkey', 'INSTRUME')
+        self.general_mef_settings(prefs)
 
         # Used for signal calculation
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
@@ -212,19 +199,11 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         self.sbr_status_frame.set_widget(vbox2)
         vbox.add_widget(self.sbr_status_frame, stretch=0)
 
-        captions = (('Load Param', 'button',
-                     'Save Param', 'button',
-                     'Update HDR', 'button'), )
+        self.build_param_gui(vbox)
+
+        captions = (('Update HDR', 'button', 'spacer1', 'spacer'), )
         w, b = Widgets.build_info(captions, orientation=self.orientation)
         self.w.update(b)
-
-        b.load_param.set_tooltip('Load previously saved parameters')
-        b.load_param.add_callback(
-            'activated', lambda w: self.load_params_cb())
-
-        b.save_param.set_tooltip('Save SNR/SBR parameters')
-        b.save_param.add_callback(
-            'activated', lambda w: self.save_params())
 
         b.update_hdr.set_tooltip('Update header with SBR and SNR values')
         b.update_hdr.add_callback(
@@ -244,9 +223,6 @@ class SNRCalc(GingaPlugin.LocalPlugin):
         top.add_widget(sw, stretch=1)
         top.add_widget(btns, stretch=0)
         container.add_widget(top, stretch=1)
-
-        # Initialize file save dialog
-        self.filesel = FileSelection(self.fv.w.root.get_widget())
 
         # Populate default attributes frame, results, and status
         self._display_bg_params()
@@ -284,11 +260,6 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
 
         header = image.get_header()
         extname = header.get(self._ext_key, self._no_keyword).upper()
-        imfile = image.metadata['path']
-        imname = image.metadata['name'].split('[')[0]
-        instrument = header.get(self._ins_key, None)
-        extver = header.get(self._extver_key, self._dummy_value)
-        chname = self.fv.get_channelName(self.fitsimage)
 
         # Only calculate for science extension.
         # If EXTNAME does not exist, just assume user knows best.
@@ -327,38 +298,13 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
         bg_masked = image.cutout_shape(bg_obj)
 
         # Extract ERR info
-        errsrc = False
-        if instrument != 'WFPC2':
-            err_extnum = (self._err_extname, extver)
-            errname = '{0}[{1},{2}]'.format(imname, self._err_extname, extver)
-            errsrc = utils.find_ext(imfile, err_extnum)
-            if errsrc:
-                errsrc = utils.autoload_ginga_image(
-                    self.fv, chname, imfile, err_extnum, errname)
-                err_masked = errsrc.cutout_shape(sig_obj)
-            else:
-                self.logger.warn('{0} extension not found for '
-                                 '{1}'.format(err_extnum, imfile))
+        errsrc = self.load_err(image, header)
 
         # Extract DQ info
-        dqsrc = False
         if self.ignore_badpix:
-            if instrument != 'WFPC2':
-                dqimfile = imfile
-                dq_extnum = (self._dq_extname, extver)
-                dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
-                dqsrc = utils.find_ext(dqimfile, dq_extnum)
-            else:  # Special handling for WFPC2
-                dqsrc, dqimfile, dq_extnum, dqname = utils.find_wfpc2_dq(
-                    imfile, imname, extver)
-            if dqsrc:
-                dqsrc = utils.autoload_ginga_image(
-                    self.fv, chname, dqimfile, dq_extnum, dqname)
-                dq_sci_masked = dqsrc.cutout_shape(sig_obj)
-                dq_bg_masked = dqsrc.cutout_shape(bg_obj)
-            else:
-                self.logger.error('{0} extension not found for '
-                                  '{1}'.format(dq_extnum, dqimfile))
+            dqsrc = self.load_dq(image, header)
+        else:
+            dqsrc = False
 
         # Extract signal and background masks for SBR.
         # If DQ is present, use drawn regions with good pixels only.
@@ -367,6 +313,8 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
             mask_sci = ~sci_masked.mask
             mask_bg = ~bg_masked.mask
         else:
+            dq_sci_masked = dqsrc.cutout_shape(sig_obj)
+            dq_bg_masked = dqsrc.cutout_shape(bg_obj)
             mask_sci = (~dq_sci_masked.mask) & (dq_sci_masked.data == 0)
             mask_bg = (~dq_bg_masked.mask) & (dq_bg_masked.data == 0)
 
@@ -402,6 +350,8 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
                 self.set_sbr_status(ok_status=False)
 
         if errsrc is not False:
+            err_masked = errsrc.cutout_shape(sig_obj)
+
             # Extract signal mask for SNR.
             # Only use drawn region with non-zero ERR to avoid div by zero.
             # If DQ is present, also exclude non-good pixels.
@@ -973,11 +923,8 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
         # This sets timestamp
         image.make_callback('modified')
 
-        chname = self.fv.get_channelName(self.fitsimage)
-        channel = self.fv.get_channelInfo(chname)
-
         # Store change history in metadata
-        iminfo = channel.get_image_info(imname)
+        iminfo = self.chinfo.get_image_info(imname)
         iminfo.reason_modified = s
 
         return True
@@ -1024,39 +971,12 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
 
         return pardict
 
-    def save_params(self):
-        """Save parameters to a JSON file."""
-        pardict = self.params_dict()
-        fname = Widgets.SaveDialog(
-            title='Save parameters', selectedfilter='*.json').get_path()
-        if not fname:  # Cancel
-            return
-        if os.path.exists(fname):
-            self.logger.warn('{0} will be overwritten'.format(fname))
-        with open(fname, 'w') as fout:
-            json.dump(pardict, fout, indent=4, sort_keys=True,
-                      cls=JsonCustomEncoder)
-        self.logger.info('Parameters saved as {0}'.format(fname))
-
-    def load_params_cb(self):
-        """Allow user to select JSON file to load."""
-        self.filesel.popup('Load JSON file', self.load_params, initialdir='.',
-                           filename='JSON files (*.json)')
-
-    def load_params(self, filename):
-        """Load previously saved parameters from a JSON file."""
-        if not os.path.isfile(filename):
-            return True
-
-        with open(filename) as fin:
-            self.logger.info(
-                'SNR/SBR parameters loaded from {0}'.format(filename))
-            pardict = json.load(fin)
-
+    def ingest_params(self, pardict):
+        """Ingest dictionary containing plugin parameters into plugin
+        GUI and internal variables."""
         if ((pardict['plugin'] != str(self)) or
                 (pardict['sigtype'] not in self._sigtype_options)):
-            self.logger.error(
-                '{0} is not a valid JSON file'.format(filename))
+            self.logger.error('Cannot ingest parameters')
             return True
 
         # Clear existing canvas
@@ -1122,8 +1042,7 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
         return self.redo()
 
     def close(self):
-        chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_local_plugin(chname, str(self))
+        self.fv.stop_local_plugin(self.chname, str(self))
         return True
 
     def start(self):

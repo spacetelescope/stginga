@@ -95,13 +95,14 @@ def run_stginga(sys_argv):
     This does the following:
 
     * Set up custom STScI plugins.
+    * Automatically starts necessary core Ginga global plugins.
     * Pass command line arguments directly into Ginga.
 
     .. warning::
 
         If the same plugin that is loaded here is also loaded
         via ``~/.ginga/ginga_config.py`` or command line,
-        you will see duplicates!
+        you might see duplicates!
 
     """
     from .plugin_info import _get_stginga_plugins
@@ -126,6 +127,11 @@ def run_stginga(sys_argv):
     #new_argv = ['--toolkit=qt' if 'toolkit' in s else s for s in sys_argv]
     #if '-t' in new_argv:
     #    new_argv[new_argv.index('-t') + 1] = 'qt'
+
+    # Auto start core global plugins
+    for gplgname in ('ChangeHistory', ):
+        gplg = _locate_plugin(gmain.global_plugins, gplgname)
+        gplg.start = True
 
     # Start Ginga
     gmain.reference_viewer(sys_argv)
