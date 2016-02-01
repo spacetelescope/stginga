@@ -2,26 +2,21 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-# STDLIB
-import json
-import os
-
 # THIRD-PARTY
 import numpy as np
-from astropy.utils.misc import JsonCustomEncoder
 
 # GINGA
-from ginga import GingaPlugin
-from ginga.gw.GwHelp import FileSelection
+from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
 
 # STGINGA
 from stginga import utils
+from stginga.plugins.local_plugin_mixin import MEFMixin, ParamMixin
 
 __all__ = []
 
 
-class BackgroundSub(GingaPlugin.LocalPlugin):
+class BackgroundSub(LocalPlugin, MEFMixin, ParamMixin):
     """Background subtraction on an image."""
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
@@ -33,7 +28,6 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         self._bgtype_options = ['annulus', 'box', 'constant']
         self._algorithm_options = ['mean', 'median', 'mode']
         self._dummy_value = 0.0
-        self._no_keyword = 'N/A'
         self._text_label = 'BGSub'
         self._text_label_offset = 4
 
@@ -51,13 +45,7 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
         self.ignore_badpix = settings.get('ignore_bad_pixels', False)
 
         # FITS keywords and values from general config
-        gen_settings = prefs.createCategory('general')
-        gen_settings.load(onError='silent')
-        self._sci_extname = gen_settings.get('sciextname', 'SCI')
-        self._dq_extname = gen_settings.get('dqextname', 'DQ')
-        self._ext_key = gen_settings.get('extnamekey', 'EXTNAME')
-        self._extver_key = gen_settings.get('extverkey', 'EXTVER')
-        self._ins_key = gen_settings.get('instrumentkey', 'INSTRUME')
+        self.general_mef_settings(prefs)
 
         # Used for calculation
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
@@ -139,19 +127,11 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
 
         vbox.add_widget(w, stretch=0)
 
-        captions = (('Load Parameters', 'button',
-                     'Save Parameters', 'button',
-                     'Subtract', 'button'), )
+        self.build_param_gui(vbox)
+
+        captions = (('Subtract', 'button', 'spacer1', 'spacer'), )
         w, b = Widgets.build_info(captions, orientation=self.orientation)
         self.w.update(b)
-
-        b.load_parameters.set_tooltip('Load previously saved parameters')
-        b.load_parameters.add_callback(
-            'activated', lambda w: self.load_params_cb())
-
-        b.save_parameters.set_tooltip('Save background subtraction parameters')
-        b.save_parameters.add_callback(
-            'activated', lambda w: self.save_params())
 
         b.subtract.set_tooltip('Subtract background')
         b.subtract.add_callback('activated', lambda w: self.sub_bg())
@@ -171,9 +151,6 @@ class BackgroundSub(GingaPlugin.LocalPlugin):
 
         top.add_widget(btns, stretch=0)
         container.add_widget(top, stretch=1)
-
-        # Initialize file save dialog
-        self.filesel = FileSelection(self.fv.w.root.get_widget())
 
         # Populate default attributes frame
         self.set_bgtype(self.bgtype)
@@ -246,34 +223,14 @@ Click "Subtract" to remove background.""")
 
         # Extract DQ info
         if self.ignore_badpix:
-            imfile = image.metadata['path']
-            imname = image.metadata['name'].split('[')[0]
-            instrument = header.get(self._ins_key, None)
-            extver = header.get(self._extver_key, self._dummy_value)
-
-            if instrument != 'WFPC2':
-                dq_extnum = (self._dq_extname, extver)
-                dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
-                dqsrc = utils.find_ext(imfile, dq_extnum)
-
-            # Special handling for WFPC2, lots of assumptions
-            else:
-                dqsrc, imfile, dq_extnum, dqname = utils.find_wfpc2_dq(
-                    imfile, imname, extver)
-
-            if not dqsrc:
-                self.logger.error('{0} extension not found for '
-                                  '{1}'.format(dq_extnum, imfile))
+            dqsrc = self.load_dq(image, header)
         else:
             dqsrc = False
 
         bg_masked = image.cutout_shape(bg_obj)
 
         # Extract DQ mask
-        if dqsrc:
-            chname = self.fv.get_channelName(self.fitsimage)
-            dqsrc = utils.autoload_ginga_image(
-                self.fv, chname, imfile, dq_extnum, dqname)
+        if dqsrc is not False:
             dqsrc_masked = dqsrc.cutout_shape(bg_obj)
             mask = (~dqsrc_masked.mask) & (dqsrc_masked.data == 0)
         else:
@@ -749,11 +706,8 @@ Click "Subtract" to remove background.""")
         image.set_data(new_data, metadata=image.metadata)
         #self.fitsimage.auto_levels()
 
-        chname = self.fv.get_channelName(self.fitsimage)
-        channel = self.fv.get_channelInfo(chname)
-
         # Store change history in metadata
-        iminfo = channel.get_image_info(image.get('name'))
+        iminfo = self.chinfo.get_image_info(image.get('name'))
         iminfo.reason_modified = s
 
         return True
@@ -790,39 +744,12 @@ Click "Subtract" to remove background.""")
 
         return pardict
 
-    def save_params(self):
-        """Save parameters to a JSON file."""
-        pardict = self.params_dict()
-        fname = Widgets.SaveDialog(
-            title='Save parameters', selectedfilter='*.json').get_path()
-        if not fname:  # Cancel
-            return
-        if os.path.exists(fname):
-            self.logger.warn('{0} will be overwritten'.format(fname))
-        with open(fname, 'w') as fout:
-            json.dump(pardict, fout, indent=4, sort_keys=True,
-                      cls=JsonCustomEncoder)
-        self.logger.info('Parameters saved as {0}'.format(fname))
-
-    def load_params_cb(self):
-        """Allow user to select JSON file to load."""
-        self.filesel.popup('Load JSON file', self.load_params, initialdir='.',
-                           filename='JSON files (*.json)')
-
-    def load_params(self, filename):
-        """Load previously saved parameters from a JSON file."""
-        if not os.path.isfile(filename):
-            return True
-
-        with open(filename) as fin:
-            self.logger.info('Background subtraction parameters loaded from '
-                             '{0}'.format(filename))
-            pardict = json.load(fin)
-
+    def ingest_params(self, pardict):
+        """Ingest dictionary containing plugin parameters into plugin
+        GUI and internal variables."""
         if ((pardict['plugin'] != str(self)) or
                 (pardict['bgtype'] not in self._bgtype_options)):
-            self.logger.error(
-                '{0} is not a valid JSON file'.format(filename))
+            self.logger.error('Cannot ingest parameters')
             return True
 
         # Clear existing canvas
@@ -881,8 +808,7 @@ Click "Subtract" to remove background.""")
         return self.redo()
 
     def close(self):
-        chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_local_plugin(chname, str(self))
+        self.fv.stop_local_plugin(self.chname, str(self))
         return True
 
     def start(self):

@@ -10,7 +10,7 @@ import numpy as np
 from astropy.utils.data import get_pkg_data_filename
 
 # GINGA
-from ginga import GingaPlugin
+from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
 from ginga.misc import Bunch
 from ginga.RGBImage import RGBImage
@@ -18,6 +18,7 @@ from ginga.util.dp import masktorgb
 
 # STGINGA
 from stginga import utils
+from stginga.plugins.local_plugin_mixin import MEFMixin
 
 __all__ = []
 
@@ -45,7 +46,7 @@ DQFLAG SHORT_DESCRIPTION LONG_DESCRIPTION
 """
 
 
-class DQInspect(GingaPlugin.LocalPlugin):
+class DQInspect(LocalPlugin, MEFMixin):
     """DQ inspection on an image."""
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
@@ -57,7 +58,6 @@ class DQInspect(GingaPlugin.LocalPlugin):
         self._cache_key = 'dq_by_flags'  # Ginga cannot use this anywhere else
         self._ndim = 2
         self._dummy_value = 0
-        self._no_keyword = 'N/A'
         self._text_label = 'DQInspect'
         self._text_label_offset = 4
 
@@ -89,13 +89,7 @@ class DQInspect(GingaPlugin.LocalPlugin):
         self._curshape = None
 
         # FITS keywords and values from general config
-        gen_settings = prefs.createCategory('general')
-        gen_settings.load(onError='silent')
-        self._sci_extname = gen_settings.get('sciextname', 'SCI')
-        self._dq_extname = gen_settings.get('dqextname', 'DQ')
-        self._ext_key = gen_settings.get('extnamekey', 'EXTNAME')
-        self._extver_key = gen_settings.get('extverkey', 'EXTVER')
-        self._ins_key = gen_settings.get('instrumentkey', 'INSTRUME')
+        self.general_mef_settings(prefs)
 
         # For GUI display of info and results
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
@@ -167,9 +161,6 @@ class DQInspect(GingaPlugin.LocalPlugin):
         b.dq.set_tooltip('DQ value of pixel')
         b.dq.set_text(self._no_keyword)
 
-        # TODO: Need to find Ginga equivalent.
-        #b.dq.widget.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-
         # Create the Treeview
         self.pxdqlist = Widgets.TreeView(auto_expand=True,
                                          sortable=True,
@@ -191,9 +182,6 @@ class DQInspect(GingaPlugin.LocalPlugin):
 
         b.npix.set_tooltip('Number of affected pixels')
         b.npix.set_text(self._no_keyword)
-
-        # TODO: Need to find Ginga equivalent.
-        #b.npix.widget.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
 
         # Create the Treeview
         self.imdqlist = Widgets.TreeView(auto_expand=True,
@@ -250,7 +238,6 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             treedict[str(flag)] = Bunch.Bunch(FLAG=flag, DESCRIP=val)
 
         self.pxdqlist.set_tree(treedict)
-        #self.pxdqlist.sort_on_column(self.pxdqlist.leaf_idx)
         self.w.dq.set_text(str(pixval))
 
     def recreate_imdq(self, dqparser):
@@ -271,7 +258,6 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             treedict[str(flag)] = Bunch.Bunch(FLAG=flag, DESCRIP=val)
 
         self.imdqlist.set_tree(treedict)
-        #self.imdqlist.sort_on_column(self.imdqlist.leaf_idx)
 
     def clear_pxdq(self, keep_loc=False):
         """Clear single pixel results, with the option to remember/forget
@@ -371,36 +357,16 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             # Non-DQ array is modified, which does not affect DQ, so no need
             # to reset cache no matter what is passed in.
             ignore_image_cache = False
+            dqsrc = self.load_dq(image, header)
 
-            imfile = image.metadata['path']
-            imname = image.metadata['name'].split('[')[0]
-            extver = header.get(self._extver_key, self._dummy_value)
-
-            if instrument != 'WFPC2':
-                dq_extnum = (self._dq_extname, extver)
-                dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
-                dqsrc = utils.find_ext(imfile, dq_extnum)
-
-            # Special handling for WFPC2, lots of assumptions
-            else:
-                dqsrc, imfile, dq_extnum, dqname = utils.find_wfpc2_dq(
-                    imfile, imname, extver)
-
-            # Do not continue if no DQ extension
-            if not dqsrc:
-                self.logger.error('{0} extension not found for '
-                                  '{1}'.format(dq_extnum, imfile))
+            if dqsrc is False:
                 return self._reset_imdq_on_error()
-
-            chname = self.fv.get_channelName(self.fitsimage)
-            dqsrc = utils.autoload_ginga_image(
-                self.fv, chname, imfile, dq_extnum, dqname)
 
         # Use displayed image
         else:
-            dqname = image.metadata['name']
             dqsrc = image
 
+        dqname = dqsrc.get('name')
         data = dqsrc.get_data()
         if data.ndim != self._ndim:
             self.logger.error('Expected ndim={0} but data has '
@@ -674,9 +640,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 
     def close(self):
         self._reset_imdq_on_error()
-
-        chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_local_plugin(chname, str(self))
+        self.fv.stop_local_plugin(self.chname, str(self))
         return True
 
     def start(self):

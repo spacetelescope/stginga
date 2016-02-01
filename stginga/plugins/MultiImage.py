@@ -386,9 +386,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def close(self):
         self.logger.debug('Called.')
-
-        chname = self.fv.get_channelName(self.fitsimage)
-        self.fv.stop_local_plugin(chname, str(self))
+        self.fv.stop_local_plugin(self.chname, str(self))
         return True
 
     def pause(self):

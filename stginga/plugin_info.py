@@ -12,6 +12,7 @@ __all__ = ['load_plugins', 'show_plugin_install_info']
 
 def load_plugins(ginga):
     """Load the ``stginga`` plugins.
+    This also automatically starts necessary core Ginga global plugins.
 
     Parameters
     ----------
@@ -21,12 +22,16 @@ def load_plugins(ginga):
 
     """
     stglobal_plugins, stlocal_plugins = _get_stginga_plugins()
+
+    # Add custom global plugins
     for gplg in stglobal_plugins:
         if gplg['module'] in ginga.global_plugins:
             ginga.logger.info('Plugin {0} already loaded in Ginga.  Not adding '
                               'again.'.format(gplg['module']))
         else:
             ginga.add_global_plugin(gplg)
+
+    # Add custom local plugins
     for lplg in stlocal_plugins:
         if lplg['module'] in ginga.local_plugins:
             ginga.logger.info('Plugin {0} already loaded in Ginga.  Not adding '
@@ -34,16 +39,18 @@ def load_plugins(ginga):
         else:
             ginga.add_local_plugin(lplg)
 
+    # Auto start core global plugins
+    for gplg in ('ChangeHistory', ):
+        ginga.start_global_plugin(gplg)
+
 
 def _get_stginga_plugins():
     gpfx = 'stginga.plugins'  # To load custom plugins in Ginga namespace
 
-    global_plugins = [
-        Bunch(module='ChangeHistory', tab='History', ws='right', pfx=gpfx,
-              start=True),
-        ]
+    global_plugins = []
     local_plugins = [
         Bunch(module='BackgroundSub', ws='dialogs', pfx=gpfx),
+        Bunch(module='BadPixCorr', ws='dialogs', pfx=gpfx),
         Bunch(module='DQInspect', ws='dialogs', pfx=gpfx),
         Bunch(module='MultiImage', ws='dialogs', pfx=gpfx),
         Bunch(module='MIPick', ws='dialogs', pfx=gpfx),

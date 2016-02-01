@@ -28,5 +28,5 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'],
     zip_safe=False,
     use_2to3=True,
-    install_requires=['astropy>=1.1', 'ginga']
+    install_requires=['astropy>=1.1', 'ginga>=2.5.20160128021834']
 )
