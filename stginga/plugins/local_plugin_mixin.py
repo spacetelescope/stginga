@@ -10,9 +10,14 @@ import os
 from astropy.utils.misc import JsonCustomEncoder
 
 # GINGA
-from ginga.gw.GwHelp import FileSelection
 from ginga.gw import Widgets
 from ginga.misc.Future import Future
+
+# Need this for RTD to build successfully without Qt
+try:
+    from ginga.gw.GwHelp import FileSelection
+except ImportError:
+    pass
 
 # STGINGA
 from stginga import utils

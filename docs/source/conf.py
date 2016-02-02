@@ -301,11 +301,6 @@ intersphinx_mapping = {
     }
 
 
-# Set Ginga toolkit -- Need for widget imports to work
-from ginga import toolkit as ginga_toolkit
-ginga_toolkit.use('qt')
-
-
 # a simple/non-configurable extension that generates the rst files for ipython
 # notebooks
 def notebooks_to_rst(app):
