@@ -86,10 +86,7 @@ class BackgroundSub(LocalPlugin, MEFMixin, ParamMixin):
         self.tw = tw
 
         fr = Widgets.Expander('Instructions')
-        vbox2 = Widgets.VBox()
-        vbox2.add_widget(tw)
-        vbox2.add_widget(Widgets.Label(''), stretch=1)
-        fr.set_widget(vbox2)
+        fr.set_widget(tw)
         vbox.add_widget(fr, stretch=0)
 
         fr = Widgets.Frame('Background Selection')
