@@ -92,10 +92,7 @@ class BadPixCorr(LocalPlugin, MEFMixin, ParamMixin):
         self.tw = tw
 
         fr = Widgets.Expander('Instructions')
-        vbox2 = Widgets.VBox()
-        vbox2.add_widget(tw)
-        vbox2.add_widget(Widgets.Label(''), stretch=1)
-        fr.set_widget(vbox2)
+        fr.set_widget(tw)
         vbox.add_widget(fr, stretch=0)
 
         fr = Widgets.Frame('Correction Type')
@@ -209,8 +206,8 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         # If EXTNAME does not exist, just assume user knows best.
         if extname not in (self._sci_extname, self._no_keyword):
             self.logger.debug(
-                'Bad pixel correction not possible for {0} extension in '
-                '{1}'.format(extname, image.get('name')))
+                'Bad pixel correction for science data not possible for {0} '
+                'extension in {1}'.format(extname, image.get('name')))
             return True
 
         # Nothing to do

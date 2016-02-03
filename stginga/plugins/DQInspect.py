@@ -114,12 +114,8 @@ class DQInspect(LocalPlugin, MEFMixin):
         canvas.setSurface(self.fitsimage)
         self.canvas = canvas
 
-        # TODO: Need to test this when we have a plugin that modifies DQ.
-        # Overrides redo() issued by image.set_data() by recalculating.
         fv.add_callback(
-            'add-image-info', lambda *args: self.redo(ignore_image_cache=True))
-
-        fv.add_callback('remove-image', lambda *args: self.redo())
+            'remove-image', lambda *args: self.redo(ignore_image_cache=False))
 
         self.gui_up = False
 
@@ -137,10 +133,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         self.tw = tw
 
         fr = Widgets.Expander('Instructions')
-        vbox2 = Widgets.VBox()
-        vbox2.add_widget(tw)
-        vbox2.add_widget(Widgets.Label(''), stretch=1)
-        fr.set_widget(vbox2)
+        fr.set_widget(tw)
         vbox.add_widget(fr, stretch=0)
 
         fr = Widgets.Frame('Single Pixel')
@@ -214,7 +207,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         self.gui_up = True
 
         # Populate fields based on active image
-        self.redo()
+        self.redo(ignore_image_cache=False)
 
     def instructions(self):
         self.tw.set_text("""It is important that you have all the possible DQ definition files defined in your plugin configuration file if you do not want to use default values! Otherwise, results might be inaccurate. The DQ definition file is select by {0} keyword in the image header.
@@ -320,7 +313,11 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 
         return dqp
 
-    def redo(self, ignore_image_cache=False):
+    # TODO: Setting default to True is a hit on overall performance because
+    # cache is pretty much useless now. But it is necessary for this plugin
+    # to pick up changes to DQ buffer from another plugin. Need to think about
+    # a better way to utilize the cache while still picking up the changes.
+    def redo(self, ignore_image_cache=True):
         """This updates DQ flags from canvas selection.
 
         Parameters
@@ -589,7 +586,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         self.ycen = y
 
         self.pxdqtag = canvas.add(self.dc.CompoundObject(obj, obj_lbl))
-        return self.redo()
+        return self.redo(ignore_image_cache=False)
 
     def set_xcen(self):
         try:
@@ -611,7 +608,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 c_obj.move_to(self.xcen, c_obj.y)
 
         self.fitsimage.redraw(whence=3)
-        return self.redo()
+        return self.redo(ignore_image_cache=False)
 
     def set_ycen(self):
         try:
@@ -636,7 +633,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 c_obj.y = self.ycen + self._text_label_offset
 
         self.fitsimage.redraw(whence=3)
-        return self.redo()
+        return self.redo(ignore_image_cache=False)
 
     def close(self):
         self._reset_imdq_on_error()
