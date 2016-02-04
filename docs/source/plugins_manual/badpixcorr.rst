@@ -9,9 +9,9 @@ BadPixCorr
 
 This local plugin is used to fix bad pixels. Currently, it only handles fixing
 a single bad pixel or bad pixels within a circular region. The corresponding
-DQ flags will also be set to zero. Currently, there is also no way to save the
-modified image. However, correction parameters can be saved to a JSON file,
-which then can be reloaded as well.
+DQ flags will also be set to the given new flag value (default is zero).
+Correction parameters can be saved to a JSON file, which then can be reloaded
+as well. The corrected image can be saved using :ref:`local-plugin-saveimage`.
 
 It is customizable using ``~/.ginga/plugin_BadPixCorr.cfg``::
 

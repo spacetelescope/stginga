@@ -29,6 +29,7 @@ These plugins behave like a regular Ginga plugin:
    plugins_manual/backgroundsub
    plugins_manual/badpixcorr
    plugins_manual/dqinspect
+   plugins_manual/saveimage
    plugins_manual/snrcalc
 
 These plugins are for very specific analysis needs. Therefore, they are

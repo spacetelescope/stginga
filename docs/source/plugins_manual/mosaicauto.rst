@@ -15,9 +15,12 @@ determined by its WCS without distortion correction. This is meant as a
 quick-look tool, not an
 `AstroDrizzle <http://ssb.stsci.edu/doc/stsci_python_x/drizzlepac.doc/html/index.html>`_
 replacement. Currently, such a mosaic can only be created once per Ginga
-session. Once the mosaic is successfully created, user can select the desired
+session.
+
+Once the mosaic is successfully created, user can select the desired
 image name(s) to highlight associated footprint(s) on the mosaic. User can also
-save an image list of the selected image(s).
+save an image list of the selected image(s). Optionally, the mosaic itself can
+be saved using :ref:`local-plugin-saveimage`.
 
 It is customizable using ``~/.ginga/plugin_Mosaic.cfg``, which is the same file
 used for Ginga's core ``Mosaic`` plugin. Here, only the critical parameters or

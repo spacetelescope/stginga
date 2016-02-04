@@ -8,9 +8,9 @@ BackgroundSub
   :alt: BackgroundSub plugin
 
 This local plugin is used to calculate and subtract background value. Currently,
-it only handles constant background and there is no way to save the subtracted
-image. However, subtraction parameters can be saved to a JSON file, which then
-can be reloaded as well.
+it only handles constant background. Subtraction parameters can be saved to a
+JSON file, which then can be reloaded as well. The subtracted image can be saved
+using :ref:`local-plugin-saveimage`.
 
 It is customizable using ``~/.ginga/plugin_BackgroundSub.cfg``::
 

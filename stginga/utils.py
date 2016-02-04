@@ -127,6 +127,8 @@ def find_ext(imfile, ext):
     >>> find_ext('myimage.fits', ('DQ', 1))
 
     """
+    if imfile is None:  # This is needed to handle Ginga mosaic
+        return False
     with fits.open(imfile) as pf:
         has_ext = ext in pf
     return has_ext
