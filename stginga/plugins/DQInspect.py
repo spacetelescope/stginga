@@ -114,8 +114,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         canvas.setSurface(self.fitsimage)
         self.canvas = canvas
 
-        fv.add_callback(
-            'remove-image', lambda *args: self.redo(ignore_image_cache=False))
+        fv.add_callback('remove-image', lambda *args: self.redo())
 
         self.gui_up = False
 
@@ -207,7 +206,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         self.gui_up = True
 
         # Populate fields based on active image
-        self.redo(ignore_image_cache=False)
+        self.redo()
 
     def instructions(self):
         self.tw.set_text("""It is important that you have all the possible DQ definition files defined in your plugin configuration file if you do not want to use default values! Otherwise, results might be inaccurate. The DQ definition file is select by {0} keyword in the image header.
@@ -313,20 +312,8 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 
         return dqp
 
-    # TODO: Setting default to True is a hit on overall performance because
-    # cache is pretty much useless now. But it is necessary for this plugin
-    # to pick up changes to DQ buffer from another plugin. Need to think about
-    # a better way to utilize the cache while still picking up the changes.
-    def redo(self, ignore_image_cache=True):
-        """This updates DQ flags from canvas selection.
-
-        Parameters
-        ----------
-        ignore_image_cache : bool
-            Set to `True` to ignore cached parser results for the
-            active image. This is useful if image buffer is modified.
-
-        """
+    def redo(self):
+        """This updates DQ flags."""
         if not self.gui_up:
             return True
 
@@ -353,7 +340,6 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         if extname != self._dq_extname:
             # Non-DQ array is modified, which does not affect DQ, so no need
             # to reset cache no matter what is passed in.
-            ignore_image_cache = False
             dqsrc = self.load_dq(image, header)
 
             if dqsrc is False:
@@ -385,19 +371,25 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
             dqparser = self._load_dqparser(instrument)
             self._dqparser[instrument] = dqparser
 
-        # Get cached results first, if available.
+        iminfo = self.chinfo.get_image_info(dqname)
+        cur_timestamp = iminfo.get('time_modified', None)
+        bnch = dqsrc.metadata.get(self._cache_key, None)
+
+        # Interpret DQ flags for all pixels if cache not found or outdated.
         # The cache is attached to image object, so that if image is closed etc,
         # the cache is automatically removed.
-        if self._cache_key in dqsrc.metadata and not ignore_image_cache:
-            self.logger.debug('Using cached DQ results for {0}'.format(dqname))
-            pixmask_by_flag = dqsrc.get(self._cache_key)
-
-        # Interpret DQ flags for all pixels.
-        # Cache {flag: np_index}
-        else:
+        # pixmask_by_flag is {flag: np_index}
+        # timestamp is datetime object or None
+        if bnch is None or cur_timestamp != bnch.timestamp:
             self.logger.debug('Interpreting all DQs for {0}...'.format(dqname))
             pixmask_by_flag = dqparser.interpret_array(data)
-            dqsrc.metadata[self._cache_key] = pixmask_by_flag
+            dqsrc.metadata[self._cache_key] = Bunch.Bunch(
+                pixmask_by_flag=pixmask_by_flag, timestamp=cur_timestamp)
+
+        # Get cached results first, if available.
+        else:
+            self.logger.debug('Using cached DQ results for {0}'.format(dqname))
+            pixmask_by_flag = bnch.pixmask_by_flag
 
         # Parse DQ into individual flag definitions
         ix = int(self.xcen)
@@ -586,7 +578,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         self.ycen = y
 
         self.pxdqtag = canvas.add(self.dc.CompoundObject(obj, obj_lbl))
-        return self.redo(ignore_image_cache=False)
+        return self.redo()
 
     def set_xcen(self):
         try:
@@ -608,7 +600,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 c_obj.move_to(self.xcen, c_obj.y)
 
         self.fitsimage.redraw(whence=3)
-        return self.redo(ignore_image_cache=False)
+        return self.redo()
 
     def set_ycen(self):
         try:
@@ -633,7 +625,7 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
                 c_obj.y = self.ycen + self._text_label_offset
 
         self.fitsimage.redraw(whence=3)
-        return self.redo(ignore_image_cache=False)
+        return self.redo()
 
     def close(self):
         self._reset_imdq_on_error()
