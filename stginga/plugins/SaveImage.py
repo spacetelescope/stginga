@@ -251,6 +251,7 @@ Output image will have the filename of <inputname>_<suffix>.fits.""")
 
         file_dict = self.history_obj.name_dict[self.chname]
         chistory = []
+        ind = ' ' * indentchar
 
         # NOTE: List comprehension too slow!
         for key in file_dict:
@@ -264,7 +265,7 @@ Output image will have the filename of <inputname>_<suffix>.fits.""")
             for i in range(0, len(s), linechar):
                 subs = s[i:i+linechar]
                 if i > 0:
-                    subs = ' ' * indentchar + subs.lstrip()
+                    subs = ind + subs.lstrip()
                 hdu.header.add_history(subs)
 
     def _write_header(self, image, hdu):
