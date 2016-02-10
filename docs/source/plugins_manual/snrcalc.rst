@@ -42,9 +42,9 @@ provide a quick visual indication on whether the image achieves the desired SBR
 or not.
 
 User can save the calculated values in the image header using the "Update HDR"
-button. Currently, there is no way to write out the modified image header back
-to the image file. However, calculation parameters can be saved to a JSON file,
-which then can be reloaded as well.
+button. Calculation parameters can be saved to a JSON file, which then can be
+reloaded as well. The image with updated header can be saved using
+:ref:`local-plugin-saveimage`.
 
 It is customizable using ``~/.ginga/plugin_SNRCalc.cfg``::
 

@@ -1,7 +1,7 @@
 """Automatic mosaic local plugin for Ginga."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from ginga.util.six import iteritems, itervalues
+from ginga.util.six import itervalues
 
 # STDLIB
 import os
@@ -128,7 +128,7 @@ Select one or more images from the list below to highlight their positions on th
 
         # Get image list from Contents, excluding other mosaics
         file_dict = self.list_plugin_obj.name_dict[self.chname]
-        for key, bnch in iteritems(file_dict):
+        for bnch in itervalues(file_dict):
             if ((not isinstance(bnch, Bunch.Bunch)) or
                     ('mosaic' in bnch.NAME.lower())):
                 continue
