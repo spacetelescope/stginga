@@ -109,7 +109,7 @@ class MosaicAuto(Mosaic):
     def instructions(self):
         self.tw.set_text("""Click "Create Mosaic" to create a mosaic using all currently open images. This can only be done once. If you do not see it on the main display, try the "zoom to fit window size" button (magnifying glass with "[:]" at the bottom).
 
-Select one or more images from the list below to highlight their positions on the mosaic. Once you have selected the image(s) to keep, click "Save Selection" to write the image list to output XML file.""")
+Select one or more images from the list below to highlight their positions on the mosaic. Once you have selected the image(s) to keep, click "Save Selection" to write the image list to output file.""")
 
     def recreate_imlist(self):
         """Refresh image list for new selection."""
