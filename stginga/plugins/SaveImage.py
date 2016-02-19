@@ -277,6 +277,10 @@ Output image will have the filename of <inputname>_<suffix>.fits.""")
         ghdr = image.metadata['header']
 
         for key in ghdr:
+            # Need this to avoid duplication because COMMENT is a weird field
+            if key.upper() == 'COMMENT':
+                continue
+
             bnch = ghdr.get_card(key)
 
             # Insert new keyword
