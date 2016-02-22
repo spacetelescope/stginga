@@ -40,9 +40,12 @@ The key is to use Ginga's built-in configuration machinery.
 Create a ``$HOME/.ginga/ginga_config.py`` file or modify your existing copy
 with the following contents::
 
-    def post_gui_config(ginga):
+    def pre_gui_config(ginga):
         from stginga import load_plugins
         load_plugins(ginga)
+
+    def post_gui_config(ginga):
+        ginga.start_global_plugin('ChangeHistory')
 
 Then, you can run Ginga natively as follows::
 
