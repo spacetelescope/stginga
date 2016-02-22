@@ -7,7 +7,7 @@ Installation
 
 * `Astropy <http://www.astropy.org/>`_ 1.1 or later.
 * `SciPy <http://docs.scipy.org/doc/scipy/reference/>`_ 0.16 or later.
-* Ginga 2.5.20160128021834 or later, available from
+* Ginga 2.5.20160222004742 or later, available from
   `Ginga's GitHub page <https://github.com/ejeschke/ginga/>`_.
 * The latest version of ``stginga`` available from
   `stginga's GitHub page <https://github.com/spacetelescope/stginga>`_.

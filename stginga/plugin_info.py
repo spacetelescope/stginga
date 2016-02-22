@@ -20,12 +20,11 @@ __all__ = ['load_plugins', 'show_plugin_install_info']
 
 def load_plugins(ginga):
     """Load the ``stginga`` plugins.
-    This also automatically starts necessary core Ginga global plugins.
 
     Parameters
     ----------
     ginga
-        The ginga app object that is provided to ``post_gui_config`` in
+        The ginga app object that is provided to ``pre_gui_config`` in
         ``ginga_config.py``.
 
     """
@@ -47,15 +46,11 @@ def load_plugins(ginga):
         else:
             ginga.add_local_plugin(lplg)
 
-    # Auto start core global plugins
-    for gplg in ('ChangeHistory', ):
-        ginga.start_global_plugin(gplg)
-
 
 def _get_stginga_plugins():
     # TODO: When we use stable Ginga release, not the dev, we can remove this
     # and just have version check in setup.py
-    if ginga_version < '2.5.20160128021834':
+    if ginga_version < '2.5.20160222004742':
         warnings.warn('Your Ginga version {0} is old, stginga might not work '
                       'properly'.format(ginga_version), AstropyUserWarning)
 
