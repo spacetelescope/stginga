@@ -11,3 +11,4 @@ Reference/API
    api/plugin_info
    api/utils
    api/local_plugin_mixin
+   api/region

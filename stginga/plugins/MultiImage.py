@@ -1,283 +1,123 @@
-import logging
-from math import cos, hypot, radians
+"""Multi-Image viewer global plugin for Ginga."""
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+from ginga.util.six import itervalues
 
-from ginga import GingaPlugin
+# GINGA
+from ginga.GingaPlugin import GlobalPlugin
 from ginga.gw import Widgets, Viewers
+from ginga.misc import Bunch
 
-instructions = (
-    'To add images to the group, simply ensure that the plugin is active'
-    'and display the image in the main viewer.'
-    '\n\nThen move, drag, or edit the region as needed.'
-    '\n\nThe WCS options select the common frame of reference to use between'
-    ' images.'
-)
+# LOCAL
+from stginga.region import Region
 
-__all__ = ['MultiImage', 'Region']
-
-_radius_scale = cos(radians(45))
-_def_coords = 'wcs'
-_coords_options = (
-    ('wcs', 'Fix region to sky'),
-    ('data', 'Fix region to pixels')
-)
+__all__ = []
 
 
-class RegionError(Exception):
-    """Generic Region errors"""
+class MultiImage(GlobalPlugin):
+    """Display the same region from multiple images."""
+    def __init__(self, fv):
+        # superclass defines some variables for us, like logger
+        super(MultiImage, self).__init__(fv)
 
-
-class RegionConversionError(RegionError):
-    """Could not convert between coordinates"""
-
-
-class Region(object):
-    """Region management
-
-    Attributes
-    ----------
-    x, y, r: numbers
-        The x, y center location with radius r
-
-    coord: str
-        The coordinate system in use.
-    """
-    def __init__(self, *args, **kwargs):
-        super(Region, self).__init__()
-        self.logger = kwargs.pop('logger', None)
-        if self.logger is None:
-            self.logger = logging.getLogger(__name__)
-
-        self.x = None
-        self.y = None
-        self.r = None
-        self.coord = None
-        self.image = None
-
-        if len(args) > 0 or len(kwargs) > 0:
-            self.set(*args, **kwargs)
-
-    def __call__(self, coord=None, image=None):
-        """Return the region in the specified coordinates
-
-        Parameters
-        ----------
-        coord: str
-            The coordinate system to return in.
-
-        image: `ginga image`
-            The reference image if conversion is needed.
-
-        Returns
-        ------
-        (x, y, r)
-            The center point and radius of the region.
-        """
-        self.logger.debug('Called.')
-        convert = self.get_convert(to_coord=coord, image=image)
-        dx, dy = self.delta()
-        cx, cy = convert(self.x, self.y)
-        cx1, cy1 = convert(
-            self.x + dx,
-            self.y + dy
-        )
-        cr = hypot(cx1 - cx, cy1 - cy)
-        return (cx, cy, cr)
-
-    def set(self, x, y, r, coord, as_coord=None, image=None):
-        """Set the region's center and radius
-
-        Parameters
-        ----------
-        x, y, r: numbers
-            The center point and radius
-
-        coord: str
-            The coordinate system of the input numbers.
-
-        as_coord: str
-            The native coordinate system to use.
-
-        image: `ginga image`
-            The reference image.
-        """
-        self.logger.debug('Called.')
-        self.x = x
-        self.y = y
-        self.r = r
-        self.coord = coord
-        if coord != as_coord:
-            self.x, self.y, self.r = self(coord=as_coord, image=image)
-            self.coord = as_coord
-        if image is not None:
-            self.image = image
-
-    def set_center(self, x, y, coord=None, image=None):
-        self.logger.debug('Called.')
-        convert = self.get_convert(from_coord=coord, image=image)
-        self.x, self.y = convert(x, y)
-
-    def set_bbox(self, x1, y1, x2, y2, coord=None, image=None):
-        convert = self.get_convert(from_coord=coord, image=image)
-        cx1, cy1 = convert(x1, y1)
-        cx2, cy2 = convert(x2, y2)
-        self.x = (cx1 + cx2) / 2
-        self.y = (cy1 + cy2) / 2
-        self.r = hypot(cx2 - self.x, cy2 - self.y)
-
-    def set_coords(self, coord, image=None):
-        self.x, self.y, self.r = self(coord=coord, image=image)
-        self.coord = coord
-        if image is not None:
-            self.image = image
-
-    def bbox(self, coord=None, image=None):
-        self.logger.debug('Called.')
-        convert = self.get_convert(to_coord=coord, image=image)
-        dx, dy = self.delta()
-        x1, y1 = convert(self.x - dx, self.y - dy)
-        x2, y2 = convert(self.x + dx, self.y + dy)
-        (x1, x2) = (x1, x2) if x1 <= x2 else (x2, x1)
-        (y1, y2) = (y1, y2) if y1 <= y2 else (y2, y1)
-        return (x1, y1, x2, y2)
-
-    def delta(self):
-        delta = self.r * _radius_scale
-        return (delta, delta)
-
-    def get_convert(self, from_coord=None, to_coord=None, image=None):
-        from_coord = self.coord if from_coord is None else from_coord
-        to_coord = self.coord if to_coord is None else to_coord
-        image = image if image is not None else self.image
-        if from_coord == to_coord:
-            return lambda x, y: (x, y)
-        elif image is None:
-            raise RegionConversionError(
-                'No reference specified for conversion'
-            )
-        if to_coord == 'wcs':
-            convert = image.pixtoradec
-        else:
-            convert = image.radectopix
-        return convert
-
-
-class MultiImage(GingaPlugin.LocalPlugin):
-    """Coordinate display between multiple images"""
-
-    def __init__(self, fv, fitsimage):
-        super(MultiImage, self).__init__(fv, fitsimage)
-
-        self.logger.debug('Called.')
-
-        self.dc = self.fv.getDrawClasses()
-
-        canvas = self.dc.DrawingCanvas()
-        canvas.enable_draw(True)
-        canvas.enable_edit(True)
-        canvas.set_drawtype('rectangle', color='cyan', linestyle='dash',
-                            coord='wcs', drawdims=True)
-        canvas.set_callback('draw-event', self.draw_cb)
-        canvas.set_callback('edit-event', self.edit_cb)
-        canvas.add_draw_mode('move', down=self.btndown,
-                             move=self.drag, up=self.update)
-        canvas.register_for_cursor_drawing(self.fitsimage)
-        canvas.setSurface(self.fitsimage)
-        canvas.set_draw_mode('move')
-        self.canvas = canvas
-
-        self.id_count = 0  # Create unique ids
-
-        self.layertag = 'muimg-canvas'
+        # For region selection
+        self._def_coords = 'wcs'
+        self._coords_options = (('wcs', 'Fix region to sky'),
+                                ('data', 'Fix region to pixels'))
         self.region = None
-        self.images = {}
+
+        # Special place in viewer to display postage stamps
+        self._pstampsname = 'pstamps'
+        self._pstampname = 'pstamp'
+        self._pstamps_h = 100
+        self._pstamps_bg_color = (0.4, 0.4, 0.4)
         self.pstamps = None
 
-    def build_gui(self, container):
-        """Build the Dialog"""
-        self.logger.debug('Called.')
+        # Tracks the contents of postage stamps by channel
+        self.name_dict = Bunch.caselessDict()
+        self.treeview = None
+        self.columns = [('Name', 'NAME')]
 
+        # UNTIL HERE - implement now?
+        # TODO: Enable user preferences
+        #prefs = self.fv.get_preferences()
+        #self.settings = prefs.createCategory('plugin_MultiImage')
+        #self.settings.addDefaults(something=True)
+        #self.settings.load(onError='silent')
+
+        fv.add_callback('add-image', self.add_image_cb)
+        fv.add_callback('add-image-info', self.add_image_info_cb)
+        fv.add_callback('remove-image', self.remove_image_cb)
+        fv.add_callback('delete-channel', self.delete_channel_cb)
+
+        # UNTIL HERE - do we need this? maybe MIPick auto handle this
+        #fv.add_callback('channel-change', self.focus_cb)
+
+        self.gui_up = False
+
+    def build_gui(self, container):
+        """This method is called when the plugin is invoked.  It builds the
+        GUI used by the plugin into the widget layout passed as
+        ``container``.
+
+        This method could be called several times if the plugin is opened
+        and closed.
+
+        """
         # Setup for options
         vbox, sw, orientation = Widgets.get_oriented_box(container)
         vbox.set_border_width(4)
         vbox.set_spacing(2)
 
         # Instructions
-        self.msgFont = self.fv.getFont("sansFont", 12)
+        msgFont = self.fv.getFont('sansFont', 12)
         tw = Widgets.TextArea(wrap=True, editable=False)
-        tw.set_font(self.msgFont)
+        tw.set_font(msgFont)
         self.tw = tw
 
-        fr = Widgets.Expander("Instructions")
+        fr = Widgets.Expander('Instructions')
         fr.set_widget(tw)
-
-        # Mode administration
-        modes = Widgets.Frame('Region Editing')
-        mode = self.canvas.get_draw_mode()
-        hbox = Widgets.HBox()
-        hbox.set_border_width(4)
-        btn1 = Widgets.RadioButton("Move")
-        btn1.set_state(mode == 'move')
-        btn1.add_callback(
-            'activated',
-            lambda w, val: self.set_mode_cb('move', val)
-        )
-        btn1.set_tooltip("Choose this to position region")
-        self.w.btn_move = btn1
-        hbox.add_widget(btn1)
-
-        btn2 = Widgets.RadioButton("Draw", group=btn1)
-        btn2.set_state(mode == 'draw')
-        btn2.add_callback(
-            'activated',
-            lambda w, val: self.set_mode_cb('draw', val)
-        )
-        btn2.set_tooltip("Choose this to draw a replacement region")
-        self.w.btn_draw = btn2
-        hbox.add_widget(btn2)
-
-        btn3 = Widgets.RadioButton("Edit", group=btn1)
-        btn3.set_state(mode == 'edit')
-        btn3.add_callback(
-            'activated',
-            lambda w, val: self.set_mode_cb('edit', val)
-        )
-        btn3.set_tooltip("Choose this to edit a region")
-        self.w.btn_edit = btn3
-        hbox.add_widget(btn3)
-
-        hbox.add_widget(Widgets.Label(''), stretch=1)
-        modes.set_widget(hbox)
 
         # Coordinates
         coords = Widgets.Frame('WCS Reference')
         hbox = Widgets.HBox()
         hbox.set_border_width(4)
         hbox.set_spacing(4)
-        for option, tooltip in _coords_options:
+        for option, tooltip in self._coords_options:
             btn = Widgets.RadioButton(option)
-            btn.set_state(option == _def_coords)
+            btn.set_state(option == self._def_coords)
             btn.add_callback(
                 'activated',
-                lambda widget, state, option=option: self.set_coords(option, state)
-            )
+                lambda widget, state, option=option: self.set_coords(
+                    option, state))
             btn.set_tooltip(tooltip)
             hbox.add_widget(btn)
         hbox.add_widget(Widgets.Label(''), stretch=1)
         coords.set_widget(hbox)
 
+        # TreeView to identify postage stamps
+        treeview = Widgets.TreeView(auto_expand=True,
+                                    sortable=True,
+                                    use_alt_row_color=True)
+        self.treeview = treeview
+        treeview.setup_table(self.columns, 2, 'NAME')
+
+        # TODO: Highlight postage stamp and focus image?
+        #treeview.add_callback('selected', self.dosomething)
+
         # Basic plugin admin buttons
         btns = Widgets.HBox()
-        btns.set_spacing(4)
+        btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button('Close')
         btn.add_callback('activated', lambda w: self.close())
-        btns.add_widget(btn)
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         # Layout the options
         vbox.add_widget(fr, stretch=0)
         vbox.add_widget(coords, stretch=0)
-        vbox.add_widget(modes, stretch=0)
+        vbox.add_widget(treeview, stretch=1)
 
         # Layout top level framing
         vtop = Widgets.VBox()
@@ -288,234 +128,219 @@ class MultiImage(GingaPlugin.LocalPlugin):
         # Options completed.
         container.add_widget(vtop, stretch=1)
 
-        # Postage stamps
-        if self.pstamps is not None:
-            return
+        # Postage stamps in a special section of viewer
+        if self.pstamps is None and self._pstampsname in self.fv.w:
+            self.pstamps_frame = self.fv.w[self._pstampsname]
 
-        pstamps_frame = self.fv.w['pstamps']
-        self.pstamps_show = False
-        pstamps = Widgets.HBox()
-        w = pstamps.get_widget()
-        self.logger.debug('layout="{}"'.format(
-            pstamps_frame.get_widget().layout()))
-        self.logger.debug('pstamps.w="{}"'.format(w))
-        w.setMinimumHeight(100)
-        pstamps_frame.add_widget(pstamps)
-        self.pstamps = pstamps
-        self.pstamps_frame = pstamps_frame
+# UNTIL HERE - Use GridBox?
 
+            pstamps = Widgets.HBox()
+            pstamps.resize(pstamps.get_size()[0], self._pstamps_h)
+            self.pstamps_frame.add_widget(pstamps)
+            self.pstamps = pstamps
+
+        self.gui_up = True
+
+    # UNTIL HERE - Rewrite this as needed
     def instructions(self):
-        self.tw.set_text(instructions)
-        self.tw.set_font(self.msgFont)
+        self.tw.set_text("""To add images to the group, simply ensure that the plugin is active and display the image in the main viewer.
 
-    def start(self):
-        self.logger.debug('Called.')
+Then move, drag, or edit the region from MIPick as needed.
 
-        self.instructions()
+The WCS options select the common frame of reference to use between images.""")
 
-        # insert layer if it is not already
-        p_canvas = self.fitsimage.get_canvas()
-        try:
-            p_canvas.getObjectByTag(self.layertag)
-
-        except KeyError:
-            # Add canvas layer
-            p_canvas.add(self.canvas, tag=self.layertag)
-
-        self.show_pstamps(True)
-
-    def resume(self):
-        self.logger.debug('Called.')
-
-        self.canvas.ui_setActive(True)
-        self.fv.showStatus("Draw a region to examine.")
-
-        self.redo()
-
-    def redo(self):
-        self.logger.debug('Called.')
-
-        fi_image = self.fitsimage.get_image()
-        if fi_image is None:
+    def redo(self, channel, image):
+        """Image changed."""
+        if self.region is None:
+            #self.logger.info('Pick a region from MIPick local plugin')
             return
 
-        try:
-            fi_image_id = fi_image.get('path')
-        except Exception:
-            raise
-            fi_image_id = self.make_id()
-        try:
-            _, pstamp = self.images[fi_image_id]
-        except KeyError:
-            pstamp = self.add_pstamp()
-            self.images[fi_image_id] = (fi_image, pstamp)
-        self.fitsimage.copy_attributes(pstamp,
-                                       ['transforms', 'cutlevels',
-                                        'rgbmap'])
+        if image is None:
+            return
+
+        chname = channel.name
+        bnch = self._get_image_bunch(chname, image)
+
+        # If image exists only in memory, do not include.
+        if bnch.PATH is None:
+            self.logger.error(
+                '{0} in {1} has no physical path'.format(bnch.NAME, chname))
+            return
+
+        #channel.fitsimage.copy_attributes(
+        #    bnch.PSTAMP, ['transforms', 'cutlevels', 'rgbmap'])
 
         # Ensure region is accurately reflected on displayed image.
-        if self.region is None:
-            self.init_region()
-        self.region.image = fi_image
-        self.draw_region(finalize=True)
+        #self.region.image = image
 
-        # Loop through all images.
-        for image_id, (image, pstamp) in self.images.items():
-            x1, y1, x2, y2 = self.region.bbox(coord='data', image=image)
-            x1, y1, x2, y2, data = self.cutdetail(image,
-                                                  int(x1), int(y1),
-                                                  int(x2), int(y2))
-            pstamp.set_data(data)
+        # Update postage stamps in all images.
+        self._sync_pstamps()
 
-    def stop(self):
-        self.logger.debug('Called.')
-
-        try:
-            obj = self.canvas.getObjectByTag(self.pstag)
-        except:
-            """Ignore"""
-        else:
-            self.canvas.delete_objects([obj])
-        self.canvas.ui_setActive(False)
-        self.fv.showStatus("")
-
-        self.pstamps_frame.layout().removeWidget(self.pstamps.get_widget())
-        self.pstamps.get_widget().setParent(None)
-        self.pstamps = None
-        self.images = {}
-
-    def close(self):
-        self.logger.debug('Called.')
-        self.fv.stop_local_plugin(self.chname, str(self))
-        return True
-
-    def pause(self):
-        self.logger.debug('Called.')
-
-        self.canvas.ui_setActive(False)
-
-    def __str__(self):
-        return 'MultiImage'
-
-    def btndown(self, canvas, event, data_x, data_y, viewer):
-        self.logger.debug('Called.')
-        self.region.set_center(data_x, data_y, coord='data')
-        self.redo()
-        return True
-
-    def update(self, canvas, event, data_x, data_y, viewer):
-        self.region.set_center(data_x, data_y, coord='data')
-        self.redo()
-        return
-
-    def drag(self, canvas, event, data_x, data_y, viewer):
-        self.region.set_center(data_x, data_y, coord='data')
-        self.redo()
-        return True
-
-    def draw_cb(self, canvas, tag):
-        self.logger.debug('Called.')
-        obj = canvas.getObjectByTag(tag)
-        pt_obj = canvas.getObjectByTag(self.pstag)
-        if obj.kind != 'rectangle':
-            return True
-        canvas.deleteObjects([obj, pt_obj])
-        x1, y1, x2, y2 = obj.get_llur()
-        self.region.set_bbox(x1, y1, x2, y2, coord='data')
-        self.redo()
-        return True
-
-    def edit_cb(self, canvas, obj):
-        self.logger.debug('Called.')
-        pt_obj = canvas.getObjectByTag(self.pstag)
-        if obj != pt_obj:
-            return True
-        x1, y1, x2, y2 = pt_obj.get_llur()
-        self.region.set_bbox(x1, y1, x2, y2, coord='data')
-        self.redo()
-        return True
-
-    def cutdetail(self, srcimage, x1, y1, x2, y2):
-        data, x1, y1, x2, y2 = srcimage.cutout_adjust(x1, y1, x2, y2)
+    def cutdetail(self, image, x1, y1, x2, y2):
+        """Return details of a cutout."""
+        data, x1, y1, x2, y2 = image.cutout_adjust(x1, y1, x2, y2)
         return (x1, y1, x2, y2, data)
 
+    def _get_image_bunch(self, chname, image):
+        """Return associated Bunch info. Create new one as needed."""
+        imname = image.get('name', 'none')
+
+        # Find listing by channel
+        if chname not in self.name_dict:
+            file_dict = {}
+            self.name_dict[chname] = file_dict
+        else:
+            file_dict = self.name_dict[chname]
+
+        # Image already exists, do nothing
+        if imname in file_dict:
+            bnch = file_dict[imname]
+
+        # Add new image
+        else:
+            impath = image.get('path')
+            pstamp, w = self.add_pstamp()
+            bnch = Bunch.Bunch(
+                CHNAME=chname, NAME=imname, PATH=impath, IMAGE=image,
+                PSTAMP=pstamp, WIDGET=w)
+            file_dict[imname] = bnch
+
+        # Update postage stamps listing
+        self.recreate_toc()
+
+        return bnch
+
+    def _sync_pstamps(self):
+        """Make all postage stamps display the same region in respective
+        images."""
+        for chname in self.name_dict:
+            file_dict = self.name_dict[chname]
+
+            for bnch in itervalues(file_dict):
+                x1, y1, x2, y2 = self.region.bbox(
+                    coord='data', image=bnch.IMAGE)
+                x1, y1, x2, y2, data = self.cutdetail(
+                    bnch.IMAGE, int(x1), int(y1), int(x2), int(y2))
+                bnch.PSTAMP.set_data(data)
+
+    def recreate_toc(self):
+        """Recreate postage stamps listing."""
+        self.logger.debug('Recreating table of contents...')
+        self.treeview.set_tree(self.name_dict)
+
+        # Unless there are thousands of postage stamps, this is okay to do.
+        self.treeview.set_optimal_column_widths()
+
     def add_pstamp(self):
-        self.logger.debug('Called.')
-        # Setup for thumbnail display
+        """Add a postage stamp widget."""
+
+# UNTIL HERE - make this like Thumbs.py
+
         di = Viewers.ImageViewCanvas(logger=self.logger)
-        #di.configure_window(100, 100)
-        di.set_desired_size(100, 100)
+        di.set_desired_size(self._pstamps_h, self._pstamps_h)
         di.enable_autozoom('on')
         di.add_callback('configure', self.window_resized_cb)
         di.enable_autocuts('off')
-        di.set_bg(0.4, 0.4, 0.4)
-        # for debugging
-        di.set_name('pstamp')
+        di.set_bg(*self._pstamps_bg_color)
+        di.set_name(self._pstampname)  # for debugging
 
         iw = Widgets.wrap(di.get_widget())
         self.pstamps.add_widget(iw)
 
-        return di
+        return di, iw
 
-    def draw_region(self, finalize=False, coord='data'):
-        """Set the box"""
-        self.logger.debug('Called.')
-        linestyle = 'solid' if finalize else 'dash'
-        x1, y1, x2, y2 = self.region.bbox(coord=coord)
-        try:
-            obj = self.canvas.getObjectByTag(self.pstag)
-        except:  # Need be general due to ginga
-            self.pstag = self.canvas.add(
-                self.dc.Rectangle(x1, y1, x2, y2,
-                                  color='cyan',
-                                  linestyle=linestyle)
-            )
-            obj = self.canvas.getObjectByTag(self.pstag)
-        else:
-            obj.linestyle = linestyle
-            obj.x1, obj.y1 = x1, y1
-            obj.x2, obj.y2 = x2, y2
-            self.canvas.redraw(whence=3)
-
-    def make_id(self):
-        self.id_count += 1
-        return 'Image_{:02}'.format(self.id_count)
-
-    def window_resized_cb(self, fitsimage, width, height):
-        self.logger.debug('Called.')
-        fitsimage.zoom_fit()
-
-    def show_pstamps(self, show):
-        """Show/hide the stamps"""
-        self.pstamps_frame.get_widget().setVisible(show)
-
-    def edit_region(self):
-        if self.pstag is not None:
-            obj = self.canvas.getObjectByTag(self.pstag)
-            if obj.kind != 'rectangle':
-                return True
-            self.canvas.edit_select(obj)
-        else:
-            self.canvas.clear_selected()
-        self.canvas.update_canvas()
-
-    def set_mode_cb(self, mode, tf):
-        if tf:
-            self.canvas.set_draw_mode(mode)
-            if mode == 'edit':
-                self.edit_region()
-        return True
+    def set_region(self, region):
+        """Set a shared region. This is called from ``MIPick`` plugin."""
+        self.region = region
 
     def set_coords(self, coords, state):
-        self.logger.debug('Called.')
+        """Change coordinate system."""
         if state:
+            self.logger.debug('Setting coordinate system to {0}'.format(coords))
             self.region.set_coords(coords)
 
-    def init_region(self):
-        image = self.fitsimage.get_image()
-        height, width = image.shape
-        x = width // 2
-        y = height // 2
-        self.region = Region(x, y, 30, 'data',
-                             as_coord=_def_coords, image=image,
-                             logger=self.logger)
+    def window_resized_cb(self, fitsimage, width, height):
+        """Handle resizing of postage stamp widget."""
+        self.logger.debug('{0} resized to w={1} h={2}'.format(
+            self._pstampname, width, height))
+        fitsimage.zoom_fit()
+
+    def add_image_cb(self, viewer, chname, image, image_info):
+        """Add an image to postage stamp collection."""
+        if not self.gui_up:
+            return False
+
+        channel = self.fv.get_channelInfo(chname)
+        self.redo(channel, image)
+
+    def add_image_info_cb(self, viewer, channel, image_info):
+        """Almost the same as :meth:`add_image_cb`, except that the image
+        may not be loaded in memory."""
+        try:
+            image = channel.get_loaded_image(image_info.name)
+        except KeyError:
+            image = None
+
+        self.redo(channel, image)
+
+    def remove_image_cb(self, viewer, chname, name, path):
+        """Remove image from listing and postage stamp collection."""
+        if not self.gui_up:
+            return False
+
+        if chname not in self.name_dict:
+            return
+
+        file_dict = self.name_dict[chname]
+
+        if name not in file_dict:
+            return
+
+        bnch = file_dict[name]
+        self.pstamps.remove(bnch.WIDGET)
+        del file_dict[name]
+        self.recreate_toc()
+
+    def delete_channel_cb(self, viewer, channel):
+        """Called when a channel is deleted from the main interface."""
+        if not self.gui_up:
+            return False
+
+        chname = channel.name
+
+        if chname not in self.name_dict:
+            return
+
+        file_dict = self.name_dict[chname]
+
+        for name in file_dict:
+            bnch = file_dict[name]
+            self.pstamps.remove(bnch.WIDGET)
+
+        del self.name_dict[chname]
+        self.recreate_toc()
+
+    def start(self):
+        """Start the global plugin."""
+        self.instructions()
+        self.pstamps_frame.show()
+        self.recreate_toc()
+
+    def stop(self):
+        """Clean up."""
+        self.gui_up = False
+        self.fv.showStatus('')
+
+        # Remove all displayed postage stamps.
+        self.pstamps_frame.remove(self.pstamps, delete=True)
+        self.pstamps = None
+
+        self.name_dict.clear()
+
+    def close(self):
+        """Close the global plugin."""
+        self.fv.stop_global_plugin(str(self))
+        return True
+
+    def __str__(self):
+        return 'multiimage'

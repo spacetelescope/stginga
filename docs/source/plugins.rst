@@ -13,12 +13,12 @@ customizable via plugin configuration files, which are available in the
 Local Plugins
 -------------
 
-These plugins work together to display the same object across multiple images:
+This plugin works with :ref:`global-plugin-multiimage` to display the same
+object across multiple images:
 
 .. toctree::
    :maxdepth: 2
 
-   plugins_manual/multiimage
    plugins_manual/mipick
 
 These plugins behave like a regular Ginga plugin:
@@ -48,4 +48,10 @@ one way is to use the ``--plugins`` option along with ``stginga`` command
 Global Plugins
 --------------
 
-There is currently none to be distributed.
+This plugin works with :ref:`local-plugin-mipick` to display the same
+object across multiple images:
+
+.. toctree::
+   :maxdepth: 2
+
+   plugins_manual/multiimage

@@ -56,9 +56,11 @@ def _get_stginga_plugins():
 
     gpfx = 'stginga.plugins'  # To load custom plugins in Ginga namespace
 
-    global_plugins = []
+    global_plugins = [
+        Bunch(module='MultiImage', tab='MultiImage', ws='right', pfx=gpfx,
+              start=False)
+        ]
     local_plugins = [
-        Bunch(module='MultiImage', ws='dialogs', pfx=gpfx),
         Bunch(module='MIPick', ws='dialogs', pfx=gpfx),
         Bunch(module='BackgroundSub', ws='dialogs', pfx=gpfx),
         Bunch(module='BadPixCorr', ws='dialogs', pfx=gpfx),

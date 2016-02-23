@@ -1,15 +1,12 @@
-#
-# MIPick.py -- Multi-Image Pick plugin for Ginga reference viewer
-#
-# This is open-source software licensed under a BSD license.
-# Please see the file LICENSE.txt for details.
-#
+"""Multi-Image Pick local plugin for Ginga."""
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 # GINGA
 from ginga.misc.plugins.Pick import Pick
 
 # LOCAL
-from stginga.plugins.MultiImage import Region
+from stginga.region import Region
 
 __all__ = []
 
@@ -26,29 +23,14 @@ class MIPick(Pick):
         self._textlabel = 'MIPick'
 
         # Additional attributes
+        self.multiimage = None
         self.multiimage_name = 'MultiImage'
-        self.region = None
-
-    def resume(self):
-        super(MIPick, self).resume()
+        self.region_default_width = 30
+        self.region_default_height = 30
 
         # Setup the region
-        if self.region is None:
-            self.region = Region()
-            self.region.coord = 'wcs'
-            self.region.image = self.fitsimage.get_image()
-
-        # See if multiimage is active
-        opmon = self.chinfo.opmon
-        multiimage = None
-        if opmon.is_active(self.multiimage_name):
-            try:
-                multiimage = opmon.getPlugin(self.multiimage_name)
-            except:
-                multiimage = None
-            else:
-                multiimage.region = self.region
-        self.multiimage = multiimage
+        self.region = Region(logger=self.logger)
+        self.region.coord = 'wcs'
 
     def redo(self):
         if self.picktag is None:
@@ -118,13 +100,6 @@ class MIPick(Pick):
                 self.clear_fwhm()
                 self.clear_radial()
 
-            # If multiimage, redo there also.
-            try:
-                self.multiimage.redo()
-            except:
-                """Doesn't matter"""
-                pass
-
             # Delete previous peak marks
             objs = self.canvas.getObjectsByTagpfx('peak')
             self.canvas.delete_objects(objs)
@@ -139,8 +114,22 @@ class MIPick(Pick):
                 str(e)))
             return True
 
+        # Try to find MultiImage plugin.
+        if self.multiimage is None:
+            try:
+                self.multiimage = self.fv.gpmon.getPlugin(self.multiimage_name)
+            except KeyError:
+                self.multiimage = None
+
+        # Force MultiImage to redo.
+        if self.multiimage is not None:
+            self.multiimage.set_region(self.region)
+            self.multiimage.redo(
+                self.fv.get_channelInfo(self.chname), self.region.image)
+
     def draw_cb(self, canvas, tag):
         obj = canvas.getObjectByTag(tag)
+        self.region.image = self.fitsimage.get_image()
         self.draw_compound(obj, canvas)
         return self.redo()
 
@@ -166,13 +155,13 @@ class MIPick(Pick):
         text = c_obj.objects[2]
         text.x, text.y = x1, y2 + 4
 
-        self.regions.set_bbox(x1, y1, x2, y2, coord='data')
+        self.region.set_bbox(x1, y1, x2, y2, coord='data')
 
         return self.redo()
 
     def reset_region(self):
-        self.dx = region_default_width
-        self.dy = region_default_height
+        self.dx = self.region_default_width
+        self.dy = self.region_default_height
 
         obj = self.canvas.get_object_by_tag(self.picktag)
         if obj.kind != 'compound':
@@ -190,8 +179,8 @@ class MIPick(Pick):
         bbox.x1, bbox.y1, bbox.x2, bbox.y2 = (x - self.dx, y - self.dy,
                                               x + self.dx, y + self.dy)
 
-        self.regions.set_bbox(bbox.x1, bbox.y1,
-                              bbox.x2, bbox.y2, coord='data')
+        self.region.set_bbox(bbox.x1, bbox.y1,
+                             bbox.x2, bbox.y2, coord='data')
 
         self.redo()
 
