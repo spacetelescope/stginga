@@ -1,173 +1,34 @@
-import logging
-from math import cos, hypot, radians
+"""Multi-Image viewer global plugin for Ginga."""
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-from ginga import GingaPlugin
+# GINGA
+from ginga.GingaPlugin import GlobalPlugin
 from ginga.gw import Widgets, Viewers
 
-instructions = (
-    'To add images to the group, simply ensure that the plugin is active'
-    'and display the image in the main viewer.'
-    '\n\nThen move, drag, or edit the region as needed.'
-    '\n\nThe WCS options select the common frame of reference to use between'
-    ' images.'
-)
-
-__all__ = ['MultiImage', 'Region']
-
-_radius_scale = cos(radians(45))
-_def_coords = 'wcs'
-_coords_options = (
-    ('wcs', 'Fix region to sky'),
-    ('data', 'Fix region to pixels')
-)
+__all__ = ['MultiImage']
 
 
-class RegionError(Exception):
-    """Generic Region errors"""
+class MultiImage(GlobalPlugin):
+    """Display the same region from multiple images."""
+    def __init__(self, fv):
+        # superclass defines some variables for us, like logger
+        super(MultiImage, self).__init__(fv)
 
+        self._def_coords = 'wcs'
+        self._coords_options = (('wcs', 'Fix region to sky'),
+                                ('data', 'Fix region to pixels'))
+        self.id_count = 0  # Create unique ids
+        self.layertag = 'muimg-canvas'
+        self.region = None
+        self.images = {}
+        self.pstamps = None
 
-class RegionConversionError(RegionError):
-    """Could not convert between coordinates"""
-
-
-class Region(object):
-    """Region management
-
-    Attributes
-    ----------
-    x, y, r: numbers
-        The x, y center location with radius r
-
-    coord: str
-        The coordinate system in use.
-    """
-    def __init__(self, *args, **kwargs):
-        super(Region, self).__init__()
-        self.logger = kwargs.pop('logger', None)
-        if self.logger is None:
-            self.logger = logging.getLogger(__name__)
-
-        self.x = None
-        self.y = None
-        self.r = None
-        self.coord = None
-        self.image = None
-
-        if len(args) > 0 or len(kwargs) > 0:
-            self.set(*args, **kwargs)
-
-    def __call__(self, coord=None, image=None):
-        """Return the region in the specified coordinates
-
-        Parameters
-        ----------
-        coord: str
-            The coordinate system to return in.
-
-        image: `ginga image`
-            The reference image if conversion is needed.
-
-        Returns
-        ------
-        (x, y, r)
-            The center point and radius of the region.
-        """
-        self.logger.debug('Called.')
-        convert = self.get_convert(to_coord=coord, image=image)
-        dx, dy = self.delta()
-        cx, cy = convert(self.x, self.y)
-        cx1, cy1 = convert(
-            self.x + dx,
-            self.y + dy
-        )
-        cr = hypot(cx1 - cx, cy1 - cy)
-        return (cx, cy, cr)
-
-    def set(self, x, y, r, coord, as_coord=None, image=None):
-        """Set the region's center and radius
-
-        Parameters
-        ----------
-        x, y, r: numbers
-            The center point and radius
-
-        coord: str
-            The coordinate system of the input numbers.
-
-        as_coord: str
-            The native coordinate system to use.
-
-        image: `ginga image`
-            The reference image.
-        """
-        self.logger.debug('Called.')
-        self.x = x
-        self.y = y
-        self.r = r
-        self.coord = coord
-        if coord != as_coord:
-            self.x, self.y, self.r = self(coord=as_coord, image=image)
-            self.coord = as_coord
-        if image is not None:
-            self.image = image
-
-    def set_center(self, x, y, coord=None, image=None):
-        self.logger.debug('Called.')
-        convert = self.get_convert(from_coord=coord, image=image)
-        self.x, self.y = convert(x, y)
-
-    def set_bbox(self, x1, y1, x2, y2, coord=None, image=None):
-        convert = self.get_convert(from_coord=coord, image=image)
-        cx1, cy1 = convert(x1, y1)
-        cx2, cy2 = convert(x2, y2)
-        self.x = (cx1 + cx2) / 2
-        self.y = (cy1 + cy2) / 2
-        self.r = hypot(cx2 - self.x, cy2 - self.y)
-
-    def set_coords(self, coord, image=None):
-        self.x, self.y, self.r = self(coord=coord, image=image)
-        self.coord = coord
-        if image is not None:
-            self.image = image
-
-    def bbox(self, coord=None, image=None):
-        self.logger.debug('Called.')
-        convert = self.get_convert(to_coord=coord, image=image)
-        dx, dy = self.delta()
-        x1, y1 = convert(self.x - dx, self.y - dy)
-        x2, y2 = convert(self.x + dx, self.y + dy)
-        (x1, x2) = (x1, x2) if x1 <= x2 else (x2, x1)
-        (y1, y2) = (y1, y2) if y1 <= y2 else (y2, y1)
-        return (x1, y1, x2, y2)
-
-    def delta(self):
-        delta = self.r * _radius_scale
-        return (delta, delta)
-
-    def get_convert(self, from_coord=None, to_coord=None, image=None):
-        from_coord = self.coord if from_coord is None else from_coord
-        to_coord = self.coord if to_coord is None else to_coord
-        image = image if image is not None else self.image
-        if from_coord == to_coord:
-            return lambda x, y: (x, y)
-        elif image is None:
-            raise RegionConversionError(
-                'No reference specified for conversion'
-            )
-        if to_coord == 'wcs':
-            convert = image.pixtoradec
-        else:
-            convert = image.radectopix
-        return convert
-
-
-class MultiImage(GingaPlugin.LocalPlugin):
-    """Coordinate display between multiple images"""
-
-    def __init__(self, fv, fitsimage):
-        super(MultiImage, self).__init__(fv, fitsimage)
-
-        self.logger.debug('Called.')
+        # TODO: Enable user preferences
+        #prefs = self.fv.get_preferences()
+        #self.settings = prefs.createCategory('plugin_MultiImage')
+        #self.settings.addDefaults(something=True)
+        #self.settings.load(onError='silent')
 
         self.dc = self.fv.getDrawClasses()
 
@@ -185,29 +46,29 @@ class MultiImage(GingaPlugin.LocalPlugin):
         canvas.set_draw_mode('move')
         self.canvas = canvas
 
-        self.id_count = 0  # Create unique ids
-
-        self.layertag = 'muimg-canvas'
-        self.region = None
-        self.images = {}
-        self.pstamps = None
+        self.gui_up = False
 
     def build_gui(self, container):
-        """Build the Dialog"""
-        self.logger.debug('Called.')
+        """This method is called when the plugin is invoked.  It builds the
+        GUI used by the plugin into the widget layout passed as
+        ``container``.
 
+        This method could be called several times if the plugin is opened
+        and closed.
+
+        """
         # Setup for options
         vbox, sw, orientation = Widgets.get_oriented_box(container)
         vbox.set_border_width(4)
         vbox.set_spacing(2)
 
         # Instructions
-        self.msgFont = self.fv.getFont("sansFont", 12)
+        msgFont = self.fv.getFont('sansFont', 12)
         tw = Widgets.TextArea(wrap=True, editable=False)
-        tw.set_font(self.msgFont)
+        tw.set_font(msgFont)
         self.tw = tw
 
-        fr = Widgets.Expander("Instructions")
+        fr = Widgets.Expander('Instructions')
         fr.set_widget(tw)
 
         # Mode administration
@@ -215,32 +76,26 @@ class MultiImage(GingaPlugin.LocalPlugin):
         mode = self.canvas.get_draw_mode()
         hbox = Widgets.HBox()
         hbox.set_border_width(4)
-        btn1 = Widgets.RadioButton("Move")
+        btn1 = Widgets.RadioButton('Move')
         btn1.set_state(mode == 'move')
         btn1.add_callback(
-            'activated',
-            lambda w, val: self.set_mode_cb('move', val)
-        )
-        btn1.set_tooltip("Choose this to position region")
+            'activated', lambda w, val: self.set_mode_cb('move', val))
+        btn1.set_tooltip('Choose this to position region')
         self.w.btn_move = btn1
         hbox.add_widget(btn1)
 
-        btn2 = Widgets.RadioButton("Draw", group=btn1)
+        btn2 = Widgets.RadioButton('Draw', group=btn1)
         btn2.set_state(mode == 'draw')
         btn2.add_callback(
-            'activated',
-            lambda w, val: self.set_mode_cb('draw', val)
-        )
-        btn2.set_tooltip("Choose this to draw a replacement region")
+            'activated', lambda w, val: self.set_mode_cb('draw', val))
+        btn2.set_tooltip('Choose this to draw a replacement region')
         self.w.btn_draw = btn2
         hbox.add_widget(btn2)
 
-        btn3 = Widgets.RadioButton("Edit", group=btn1)
+        btn3 = Widgets.RadioButton('Edit', group=btn1)
         btn3.set_state(mode == 'edit')
         btn3.add_callback(
-            'activated',
-            lambda w, val: self.set_mode_cb('edit', val)
-        )
+            'activated', lambda w, val: self.set_mode_cb('edit', val))
         btn3.set_tooltip("Choose this to edit a region")
         self.w.btn_edit = btn3
         hbox.add_widget(btn3)
@@ -253,13 +108,13 @@ class MultiImage(GingaPlugin.LocalPlugin):
         hbox = Widgets.HBox()
         hbox.set_border_width(4)
         hbox.set_spacing(4)
-        for option, tooltip in _coords_options:
+        for option, tooltip in self._coords_options:
             btn = Widgets.RadioButton(option)
-            btn.set_state(option == _def_coords)
+            btn.set_state(option == self._def_coords)
             btn.add_callback(
                 'activated',
-                lambda widget, state, option=option: self.set_coords(option, state)
-            )
+                lambda widget, state, option=option: self.set_coords(
+                    option, state))
             btn.set_tooltip(tooltip)
             hbox.add_widget(btn)
         hbox.add_widget(Widgets.Label(''), stretch=1)
@@ -267,11 +122,11 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         # Basic plugin admin buttons
         btns = Widgets.HBox()
-        btns.set_spacing(4)
+        btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button('Close')
         btn.add_callback('activated', lambda w: self.close())
-        btns.add_widget(btn)
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         # Layout the options
@@ -295,23 +150,25 @@ class MultiImage(GingaPlugin.LocalPlugin):
         pstamps_frame = self.fv.w['pstamps']
         self.pstamps_show = False
         pstamps = Widgets.HBox()
-        w = pstamps.get_widget()
-        self.logger.debug('layout="{}"'.format(
-            pstamps_frame.get_widget().layout()))
-        self.logger.debug('pstamps.w="{}"'.format(w))
-        w.setMinimumHeight(100)
+        pswidth = pstamps.get_size()[0]
+        pstamps.resize(pswidth, 100)  # Toolkit agnostic way to set min height
         pstamps_frame.add_widget(pstamps)
         self.pstamps = pstamps
         self.pstamps_frame = pstamps_frame
 
+        self.gui_up = True
+
     def instructions(self):
-        self.tw.set_text(instructions)
-        self.tw.set_font(self.msgFont)
+        self.tw.set_text("""To add images to the group, simply ensure that the plugin is active and display the image in the main viewer.
+
+Then move, drag, or edit the region as needed.
+
+The WCS options select the common frame of reference to use between images.""")
 
     def start(self):
-        self.logger.debug('Called.')
-
         self.instructions()
+
+# UNTIL HERE
 
         # insert layer if it is not already
         p_canvas = self.fitsimage.get_canvas()
@@ -516,6 +373,9 @@ class MultiImage(GingaPlugin.LocalPlugin):
         height, width = image.shape
         x = width // 2
         y = height // 2
-        self.region = Region(x, y, 30, 'data',
-                             as_coord=_def_coords, image=image,
-                             logger=self.logger)
+        self.region = Region(logger=self.logger)
+        self.region.set_region(x, y, 30, 'data', as_coord=self._def_coords,
+                               image=image)
+
+    def set_region(self, region):
+        self.region = region
