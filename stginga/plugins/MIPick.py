@@ -11,6 +11,8 @@ from ginga.misc.plugins.Pick import Pick
 # LOCAL
 from stginga.plugins.MultiImage import Region
 
+__all__ = []
+
 
 class MIPick(Pick):
     """This is like ``Pick`` plugin but modified to work with ``MultiImage``
@@ -18,6 +20,10 @@ class MIPick(Pick):
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super(MIPick, self).__init__(fv, fitsimage)
+
+        # Override parent attributes
+        self.layertag = 'mipick-canvas'
+        self._textlabel = 'MIPick'
 
         # Additional attributes
         self.multiimage_name = 'MultiImage'
@@ -101,7 +107,7 @@ class MIPick(Pick):
             self.wdetail.sample_area.set_text('%dx%d' % (x2 - x1, y2 - y1))
 
             point.color = 'red'
-            text.text = 'Pick: calc'
+            text.text = '{0}: calc'.format(self._textlabel)
             self.pickcenter.x = xc
             self.pickcenter.y = yc
             self.pickcenter.color = 'red'
@@ -214,7 +220,8 @@ class MIPick(Pick):
         tag = canvas.add(self.dc.CompoundObject(
             self.dc.Rectangle(x1, y1, x2, y2, color=self.pickcolor),
             self.dc.Point(x, y, 10, color='red'),
-            self.dc.Text(x1, y2 + 4, "Pick: calc", color=self.pickcolor)))
+            self.dc.Text(x1, y2 + 4, '{0}: calc'.format(self._textlabel),
+                         color=self.pickcolor)))
         self.picktag = tag
         self.region.set_bbox(x1, y1, x2, y2, coord='data')
 
