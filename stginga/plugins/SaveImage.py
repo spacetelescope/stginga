@@ -365,7 +365,7 @@ Output image will have the filename of <inputname>_<suffix>.fits.""")
 
             bnch = res_dict[infile]
 
-            if infile.startswith('mosaic'):
+            if bnch.path is None or not os.path.isfile(bnch.path):
                 self._write_mosaic(f_pfx, outfile)
             else:
                 shutil.copyfile(bnch.path, outfile)

@@ -41,6 +41,7 @@ one way is to use the ``--plugins`` option along with ``stginga`` command
    :maxdepth: 2
 
    plugins_manual/mosaicauto
+   plugins_manual/smoothing
 
 
 .. _stginga-global-plugins:
