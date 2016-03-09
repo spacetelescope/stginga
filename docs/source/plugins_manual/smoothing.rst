@@ -14,13 +14,13 @@ Smoothing
 This local plugin is used to smooth the chosen image using one of the following
 algorithms:
 
-=========== ============================================ ========================================
+=========== ============================================ ======================================
 Algorithm   Description                                  Function
-=========== ============================================ ========================================
-``boxcar``  Convolve image with normalize boxcar kernel. `~scipy.ndimage.filters.convolve`
-``gauss``   Apply a Gaussian filter.                     `~scipy.ndimage.filters.gaussian_filter`
-``medfilt`` Apply a median filter.                       `~scipy.ndimage.filters.median_filter`
-=========== ============================================ ========================================
+=========== ============================================ ======================================
+``boxcar``  Convolve image with normalize boxcar kernel. :func:`~scipy.ndimage.convolve`
+``gauss``   Apply a Gaussian filter.                     :func:`~scipy.ndimage.gaussian_filter`
+``medfilt`` Apply a median filter.                       :func:`~scipy.ndimage.median_filter`
+=========== ============================================ ======================================
 
 Once user has selected the algorithm and entered the appropriate parameter
 values, smoothing is done by clicking the "Smooth" button.
