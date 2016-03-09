@@ -114,6 +114,7 @@ class Smoothing(LocalPlugin, ParamMixin):
 
         btn = Widgets.Button('Close')
         btn.add_callback('activated', lambda w: self.close())
+        self.w.close = btn
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -128,7 +129,7 @@ class Smoothing(LocalPlugin, ParamMixin):
     def toggle_gui(self, enable=False):
         """Disable/enable all GUI elements, except Save Param."""
         all_w = [self.w.smooth_type, self.w.mode_type, self.w.smoothpars,
-                 self.w.load_param, self.w.smooth]
+                 self.w.load_param, self.w.smooth, self.w.close]
 
         if self.mode == 'constant':
             all_w.append(self.w.fillval)
