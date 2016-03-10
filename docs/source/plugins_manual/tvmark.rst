@@ -74,7 +74,7 @@ This plugin is customizable using ``~/.ginga/plugin_TVMark.cfg``::
   marktype = 'circle'
 
   # Marking color -- Any color name accepted by Ginga
-  markcolor = 'blue'
+  markcolor = 'green'
 
   # Marking size or radius
   marksize = 5

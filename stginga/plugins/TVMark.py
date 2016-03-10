@@ -43,7 +43,7 @@ class TVMark(LocalPlugin):
         self.settings = prefs.createCategory('plugin_TVMark')
         self.settings.load(onError='silent')
         self.marktype = self.settings.get('marktype', 'circle')
-        self.markcolor = self.settings.get('markcolor', 'blue')
+        self.markcolor = self.settings.get('markcolor', 'green')
         self.marksize = self.settings.get('marksize', 5)
         self.markwidth = self.settings.get('markwidth', 1)
         self.use_radec = self.settings.get('use_radec', True)
