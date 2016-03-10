@@ -33,7 +33,6 @@ class TVMark(LocalPlugin):
         self.marktag = None
         self.markhltag = None
 
-        # TODO: Add more shapes
         self._mark_options = ['box', 'circle', 'cross', 'plus', 'point']
         self._color_options = self._short_color_list()
         self._dwidth = 2  # Additional width to highlight selection
