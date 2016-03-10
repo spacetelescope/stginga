@@ -29,8 +29,9 @@ These plugins behave like a regular Ginga plugin:
    plugins_manual/backgroundsub
    plugins_manual/badpixcorr
    plugins_manual/dqinspect
-   plugins_manual/saveimage
    plugins_manual/snrcalc
+   plugins_manual/tvmark
+   plugins_manual/saveimage
 
 These plugins are for very specific analysis needs. Therefore, they are
 distributed but not loaded by default into the Ginga viewer. To load them,
