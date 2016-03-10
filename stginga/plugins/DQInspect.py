@@ -13,7 +13,6 @@ from astropy.utils.data import get_pkg_data_filename
 from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
 from ginga.misc import Bunch
-from ginga.RGBImage import RGBImage
 from ginga.util.dp import masktorgb
 
 # STGINGA
