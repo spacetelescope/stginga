@@ -34,7 +34,7 @@ class TVMark(LocalPlugin):
         self.markhltag = None
 
         # TODO: Add more shapes
-        self._mark_options = ['circle', 'cross']
+        self._mark_options = ['box', 'circle', 'cross', 'plus', 'point']
         self._color_options = self._short_color_list()
         self._dwidth = 2  # Additional width to highlight selection
 
@@ -239,7 +239,7 @@ Press "Clear" to clear all markings (does not clear memory). Press "Redraw" to r
 
                 seqstr = '{0:04d}'.format(seqno)  # Prepend 0s for proper sort
                 sub_dict[seqstr] = Bunch.Bunch(ID=seqstr, RA=ra, DEC=dec,
-                                               X=x, Y=y)
+                                               X=x+1, Y=y+1)  # 1-indexed
                 self._xarr.append(x)
                 self._yarr.append(y)
                 self._treepaths.append((kstr, seqstr))
@@ -268,10 +268,18 @@ Press "Clear" to clear all markings (does not clear memory). Press "Redraw" to r
         if marktype == 'circle':
             obj = self.dc.Circle(
                 x=x, y=y, radius=marksize, color=markcolor, linewidth=markwidth)
-        else:  # cross
+        elif marktype in ('cross', 'plus'):
             obj = self.dc.Point(
                 x=x, y=y, radius=marksize, color=markcolor, linewidth=markwidth,
-                style='cross')
+                style=marktype)
+        elif marktype == 'box':
+            obj = self.dc.Box(
+                x=x, y=y, xradius=marksize, yradius=marksize, color=markcolor,
+                linewidth=markwidth)
+        else:  # point, marksize
+            obj = self.dc.Box(
+                x=x, y=y, xradius=1, yradius=1, color=markcolor,
+                linewidth=markwidth, fill=True, fillcolor=markcolor)
 
         return obj
 
@@ -394,8 +402,8 @@ Press "Clear" to clear all markings (does not clear memory). Press "Redraw" to r
             markcolor = s[2]
 
             for bnch in itervalues(sub_dict):
-                obj = self._get_markobj(
-                    bnch.X, bnch.Y, marktype, marksize, markcolor, width)
+                obj = self._get_markobj(bnch.X - 1, bnch.Y - 1, marktype,
+                                        marksize, markcolor, width)
                 objlist.append(obj)
 
         if len(objlist) == 0:
@@ -486,6 +494,12 @@ Press "Clear" to clear all markings (does not clear memory). Press "Redraw" to r
     def set_marktype_cb(self, w, index):
         """Set type of marking."""
         self.marktype = self._mark_options[index]
+
+        # Mark size is not used for point
+        if self.marktype != 'point':
+            self.w.mark_size.set_enabled(True)
+        else:
+            self.w.mark_size.set_enabled(False)
 
     def set_markcolor_cb(self, w, index):
         """Set color of marking."""
