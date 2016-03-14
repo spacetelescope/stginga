@@ -63,6 +63,9 @@ To create a table that this plugin can read, one can use results from
 creating a table by hand, using :ref:`Astropy ASCII Tables <astropy:io-ascii>`,
 etc.
 
+Used together with :ref:`local-plugin-tvmask`, you can overlay both point
+sources and masked regions in Ginga.
+
 This plugin is customizable using ``~/.ginga/plugin_TVMark.cfg``::
 
   #
