@@ -131,8 +131,7 @@ class TVMark(LocalPlugin):
         container.add_widget(treeview, stretch=1)
 
         captions = (('Load Coords', 'button', 'Use RADEC', 'checkbutton'),
-                    ('Redraw', 'button', 'Clear', 'button',
-                     'Forget', 'button'), )
+                    ('Redraw', 'button', 'Clear', 'button', 'Forget', 'button'))
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
@@ -405,11 +404,11 @@ Press "Clear" to clear all markings (does not clear memory). Press "Redraw" to r
                                         marksize, markcolor, width)
                 objlist.append(obj)
 
-        if len(objlist) == 0:
-            return
-
         # Draw on canvas
-        self.markhltag = self.canvas.add(self.dc.CompoundObject(*objlist))
+        if len(objlist) > 0:
+            self.markhltag = self.canvas.add(self.dc.CompoundObject(*objlist))
+
+        self.fitsimage.redraw()  # Force immediate redraw
 
     def hl_canvas2table_box(self, canvas, tag):
         """Highlight all markings inside user drawn box on table."""

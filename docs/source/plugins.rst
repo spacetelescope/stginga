@@ -31,6 +31,7 @@ These plugins behave like a regular Ginga plugin:
    plugins_manual/dqinspect
    plugins_manual/snrcalc
    plugins_manual/tvmark
+   plugins_manual/tvmask
    plugins_manual/saveimage
 
 These plugins are for very specific analysis needs. Therefore, they are

@@ -65,6 +65,7 @@ def _get_stginga_plugins():
         Bunch(module='DQInspect', ws='dialogs', pfx=gpfx),
         Bunch(module='SNRCalc', ws='dialogs', pfx=gpfx),
         Bunch(module='TVMark', ws='dialogs', pfx=gpfx),
+        Bunch(module='TVMask', ws='dialogs', pfx=gpfx),
         Bunch(module='SaveImage', ws='dialogs', pfx=gpfx)
         ]
     return global_plugins, local_plugins
