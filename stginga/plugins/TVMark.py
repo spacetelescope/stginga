@@ -47,12 +47,16 @@ class TVMark(LocalPlugin):
         self.marksize = self.settings.get('marksize', 5)
         self.markwidth = self.settings.get('markwidth', 1)
         self.use_radec = self.settings.get('use_radec', True)
+        self.extra_columns = self.settings.get('extra_columns', [])
 
         # Display coords info table
         self.treeview = None
         self.tree_dict = Bunch.caselessDict()
-        self.columns = [('No.', 'ID'), ('RA', 'RA'), ('DEC', 'DEC'),
+        self.columns = [('No.', 'MARKID'), ('RA', 'RA'), ('DEC', 'DEC'),
                         ('X', 'X'), ('Y', 'Y')]
+
+        # Append extra columns to table header
+        self.columns += [(colname, colname) for colname in self.extra_columns]
 
         # Store results
         self.coords_dict = defaultdict(list)
@@ -126,7 +130,7 @@ class TVMark(LocalPlugin):
                                     selection='multiple',
                                     use_alt_row_color=True)
         self.treeview = treeview
-        treeview.setup_table(self.columns, 2, 'ID')
+        treeview.setup_table(self.columns, 2, 'MARKID')
         treeview.add_callback('selected', self.hl_table2canvas)
         container.add_widget(treeview, stretch=1)
 
@@ -213,11 +217,11 @@ Press "Clear" to clear all markings (does not clear memory). Press "Redraw" to r
             sub_dict = {}
             self.tree_dict[kstr] = sub_dict
 
-            for ra, dec, cur_x, cur_y in coords:
+            for args in coords:
+                ra, dec, x, y = args[:4]
+
                 # Use X and Y positions directly. Convert to RA and DEC (deg).
                 if ra is None or dec is None:
-                    x = cur_x
-                    y = cur_y
                     ra, dec = image.pixtoradec(x, y)
 
                 # RA and DEC already in degrees. Convert to pixel X and Y.
@@ -236,8 +240,10 @@ Press "Clear" to clear all markings (does not clear memory). Press "Redraw" to r
                 objlist.append(obj)
 
                 seqstr = '{0:04d}'.format(seqno)  # Prepend 0s for proper sort
-                sub_dict[seqstr] = Bunch.Bunch(ID=seqstr, RA=ra, DEC=dec,
-                                               X=x+1, Y=y+1)  # 1-indexed
+                bnch = Bunch.Bunch(zip(self.extra_columns, args[4:]))  # Extra
+                bnch.update(Bunch.Bunch(MARKID=seqstr, RA=ra, DEC=dec,
+                                        X=x+1, Y=y+1))  # 1-indexed
+                sub_dict[seqstr] = bnch
                 self._xarr.append(x)
                 self._yarr.append(y)
                 self._treepaths.append((kstr, seqstr))
@@ -335,20 +341,34 @@ Press "Clear" to clear all markings (does not clear memory). Press "Redraw" to r
             self.logger.error('{0}: {1}'.format(e.__class__.__name__, str(e)))
             return
 
+        dummy_col = [None] * len(col_0)
+
         if self.use_radec:
             ra = self._convert_radec(col_0)
             dec = self._convert_radec(col_1)
-            x = y = [None] * len(ra)
+            x = y = dummy_col
         else:
             # Convert from 1-indexed to 0-indexed.
             x = col_0.data - 1
             y = col_1.data - 1
-            ra = dec = [None] * len(x)
+            ra = dec = dummy_col
+
+        args = [ra, dec, x, y]
+
+        # Load extra columns
+        for colname in self.extra_columns:
+            try:
+                col = tab[colname].data
+            except Exception as e:
+                self.logger.error(
+                    '{0}: {1}'.format(e.__class__.__name__, str(e)))
+                col = dummy_col
+
+            args.append(col)
 
         # Use list to preserve order. Does not handle duplicates.
         key = (self.marktype, self.marksize, self.markcolor)
-        coords = list(zip(ra, dec, x, y))
-        self.coords_dict[key] += coords
+        self.coords_dict[key] += list(zip(*args))
 
         self.redo()
 

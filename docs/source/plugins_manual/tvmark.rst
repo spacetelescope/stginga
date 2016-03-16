@@ -93,3 +93,6 @@ This plugin is customizable using ``~/.ginga/plugin_TVMark.cfg``::
   # False -- Use 'x' and 'y' columns to extract pixel locations directly.
   #          This does not use WCS.
   use_radec = True
+
+  # Extra columns to load into table listing (case-sensitive)
+  extra_columns = ['colname1', 'colname2']
