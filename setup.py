@@ -13,7 +13,8 @@ setup(
     provides = ['stginga'],
     packages = find_packages(),
     package_data = {'stginga': ['data/*', 'examples/*/*']},
-    scripts = ['scripts/stginga'],
+    entry_points = {
+        'console_scripts': ['stginga = stginga.gingawrapper:_main']},
     author = 'STScI',
     author_email = 'help@stsci.edu',
     url = "https://github.com/spacetelescope/stginga",
