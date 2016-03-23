@@ -113,18 +113,18 @@ class TVMask(LocalPlugin):
         container.add_widget(treeview, stretch=1)
 
         captions = (('Load Mask', 'button'),
-                    ('Redraw', 'button', 'Clear', 'button', 'Forget', 'button'))
+                    ('Show', 'button', 'Hide', 'button', 'Forget', 'button'))
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
         b.load_mask.set_tooltip('Load mask image')
         b.load_mask.add_callback('activated', lambda w: self.load_mask_cb())
 
-        b.redraw.set_tooltip('Redraw masks')
-        b.redraw.add_callback('activated', lambda w: self.redo())
+        b.show.set_tooltip('Show masks')
+        b.show.add_callback('activated', lambda w: self.redo())
 
-        b.clear.set_tooltip('Clear masks')
-        b.clear.add_callback('activated', lambda w: self.clear_mask())
+        b.hide.set_tooltip('Hide masks')
+        b.hide.add_callback('activated', lambda w: self.clear_mask())
 
         b.forget.set_tooltip('Forget masks')
         b.forget.add_callback('activated', lambda w: self.forget_masks())
@@ -153,7 +153,7 @@ class TVMask(LocalPlugin):
     def instructions(self):
         self.tw.set_text("""Set mask parameters. Then, load mask file to display them on image with the specified parameters. To add different kind of mask, change the mask parameters and load another file.
 
-Press "Clear" to clear all masks (does not clear memory). Press "Redraw" to replot them. Press "Forget" to forget all masks in memory.
+Press "Hide" to clear all masks (does not clear memory). Press "Show" to replot them. Press "Forget" to forget all masks in memory.
 
 """)
 

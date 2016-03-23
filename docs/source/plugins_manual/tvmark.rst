@@ -43,15 +43,15 @@ You can also highlight all the markings within a region both on the image
 and the table listing by drawing a rectangle on the image using the right mouse
 button while this plugin is active.
 
-Pressing the "Clear" button will clear the markings but does not clear the
-plugin's memory; That is, when you press "Redraw", the same markings will
+Pressing the "Hide" button will hide the markings but does not clear the
+plugin's memory; That is, when you press "Show", the same markings will
 reappear on the same image. However, pressing "Forget" will clear the markings
 both from display and memory; That is, you will need to reload your file(s) to
 recreate the markings.
 
 To redraw the same positions with different marking parameters, press "Forget"
 and repeat the steps above, as necessary. However, if you simply wish to change
-the line width (thickness), pressing "Clear" and then "Redraw" after you entered
+the line width (thickness), pressing "Hide" and then "Show" after you entered
 the new width value will suffice.
 
 If images of very different pointings/dimensions are displayed in the same

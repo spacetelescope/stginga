@@ -29,8 +29,8 @@ You can also highlight all the masks within a region both on the image
 and the table listing by drawing a rectangle on the image using the right mouse
 button while this plugin is active.
 
-Pressing the "Clear" button will clear the masks but does not clear the
-plugin's memory; That is, when you press "Redraw", the same masks will
+Pressing the "Hide" button will hide the masks but does not clear the
+plugin's memory; That is, when you press "Show", the same masks will
 reappear on the same image. However, pressing "Forget" will clear the masks
 both from display and memory; That is, you will need to reload your file(s) to
 recreate the masks.

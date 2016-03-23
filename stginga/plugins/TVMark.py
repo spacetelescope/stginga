@@ -135,7 +135,7 @@ class TVMark(LocalPlugin):
         container.add_widget(treeview, stretch=1)
 
         captions = (('Load Coords', 'button', 'Use RADEC', 'checkbutton'),
-                    ('Redraw', 'button', 'Clear', 'button', 'Forget', 'button'))
+                    ('Show', 'button', 'Hide', 'button', 'Forget', 'button'))
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
@@ -146,11 +146,11 @@ class TVMark(LocalPlugin):
         b.use_radec.set_state(self.use_radec)
         b.use_radec.add_callback('activated', self.set_coordtype_cb)
 
-        b.redraw.set_tooltip('Redraw markings')
-        b.redraw.add_callback('activated', lambda w: self.redo())
+        b.show.set_tooltip('Show markings')
+        b.show.add_callback('activated', lambda w: self.redo())
 
-        b.clear.set_tooltip('Clear markings')
-        b.clear.add_callback('activated', lambda w: self.clear_marking())
+        b.hide.set_tooltip('Hide markings')
+        b.hide.add_callback('activated', lambda w: self.clear_marking())
 
         b.forget.set_tooltip('Forget markings')
         b.forget.add_callback('activated', lambda w: self.forget_coords())
@@ -179,7 +179,7 @@ class TVMark(LocalPlugin):
     def instructions(self):
         self.tw.set_text("""Set mark parameters. Then, load coordinates file to mark them on image with the specified marking. To add different kind of marking, change the mark parameters and load another file.
 
-Press "Clear" to clear all markings (does not clear memory). Press "Redraw" to replot them. Press "Forget" to forget all markings in memory.
+Press "Hide" to clear all markings (does not clear memory). Press "Show" to replot them. Press "Forget" to forget all markings in memory.
 
 """)
 
