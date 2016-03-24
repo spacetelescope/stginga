@@ -11,7 +11,7 @@ from collections import defaultdict
 
 # THIRD-PARTY
 import numpy as np
-from astropy.io import ascii
+from astropy.table import Table
 
 # GINGA
 from ginga import colors
@@ -323,8 +323,13 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
 
         self.logger.info('Loading coordinates from {0}'.format(filename))
 
+        if filename.endswith('.fits'):
+            fmt = 'fits'
+        else:  # Assume ASCII
+            fmt = 'ascii'
+
         try:
-            tab = ascii.read(filename)
+            tab = Table.read(filename, format=fmt)
         except Exception as e:
             self.logger.error('{0}: {1}'.format(e.__class__.__name__, str(e)))
             return
@@ -391,7 +396,8 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
     def load_coords_cb(self):
         """Activate file dialog to select coordinates file."""
         self.cfilesel.popup('Load coordinates file', self.load_file,
-                            initialdir='.', filename='Text files (*.txt)')
+                            initialdir='.',
+                            filename='Table files (*.txt *.dat *.fits)')
 
     def set_coordtype_cb(self, w, val):
         """Toggle between RA/DEC or X/Y coordinates."""
