@@ -9,15 +9,18 @@ TVMark
 
 This local plugin allows non-interactive marking of points of interest by
 reading in a file containing a table with RA and DEC positions of those points.
-Any text file that can be read by :ref:`Astropy ASCII Tables <astropy:io-ascii>`
-is acceptable but it *must* contain both ``'ra'`` and ``'dec'`` columns.
+Any text or FITS table file that can be read by
+:ref:`Astropy Table <astropy:astropy-table>` is acceptable but user *must*
+define the column names correctly in the plugin configuration file (see below).
 An attempt will be made to convert RA and DEC values to degrees.
 If the unit conversion fails, they will be assumed to be in degrees already.
 
-Alternately, if the file has ``'x'`` and ``'y'`` columns containing the direct
-pixel locations, you can read these columns instead by unchecking the
-"Use RADEC" box. Pixel values must be 1-indexed (i.e., first pixel starts from
-1, not 0). This is useful when you want to mark the physical pixels regardless
+Alternately, if the file has columns containing the direct pixel locations,
+you can read these columns instead by unchecking the "Use RADEC" box.
+Again, the column names must be correctly defined in the plugin configuration
+file (see below).
+Pixel values must be 1-indexed (i.e., first pixel starts from 1, not 0).
+This is useful when you want to mark the physical pixels regardless
 of WCS (e.g., marking hot pixels on a detector). RA and DEC will still be
 displayed if the image has WCS information but they will not affect the
 markings.
@@ -60,7 +63,7 @@ appear in the latter.
 
 To create a table that this plugin can read, one can use results from
 :ref:`ginga:sec-plugins-pick` or :ref:`local-plugin-mipick`, in addition to
-creating a table by hand, using :ref:`Astropy ASCII Tables <astropy:io-ascii>`,
+creating a table by hand, using :ref:`Astropy Table <astropy:astropy-table>`,
 etc.
 
 Used together with :ref:`local-plugin-tvmask`, you can overlay both point
@@ -94,5 +97,10 @@ This plugin is customizable using ``~/.ginga/plugin_TVMark.cfg``::
   #          This does not use WCS.
   use_radec = True
 
-  # Extra columns to load into table listing (case-sensitive)
+  # Columns to load into table listing (case-sensitive).
+  # Whether RA/DEC or X/Y columns are used depend on associated GUI selection.
+  ra_colname = 'ra'
+  dec_colname = 'dec'
+  x_colname = 'x'
+  y_colname = 'y'
   extra_columns = ['colname1', 'colname2']

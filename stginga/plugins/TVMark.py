@@ -335,13 +335,15 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
             return
 
         if self.use_radec:
-            colnames = ['ra', 'dec']
+            colname0 = self.settings.get('ra_colname', 'ra')
+            colname1 = self.settings.get('dec_colname', 'dec')
         else:
-            colnames = ['x', 'y']
+            colname0 = self.settings.get('x_colname', 'x')
+            colname1 = self.settings.get('y_colname', 'y')
 
         try:
-            col_0 = tab[colnames[0]]
-            col_1 = tab[colnames[1]]
+            col_0 = tab[colname0]
+            col_1 = tab[colname1]
         except Exception as e:
             self.logger.error('{0}: {1}'.format(e.__class__.__name__, str(e)))
             return
