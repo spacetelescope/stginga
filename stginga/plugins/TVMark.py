@@ -46,11 +46,14 @@ class TVMark(LocalPlugin):
         self.markcolor = self.settings.get('markcolor', 'green')
         self.marksize = self.settings.get('marksize', 5)
         self.markwidth = self.settings.get('markwidth', 1)
+        self.pixelstart = self.settings.get('pixelstart', 1)
         self.use_radec = self.settings.get('use_radec', True)
         self.extra_columns = self.settings.get('extra_columns', [])
 
         # Display coords info table
         self.treeview = None
+        self.treeviewsel = None
+        self.treeviewbad = None
         self.tree_dict = Bunch.caselessDict()
         self.columns = [('No.', 'MARKID'), ('RA', 'RA'), ('DEC', 'DEC'),
                         ('X', 'X'), ('Y', 'Y')]
@@ -125,6 +128,10 @@ class TVMark(LocalPlugin):
 
         container.add_widget(w, stretch=0)
 
+        nb = Widgets.TabWidget()
+        self.w.nb1 = nb
+        container.add_widget(nb, stretch=1)
+
         treeview = Widgets.TreeView(auto_expand=True,
                                     sortable=True,
                                     selection='multiple',
@@ -132,7 +139,38 @@ class TVMark(LocalPlugin):
         self.treeview = treeview
         treeview.setup_table(self.columns, 2, 'MARKID')
         treeview.add_callback('selected', self.hl_table2canvas)
-        container.add_widget(treeview, stretch=1)
+        nb.add_widget(treeview, title='Shown')
+
+        treeview2 = Widgets.TreeView(auto_expand=True,
+                                     sortable=True,
+                                     use_alt_row_color=True)
+        self.treeviewsel = treeview2
+        treeview2.setup_table(self.columns, 2, 'MARKID')
+        nb.add_widget(treeview2, title='Selected')
+
+        treeview3 = Widgets.TreeView(auto_expand=True,
+                                     sortable=True,
+                                     use_alt_row_color=True)
+        self.treeviewbad = treeview3
+        treeview3.setup_table(self.columns, 2, 'MARKID')
+        nb.add_widget(treeview3, title='Outliers')
+
+        captions = (('Loaded:', 'llabel', 'ntotal', 'llabel',
+                     'Shown:', 'llabel', 'nshown', 'llabel',
+                     'Selected:', 'llabel', 'nselected', 'llabel'), )
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
+
+        b.ntotal.set_tooltip('Number of objects read from tables')
+        b.ntotal.set_text('0')
+
+        b.nshown.set_tooltip('Number of objects shown on image')
+        b.nshown.set_text('0')
+
+        b.nselected.set_tooltip('Number of objects selected')
+        b.nselected.set_text('0')
+
+        container.add_widget(w, stretch=0)
 
         captions = (('Load Coords', 'button', 'Use RADEC', 'checkbutton'),
                     ('Show', 'button', 'Hide', 'button', 'Forget', 'button'))
@@ -190,6 +228,8 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
 
         self.clear_marking()
         self.tree_dict = Bunch.caselessDict()
+        self.treeviewbad.clear()
+        bad_tree_dict = Bunch.caselessDict()
         self._xarr = []
         self._yarr = []
         self._treepaths = []
@@ -215,7 +255,9 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
             marktype, marksize, markcolor = key
             kstr = ','.join(map(str, key))
             sub_dict = {}
+            bad_sub_dict = {}
             self.tree_dict[kstr] = sub_dict
+            bad_tree_dict[kstr] = bad_sub_dict
 
             for args in coords:
                 ra, dec, x, y = args[:4]
@@ -228,30 +270,40 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
                 else:
                     x, y = image.radectopix(ra, dec)
 
+                # Display original X/Y (can be 0- or 1-indexed) using
+                # our internal 0-indexed values.
+                xdisp = x + self.pixelstart
+                ydisp = y + self.pixelstart
+
+                seqstr = '{0:04d}'.format(seqno)  # Prepend 0s for proper sort
+                bnch = Bunch.Bunch(zip(self.extra_columns, args[4:]))  # Extra
+                bnch.update(Bunch.Bunch(MARKID=seqstr, RA=ra, DEC=dec,
+                                        X=xdisp, Y=ydisp))
+
                 # Do not draw out of bounds
                 if (not np.isfinite(x) or x < 0 or x > max_x or
                         not np.isfinite(y) or y < 0 or y > max_y):
                     self.logger.debug('Ignoring RA={0}, DEC={1} '
                                       '(x={2}, y={3})'.format(ra, dec, x, y))
-                    continue
+                    bad_sub_dict[seqstr] = bnch
 
-                obj = self._get_markobj(
-                    x, y, marktype, marksize, markcolor, self.markwidth)
-                objlist.append(obj)
+                # Display point
+                else:
+                    obj = self._get_markobj(
+                        x, y, marktype, marksize, markcolor, self.markwidth)
+                    objlist.append(obj)
 
-                seqstr = '{0:04d}'.format(seqno)  # Prepend 0s for proper sort
-                bnch = Bunch.Bunch(zip(self.extra_columns, args[4:]))  # Extra
-                bnch.update(Bunch.Bunch(MARKID=seqstr, RA=ra, DEC=dec,
-                                        X=x+1, Y=y+1))  # 1-indexed
-                sub_dict[seqstr] = bnch
-                self._xarr.append(x)
-                self._yarr.append(y)
-                self._treepaths.append((kstr, seqstr))
+                    sub_dict[seqstr] = bnch
+                    self._xarr.append(x)
+                    self._yarr.append(y)
+                    self._treepaths.append((kstr, seqstr))
+
                 seqno += 1
 
-        n_obj = seqno - 1
-
+        n_obj = len(objlist)
+        self.treeviewbad.set_tree(bad_tree_dict)
         self.logger.debug('Displaying {0} markings'.format(n_obj))
+
         if n_obj == 0:
             return
 
@@ -303,10 +355,12 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
                 pass
 
         self.treeview.clear()  # Clear table too
+        self.w.nshown.set_text('0')
         self.fitsimage.redraw()  # Force immediate redraw
 
     def forget_coords(self):
         """Forget all loaded coordinates."""
+        self.w.ntotal.set_text('0')
         self.coords_dict.clear()
         self.redo()
 
@@ -348,17 +402,26 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
             self.logger.error('{0}: {1}'.format(e.__class__.__name__, str(e)))
             return
 
-        dummy_col = [None] * len(col_0)
+        nrows = len(col_0)
+        dummy_col = [None] * nrows
+
+        try:
+            oldrows = int(self.w.ntotal.get_text())
+        except ValueError:
+            oldrows = 0
+
+        self.w.ntotal.set_text(str(oldrows + nrows))
 
         if self.use_radec:
             ra = self._convert_radec(col_0)
             dec = self._convert_radec(col_1)
             x = y = dummy_col
         else:
-            # Convert from 1-indexed to 0-indexed.
-            x = col_0.data - 1
-            y = col_1.data - 1
             ra = dec = dummy_col
+
+            # X and Y always 0-indexed internally
+            x = col_0.data - self.pixelstart
+            y = col_1.data - self.pixelstart
 
         args = [ra, dec, x, y]
 
@@ -408,6 +471,12 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
     def recreate_toc(self):
         self.logger.debug('Recreating table of contents...')
         self.treeview.set_tree(self.tree_dict)
+        n = 0
+
+        for sub_dict in itervalues(self.tree_dict):
+            n += len(sub_dict)
+
+        self.w.nshown.set_text(str(n))
 
     def hl_table2canvas(self, w, res_dict):
         """Highlight marking on canvas when user click on table."""
@@ -421,6 +490,9 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
             except:
                 pass
 
+        # Display highlighted entries only in second table
+        self.treeviewsel.set_tree(res_dict)
+
         for kstr, sub_dict in iteritems(res_dict):
             s = kstr.split(',')
             marktype = s[0]
@@ -428,12 +500,16 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
             markcolor = s[2]
 
             for bnch in itervalues(sub_dict):
-                obj = self._get_markobj(bnch.X - 1, bnch.Y - 1, marktype,
-                                        marksize, markcolor, width)
+                obj = self._get_markobj(bnch.X - self.pixelstart,
+                                        bnch.Y - self.pixelstart,
+                                        marktype, marksize, markcolor, width)
                 objlist.append(obj)
 
+        nsel = len(objlist)
+        self.w.nselected.set_text(str(nsel))
+
         # Draw on canvas
-        if len(objlist) > 0:
+        if nsel > 0:
             self.markhltag = self.canvas.add(self.dc.CompoundObject(*objlist))
 
         self.fitsimage.redraw()  # Force immediate redraw

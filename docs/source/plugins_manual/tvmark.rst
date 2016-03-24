@@ -19,11 +19,11 @@ Alternately, if the file has columns containing the direct pixel locations,
 you can read these columns instead by unchecking the "Use RADEC" box.
 Again, the column names must be correctly defined in the plugin configuration
 file (see below).
-Pixel values must be 1-indexed (i.e., first pixel starts from 1, not 0).
-This is useful when you want to mark the physical pixels regardless
-of WCS (e.g., marking hot pixels on a detector). RA and DEC will still be
-displayed if the image has WCS information but they will not affect the
-markings.
+Pixel values can be 0- or 1-indexed (i.e., whether the first pixel is 0 or 1)
+and is configurable (see below).
+This is useful when you want to mark the physical pixels regardless of WCS
+(e.g., marking hot pixels on a detector). RA and DEC will still be displayed if
+the image has WCS information but they will not affect the markings.
 
 To mark different groups (e.g., displaying galaxies as green circles and
 background as cyan crosses, as shown above):
@@ -87,6 +87,9 @@ This plugin is customizable using ``~/.ginga/plugin_TVMark.cfg``::
 
   # Marking line width (thickness)
   markwidth = 1
+
+  # Specify whether pixel values are 0- or 1-indexed
+  pixelstart = 1
 
   # Radius (pix) used to find closest marking when user clicks on display
   searchradius = 10
