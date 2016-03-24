@@ -230,6 +230,7 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
         self.tree_dict = Bunch.caselessDict()
         self.treeviewbad.clear()
         bad_tree_dict = Bunch.caselessDict()
+        nbad = 0
         self._xarr = []
         self._yarr = []
         self._treepaths = []
@@ -286,6 +287,7 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
                     self.logger.debug('Ignoring RA={0}, DEC={1} '
                                       '(x={2}, y={3})'.format(ra, dec, x, y))
                     bad_sub_dict[seqstr] = bnch
+                    nbad += 1
 
                 # Display point
                 else:
@@ -301,8 +303,10 @@ Press "Hide" to clear all markings (does not clear memory). Press "Show" to repl
                 seqno += 1
 
         n_obj = len(objlist)
-        self.treeviewbad.set_tree(bad_tree_dict)
         self.logger.debug('Displaying {0} markings'.format(n_obj))
+
+        if nbad > 0:
+            self.treeviewbad.set_tree(bad_tree_dict)
 
         if n_obj == 0:
             return
