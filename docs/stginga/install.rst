@@ -5,7 +5,7 @@ Installation
 
 ``stginga`` requires:
 
-* `Astropy <http://www.astropy.org/>`_ 1.1 or later.
+* `astropy` 1.1 or later.
 * `SciPy <http://docs.scipy.org/doc/scipy/reference/>`_ 0.16 or later.
 * Ginga 2.5.20160222004742 or later, available from
   `Ginga's GitHub page <https://github.com/ejeschke/ginga/>`_.

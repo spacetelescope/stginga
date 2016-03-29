@@ -18,21 +18,21 @@ These plugins work together to display the same object across multiple images:
 .. toctree::
    :maxdepth: 2
 
-   plugins_manual/multiimage
-   plugins_manual/mipick
+   multiimage
+   mipick
 
 These plugins behave like a regular Ginga plugin:
 
 .. toctree::
    :maxdepth: 2
 
-   plugins_manual/backgroundsub
-   plugins_manual/badpixcorr
-   plugins_manual/dqinspect
-   plugins_manual/snrcalc
-   plugins_manual/tvmark
-   plugins_manual/tvmask
-   plugins_manual/saveimage
+   backgroundsub
+   badpixcorr
+   dqinspect
+   snrcalc
+   tvmark
+   tvmask
+   saveimage
 
 These plugins are for very specific analysis needs. Therefore, they are
 distributed but not loaded by default into the Ginga viewer. To load them,
@@ -42,8 +42,8 @@ one way is to use the ``--plugins`` option along with ``stginga`` command
 .. toctree::
    :maxdepth: 2
 
-   plugins_manual/mosaicauto
-   plugins_manual/smoothing
+   mosaicauto
+   smoothing
 
 
 .. _stginga-global-plugins:

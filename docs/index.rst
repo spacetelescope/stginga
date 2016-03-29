@@ -1,7 +1,4 @@
-.. stginga documentation master file, created by
-   sphinx-quickstart on Mon Oct 19 17:08:24 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. doctest-skip-all
 
 ``stginga``: Ginga for STScI
 ============================
@@ -18,8 +15,8 @@ Installation and Setup
 .. toctree::
    :maxdepth: 2
 
-   install
-   config
+   stginga/install
+   stginga/config
 
 
 Using ``stginga``
@@ -28,14 +25,7 @@ Using ``stginga``
 .. toctree::
    :maxdepth: 2
 
-   run
-   plugins
-   ipynb
-   ref_api
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
+   stginga/run
+   stginga/plugins_manual/index
+   stginga/ipynb
+   stginga/ref_api
