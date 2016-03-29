@@ -5,9 +5,9 @@ Installation
 
 ``stginga`` requires:
 
-* `astropy` 1.1 or later.
-* `SciPy <http://docs.scipy.org/doc/scipy/reference/>`_ 0.16 or later.
-* Ginga 2.5.20160222004742 or later, available from
+* Astropy 1.1 or later.
+* SciPy 0.16 or later.
+* Ginga 2.5.20160322122203 or later, available from
   `Ginga's GitHub page <https://github.com/ejeschke/ginga/>`_.
 * The latest version of ``stginga`` available from
   `stginga's GitHub page <https://github.com/spacetelescope/stginga>`_.
