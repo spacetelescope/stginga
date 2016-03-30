@@ -189,7 +189,7 @@ def notebooks_to_rst(app):
     olddir = os.path.abspath(os.curdir)
     try:
         srcdir = os.path.abspath(os.path.split(__file__)[0])
-        os.chdir(os.path.join(srcdir, 'notebooks'))
+        os.chdir(os.path.join(srcdir, 'stginga', 'notebooks'))
         nbs = glob('*.ipynb')
 
         app = NbConvertApp()
