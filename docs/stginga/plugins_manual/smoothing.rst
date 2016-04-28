@@ -29,25 +29,7 @@ values, smoothing is done by clicking the "Smooth" button.
 
 The smoothed image is inserted into Ginga as a new image, leaving the original
 image untouched. Details on the smoothing performed can be viewed using
-:ref:`sec-plugins-changehistory`. In addition, it can be saved using
-:ref:`local-plugin-saveimage`.
+:ref:`ginga:sec-plugins-changehistory`. In addition, it can be saved using
+:ref:`ginga:sec-plugins-global-saveimage`.
 
-It is customizable using ``~/.ginga/plugin_Smoothing.cfg``::
-
-  #
-  # Smoothing plugin preferences file
-  #
-  # Place this in file under ~/.ginga with the name "plugin_Smoothing.cfg"
-
-  # Smoothing algorithm -- 'boxcar', 'gauss', or 'medfilt'
-  algorithm = 'boxcar'
-
-  # Kernel size or shape
-  smoothpars = (100, 100)
-
-  # Mode for smoothing -- 'reflect', 'constant', 'nearest', 'mirror', or 'wrap'
-  # See scipy.ndimage.filters doc for more details.
-  mode = 'nearest'
-
-  # Fill value that is only used when mode is 'constant'
-  fillval = 0.0
+.. automodule:: stginga.plugins.Smoothing

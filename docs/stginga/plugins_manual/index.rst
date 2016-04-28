@@ -30,9 +30,6 @@ These plugins behave like a regular Ginga plugin:
    badpixcorr
    dqinspect
    snrcalc
-   tvmark
-   tvmask
-   saveimage
 
 These plugins are for very specific analysis needs. Therefore, they are
 distributed but not loaded by default into the Ginga viewer. To load them,

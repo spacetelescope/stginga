@@ -344,3 +344,10 @@ class Smoothing(LocalPlugin, ParamMixin):
         name of the plugin.
         """
         return 'smoothing'
+
+
+# Replace module docstring with config doc for auto insert by Sphinx.
+# In the future, if we need the real docstring, we can append instead of
+# overwrite.
+from ginga.util.toolbox import generate_cfg_example
+__doc__ = generate_cfg_example('plugin_Smoothing', package='stginga')
