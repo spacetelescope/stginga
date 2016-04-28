@@ -847,3 +847,10 @@ Click "Subtract" to remove background.""")
         name of the plugin.
         """
         return 'backgroundsub'
+
+
+# Replace module docstring with config doc for auto insert by Sphinx.
+# In the future, if we need the real docstring, we can append instead of
+# overwrite.
+from ginga.util.toolbox import generate_cfg_example
+__doc__ = generate_cfg_example('plugin_BackgroundSub', package='stginga')

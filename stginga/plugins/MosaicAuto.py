@@ -322,3 +322,10 @@ Select one or more images from the list below to highlight their positions on th
 
     def __str__(self):
         return 'mosaicauto'
+
+
+# Replace module docstring with config doc for auto insert by Sphinx.
+# In the future, if we need the real docstring, we can append instead of
+# overwrite.
+from ginga.util.toolbox import generate_cfg_example
+__doc__ = generate_cfg_example('plugin_Mosaic', package='stginga')

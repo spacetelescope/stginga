@@ -44,36 +44,6 @@ or not.
 User can save the calculated values in the image header using the "Update HDR"
 button. Calculation parameters can be saved to a JSON file, which then can be
 reloaded as well. The image with updated header can be saved using
-:ref:`local-plugin-saveimage`.
+:ref:`ginga:sec-plugins-global-saveimage`.
 
-It is customizable using ``~/.ginga/plugin_SNRCalc.cfg``::
-
-  #
-  # SNRCalc plugin preferences file
-  #
-  # Place this in file under ~/.ginga with the name "plugin_SNRCalc.cfg"
-
-  # Color of signal region for SBR (and SNR)
-  sbrcolor = 'blue3'
-
-  # Color of background region for SBR only
-  sbrbgcolor = 'magenta'
-
-  # Signal calculation parameters. Can also be changed in the GUI.
-  # sigtype can be 'box', 'circular', or 'polygon'
-  sigtype = 'circular'
-
-  # Background calculation parameters. Can also be changed in the GUI.
-  bgradius = 200
-  annulus_width = 10
-  sigma = 1.8
-  niter = 10
-
-  # This is the min SBR value used unless set_minsbr() method is reimplemented
-  # in a subclass.
-  default_minsbr = 100
-
-  # If set to True, only use good pixels for calculations.
-  # This is only applicable if there is an associated DQ extension.
-  # Can also be changed in the GUI.
-  ignore_bad_pixels = False
+.. automodule:: stginga.plugins.SNRCalc
