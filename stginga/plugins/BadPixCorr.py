@@ -843,6 +843,10 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
                 self.logger.debug('No bad DQ flags to replace')
                 return True
 
+            # Switch to DQ image so ChangeHistory shows the log, see
+            # https://github.com/spacetelescope/stginga/issues/113
+            self.chinfo.switch_image(dqsrc)
+
             dqdata[mask] = self._dq_fixed_flag
             s = ('Bad pixel flag(s) replaced in {0}; dqflag={1}, '
                  'npix={2}'.format(dqname, self._dq_fixed_flag, npix))
