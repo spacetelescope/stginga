@@ -6,7 +6,7 @@ analysis.
 
 |docs|
 
-.. |docs| image:: https://readthedocs.org/projects/stginga/badge/?version=latest
+.. |docs| image:: https://readthedocs.io/projects/stginga/badge/?version=latest
     :alt: Documentation Status
     :scale: 100%
-    :target: https://stginga.readthedocs.org/en/latest/?badge=latest
+    :target: https://stginga.readthedocs.io/en/latest/?badge=latest

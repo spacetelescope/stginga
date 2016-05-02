@@ -67,7 +67,7 @@ plugin_Contents.cfg
 -------------------
 
 Ginga's default columns for
-`Contents plugin <https://ginga.readthedocs.org/en/latest/manual/plugins.html#contents>`_
+`Contents plugin <https://ginga.readthedocs.io/en/latest/manual/plugins.html#contents>`_
 do not apply to STScI FITS data. Therefore, you should customize it to show
 keyword values that are relevant to your own data. However, you should *always*
 keep ``NAME`` and ``MODIFIED`` because they are used to identify the image
@@ -86,7 +86,7 @@ plugin_Thumbs.cfg
 -----------------
 
 Ginga's default keywords for
-`Thumbs plugin <https://ginga.readthedocs.org/en/latest/manual/plugins.html#thumbs>`_
+`Thumbs plugin <https://ginga.readthedocs.io/en/latest/manual/plugins.html#thumbs>`_
 do not apply to STScI FITS data. Therefore, you should customize it to show
 keyword values that are relevant to your own data. For example:
 

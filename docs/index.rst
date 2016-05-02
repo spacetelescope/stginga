@@ -4,7 +4,7 @@
 ============================
 
 ``stginga`` is a package that customizes
-`Ginga <https://ginga.readthedocs.org/en/latest/>`_ in order to aid data
+`Ginga <https://ginga.readthedocs.io/en/latest/>`_ in order to aid data
 analysis for the data supported by `STScI <http://www.stsci.edu/>`_ (e.g.,
 `HST <http://www.stsci.edu/hst/>`_ or `JWST <http://www.stsci.edu/jwst/>`_).
 
