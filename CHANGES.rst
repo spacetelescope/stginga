@@ -1,4 +1,28 @@
-0.1 (unreleased)
+0.1.1 (unreleased)
+------------------
+
+New Features
+^^^^^^^^^^^^
+
+TBD
+
+API changes
+^^^^^^^^^^^
+
+TBD
+
+Bug fixes
+^^^^^^^^^
+
+TBD
+
+Other Changes and Additions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+N/A
+
+
+0.1 (2016-06-21)
 ----------------
 
 New Features
