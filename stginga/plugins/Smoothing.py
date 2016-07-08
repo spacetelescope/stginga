@@ -14,6 +14,7 @@ from scipy.signal import boxcar
 from ginga.AstroImage import AstroImage
 from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
+from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga.plugins.local_plugin_mixin import ParamMixin
@@ -138,7 +139,10 @@ class Smoothing(LocalPlugin, ParamMixin):
             w.set_enabled(enable)
 
     def instructions(self):
-        self.tw.set_text("""Select smoothing algorithm and enter associated parameter values. Then click "Smooth" to create a new smoothed image. It might take a while and be resource intensive.""")
+        self.tw.set_text(
+            'Select smoothing algorithm and enter associated parameter '
+            'values. Then click "Smooth" to create a new smoothed image. '
+            'It might take a while and be resource intensive.')
 
     def set_algo_cb(self, w, index):
         self.algorithm = self._smooth_options[index]
@@ -158,8 +162,8 @@ class Smoothing(LocalPlugin, ParamMixin):
         self.w.smooth.set_enabled(False)
 
         # Reset parameters
-        #self.smoothpars = self._default_pars
-        #self.fillval = self._dummy_value
+        # self.smoothpars = self._default_pars
+        # self.fillval = self._dummy_value
 
         if salgo == 'gauss':
             captions = [('Sigma:', 'label', 'smoothpars', 'entry')]
@@ -306,7 +310,8 @@ class Smoothing(LocalPlugin, ParamMixin):
 
         self.algorithm = pardict['algorithm']
         self.mode = pardict['mode']
-        self.w.smooth_type.set_index(self._smooth_options.index(self.algorithm))
+        self.w.smooth_type.set_index(
+            self._smooth_options.index(self.algorithm))
         self.w.mode_type.set_index(self._mode_options.index(self.mode))
         self.set_algo()
 
@@ -349,5 +354,4 @@ class Smoothing(LocalPlugin, ParamMixin):
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-from ginga.util.toolbox import generate_cfg_example
 __doc__ = generate_cfg_example('plugin_Smoothing', package='stginga')

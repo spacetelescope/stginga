@@ -8,6 +8,7 @@ import numpy as np
 # GINGA
 from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
+from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
@@ -163,7 +164,7 @@ To use a constant value: Enter the background value.
 
 Click "Save Parameters" to save current subtraction parameters to a file. To save the background value, do this BEFORE you subtract.
 
-Click "Subtract" to remove background.""")
+Click "Subtract" to remove background.""")  # noqa
 
     def redo(self):
         if not self.gui_up:
@@ -244,10 +245,11 @@ Click "Subtract" to remove background.""")
                 bg_data, sigma=self.sigma, niter=self.niter,
                 algorithm=self.algorithm)
 
-        self._debug_str += (', bgval={0}, salgo={1}, sigma={2}, '
-                            'niter={3}, ignore_badpix={4}'.format(
-            self.bgval, self.algorithm, self.sigma, self.niter,
-            self.ignore_badpix))
+        self._debug_str += (
+            ', bgval={0}, salgo={1}, sigma={2}, niter={3}, '
+            'ignore_badpix={4}'.format(
+                self.bgval, self.algorithm, self.sigma, self.niter,
+                self.ignore_badpix))
         self.logger.debug(self._debug_str)
         self.w.background_value.set_text(str(self.bgval))
 
@@ -432,7 +434,8 @@ Click "Subtract" to remove background.""")
             else:  # box
                 b.box_w.set_tooltip('Width of box')
                 b.box_w.set_text(str(self.boxwidth))
-                b.box_w.add_callback('activated', lambda w: self.set_boxwidth())
+                b.box_w.add_callback(
+                    'activated', lambda w: self.set_boxwidth())
 
                 b.box_h.set_tooltip('Height of box')
                 b.box_h.set_text(str(self.boxheight))
@@ -701,7 +704,7 @@ Click "Subtract" to remove background.""")
         # This issues a 'modified' callback, which sets timestamp and
         # calls redo().
         image.set_data(new_data, metadata=image.metadata)
-        #self.fitsimage.auto_levels()
+        # self.fitsimage.auto_levels()
 
         # Store change history in metadata
         iminfo = self.chinfo.get_image_info(image.get('name'))
@@ -800,7 +803,8 @@ Click "Subtract" to remove background.""")
         # Draw on canvas
         lbl_obj = self.dc.Text(self.xcen, y2 + self._text_label_offset,
                                self._text_label, color=self.bgsubcolor)
-        self.bgsubtag = self.canvas.add(self.dc.CompoundObject(bg_obj, lbl_obj))
+        self.bgsubtag = self.canvas.add(
+            self.dc.CompoundObject(bg_obj, lbl_obj))
 
         return self.redo()
 
@@ -852,5 +856,4 @@ Click "Subtract" to remove background.""")
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-from ginga.util.toolbox import generate_cfg_example
 __doc__ = generate_cfg_example('plugin_BackgroundSub', package='stginga')

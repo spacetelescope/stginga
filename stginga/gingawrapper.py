@@ -124,9 +124,9 @@ def run_stginga(sys_argv):
     gmain.local_plugins += stlocal_plugins
 
     # Enforce Qt (--toolkit or -t) -- DISABLED
-    #new_argv = ['--toolkit=qt' if 'toolkit' in s else s for s in sys_argv]
-    #if '-t' in new_argv:
-    #    new_argv[new_argv.index('-t') + 1] = 'qt'
+    # new_argv = ['--toolkit=qt' if 'toolkit' in s else s for s in sys_argv]
+    # if '-t' in new_argv:
+    #     new_argv[new_argv.index('-t') + 1] = 'qt'
 
     # Auto start core global plugins
     for gplgname in ('ChangeHistory', ):

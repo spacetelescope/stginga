@@ -258,7 +258,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
             btn.set_state(option == _def_coords)
             btn.add_callback(
                 'activated',
-                lambda widget, state, option=option: self.set_coords(option, state)
+                lambda widget, state, option=option: self.set_coords(
+                    option, state)
             )
             btn.set_tooltip(tooltip)
             hbox.add_widget(btn)
@@ -443,7 +444,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.logger.debug('Called.')
         # Setup for thumbnail display
         di = Viewers.ImageViewCanvas(logger=self.logger)
-        #di.configure_window(100, 100)
+        # di.configure_window(100, 100)
         di.set_desired_size(100, 100)
         di.enable_autozoom('on')
         di.add_callback('configure', self.window_resized_cb)

@@ -23,11 +23,13 @@ try:
 except ImportError:
     __githash__ = ''
 
+
 # set up the test command
 def _get_test_runner():
     import os
     from astropy.tests.helper import TestRunner
     return TestRunner(os.path.dirname(__file__))
+
 
 def test(package=None, test_path=None, args=None, plugins=None,
          verbose=False, pastebin=None, remote_data=False, pep8=False,
@@ -115,6 +117,8 @@ if not _ASTROPY_SETUP_:
     import os
     from warnings import warn
     from astropy import config
+    from astropy.config.configuration import (
+        ConfigurationDefaultMissingError, ConfigurationDefaultMissingWarning)
 
     # add these here so we only need to cleanup the namespace at the end
     config_dir = None
@@ -130,10 +134,11 @@ if not _ASTROPY_SETUP_:
                 try:
                     config.configuration.update_default_config(
                         __package__, config_dir)
-                except config.configuration.ConfigurationDefaultMissingError as e:
-                    wmsg = (e.args[0] + " Cannot install default profile. If you are "
+                except ConfigurationDefaultMissingError as e:
+                    wmsg = (e.args[0] + " Cannot install default profile. "
+                            "If you are "
                             "importing from source, this is expected.")
-                    warn(config.configuration.ConfigurationDefaultMissingWarning(wmsg))
+                    warn(ConfigurationDefaultMissingWarning(wmsg))
                     del e
                 except:
                     raise orig_error

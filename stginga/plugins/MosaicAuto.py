@@ -15,6 +15,7 @@ from ginga.AstroImage import AstroImage
 from ginga.gw import Widgets
 from ginga.misc import Bunch
 from ginga.misc.plugins.Mosaic import Mosaic
+from ginga.util.toolbox import generate_cfg_example
 
 __all__ = []
 
@@ -35,11 +36,11 @@ class MosaicAuto(Mosaic):
         # CURRENTLY DISABLED. Because having a manual button might make it
         # easier to add "recreate" feature in the future, if needed.
         # This enables auto-mosaic whenever an image is loaded.
-        #fv.add_callback('add-image', self.add_image_cb)
+        # fv.add_callback('add-image', self.add_image_cb)
 
         # CURRENTLY DISABLED.
         # This clears result when any image is removed from channel.
-        #fv.add_callback('remove-image', lambda *args: self.remove_mosaic())
+        # fv.add_callback('remove-image', lambda *args: self.remove_mosaic())
 
     def build_gui(self, container):
         """Build GUI such that image list area is maximized."""
@@ -73,7 +74,8 @@ class MosaicAuto(Mosaic):
         b.create_mosaic.add_callback('activated', lambda w: self.auto_mosaic())
 
         b.save_selection.set_tooltip('Save selected image(s) to output XML')
-        b.save_selection.add_callback('activated', lambda w: self.save_imlist())
+        b.save_selection.add_callback(
+            'activated', lambda w: self.save_imlist())
         b.save_selection.set_enabled(False)
 
         container.add_widget(w, stretch=0)
@@ -109,7 +111,7 @@ class MosaicAuto(Mosaic):
     def instructions(self):
         self.tw.set_text("""Click "Create Mosaic" to create a mosaic using all currently open images. This can only be done once. If you do not see it on the main display, try the "zoom to fit window size" button (magnifying glass with "[:]" at the bottom).
 
-Select one or more images from the list below to highlight their positions on the mosaic. Once you have selected the image(s) to keep, click "Save Selection" to write the image list to output file.""")
+Select one or more images from the list below to highlight their positions on the mosaic. Once you have selected the image(s) to keep, click "Save Selection" to write the image list to output file.""")  # noqa
 
     def recreate_imlist(self):
         """Refresh image list for new selection."""
@@ -144,7 +146,8 @@ Select one or more images from the list below to highlight their positions on th
                 image = astroimage_obj
                 image.load_file(impath)
             footprint = image.wcs.wcs.calc_footprint()
-            self._imlist[imname] = Bunch.Bunch(footprint=footprint, path=impath)
+            self._imlist[imname] = Bunch.Bunch(
+                footprint=footprint, path=impath)
 
         self.recreate_imlist()
 
@@ -273,7 +276,8 @@ Select one or more images from the list below to highlight their positions on th
         if os.path.exists(fname):
             s = '{0} will be overwritten'.format(fname)
             self.logger.warn(s)
-        ascii.write([imlist], fname, names=['IMAGE'], format='commented_header')
+        ascii.write(
+            [imlist], fname, names=['IMAGE'], format='commented_header')
         s = 'Image list saved'
         self.logger.info(s)
         self.update_status(s)
@@ -327,5 +331,4 @@ Select one or more images from the list below to highlight their positions on th
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-from ginga.util.toolbox import generate_cfg_example
 __doc__ = generate_cfg_example('plugin_Mosaic', package='stginga')

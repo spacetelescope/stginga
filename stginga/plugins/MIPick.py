@@ -152,7 +152,7 @@ class MIPick(Pick):
         # Make sure edited rectangle was our pick rectangle.
         c_obj = self.canvas.get_object_by_tag(self.picktag)
         if ((c_obj.kind != 'compound') or (len(c_obj.objects) < 3) or
-               (c_obj.objects[0] != obj)):
+                (c_obj.objects[0] != obj)):
             return False
 
         # determine center of rectangle

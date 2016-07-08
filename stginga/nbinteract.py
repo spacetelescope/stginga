@@ -91,18 +91,17 @@ class GingaServer(object):
         """
         self.thread_pool.startall()
 
-        #TODO: DONT DO THIS.  Use package data instead
+        # TODO: DONT DO THIS. Use package data instead
         js_path = os.path.dirname(js.__file__)
 
         self.tornado_app = tornado.web.Application([
             (r"/js/(.*\.js)", tornado.web.StaticFileHandler,
              {"path":  js_path}),
             (r"/app", PgHelp.WindowHandler,
-              dict(name='Application', url='/app', app=self.app)),
+             dict(name='Application', url='/app', app=self.app)),
             (r"/app/socket", PgHelp.ApplicationHandler,
-              dict(name='Ginga', app=self.app)),
+             dict(name='Ginga', app=self.app)),
             ], logger=self.logger)
-
 
         self.tornado_server = tornado.httpserver.HTTPServer(self.tornado_app)
         self.tornado_server.listen(self.port, self.host)
@@ -184,9 +183,10 @@ class GingaServer(object):
                     break
             else:
                 raise ValueError(
-                    'fileorhdu was iterable but did not contain any image HDUs')
-        elif hasattr(fileorhdu, 'data') and hasattr(fileorhdu,'header'):
-            #quacks like an HDU - give it a shot
+                    'fileorhdu was iterable but did not contain any '
+                    'image HDUs')
+        elif hasattr(fileorhdu, 'data') and hasattr(fileorhdu, 'header'):
+            # quacks like an HDU - give it a shot
             hdu = fileorhdu
         else:
             raise ValueError('fileorhdu was not a fits file or HDU-ish thing')

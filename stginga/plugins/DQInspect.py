@@ -14,6 +14,7 @@ from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
 from ginga.misc import Bunch
 from ginga.util.dp import masktorgb
+from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
@@ -42,7 +43,7 @@ DQFLAG SHORT_DESCRIPTION LONG_DESCRIPTION
 8192   "CRREJ"           "Cosmic ray (CRREJ)"
 16384  "USER"            "Manually flagged by user"
 32768  "UNUSED"          "Not used"
-"""
+"""  # noqa
 
 
 class DQInspect(LocalPlugin, MEFMixin):
@@ -208,12 +209,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         self.redo()
 
     def instructions(self):
-        self.tw.set_text("""It is important that you have all the possible DQ definition files defined in your plugin configuration file if you do not want to use default values! Otherwise, results might be inaccurate. The DQ definition file is select by {0} keyword in the image header.
-
-To inspect a single pixel: Select a pixel by right-clicking on the image. Click or drag left mouse button to reposition pixel marker. You can also manually fine-tune the position by entering values in the respective text boxes. All X and Y values must be 0-indexed. DQ flags that went into the pixel will be listed along with their respective definitions.
-
-To inspect the whole image: Select one or more desired DQ flags from the list. Affected pixel(s) will be marked on the image.""".format(
-            self._ins_key, self._ext_key, self._dq_extname))
+        self.tw.set_text("""It is important that you have all the possible DQ definition files defined in your plugin configuration file if you do not want to use default values! Otherwise, results might be inaccurate. The DQ definition file is select by {0} keyword in the image header.\n\nTo inspect a single pixel: Select a pixel by right-clicking on the image. Click or drag left mouse button to reposition pixel marker. You can also manually fine-tune the position by entering values in the respective text boxes. All X and Y values must be 0-indexed. DQ flags that went into the pixel will be listed along with their respective definitions.\n\nTo inspect the whole image: Select one or more desired DQ flags from the list. Affected pixel(s) will be marked on the image.""".format(self._ins_key, self._ext_key, self._dq_extname))  # noqa
 
     def recreate_pxdq(self, dqparser, dqs, pixval):
         """Refresh single pixel results table with given data."""
@@ -375,8 +371,8 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
         bnch = dqsrc.metadata.get(self._cache_key, None)
 
         # Interpret DQ flags for all pixels if cache not found or outdated.
-        # The cache is attached to image object, so that if image is closed etc,
-        # the cache is automatically removed.
+        # The cache is attached to image object, so that if image is closed
+        # etc, the cache is automatically removed.
         # pixmask_by_flag is {flag: np_index}
         # timestamp is datetime object or None
         if bnch is None or cur_timestamp != bnch.timestamp:
@@ -677,5 +673,4 @@ To inspect the whole image: Select one or more desired DQ flags from the list. A
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-from ginga.util.toolbox import generate_cfg_example
 __doc__ = generate_cfg_example('plugin_DQInspect', package='stginga')

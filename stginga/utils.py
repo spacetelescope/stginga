@@ -55,12 +55,12 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
         return 0.0
 
     # NOTE: Now requires Astropy 1.1 or later, so this check is not needed.
-    #from astropy import version as astropy_version
-    #if ((astropy_version.major==1 and astropy_version.minor==0) or
-    #        (astropy_version.major < 1)):
-    #    arr_masked = sigma_clip(arr, sig=sigma, iters=niter)
-    #else:
-    #    arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
+    # from astropy import version as astropy_version
+    # if ((astropy_version.major==1 and astropy_version.minor==0) or
+    #         (astropy_version.major < 1)):
+    #     arr_masked = sigma_clip(arr, sig=sigma, iters=niter)
+    # else:
+    #     arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
     arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
 
     arr = arr_masked.data[~arr_masked.mask]
@@ -186,10 +186,10 @@ class DQParser(object):
         # Need to replace ~ with $HOME
         self.tab = ascii.read(
             os.path.expanduser(definition_file),
-            names = (self._dqcol, self._sdcol, self._ldcol),
-            converters = {self._dqcol: [ascii.convert_numpy(np.uint16)],
-                          self._sdcol: [ascii.convert_numpy(np.str)],
-                          self._ldcol: [ascii.convert_numpy(np.str)]})
+            names=(self._dqcol, self._sdcol, self._ldcol),
+            converters={self._dqcol: [ascii.convert_numpy(np.uint16)],
+                        self._sdcol: [ascii.convert_numpy(np.str)],
+                        self._ldcol: [ascii.convert_numpy(np.str)]})
 
         # Another table to store metadata
         self.metadata = ascii.read(self.tab.meta['comments'], delimiter='=',

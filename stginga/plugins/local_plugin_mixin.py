@@ -192,7 +192,8 @@ class MEFMixin(object):
 
         # Auto load image data
         else:
-            self.logger.debug('Loading {0} from {1}'.format(cachekey, filename))
+            self.logger.debug(
+                'Loading {0} from {1}'.format(cachekey, filename))
             image = self.fv.load_image(filename, idx=extnum)
             future = Future()
             future.freeze(self.fv.load_image, filename, idx=extnum)

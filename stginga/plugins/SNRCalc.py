@@ -1,4 +1,6 @@
-"""SNR and Surface background ratio (SBR) calculation local plugin for Ginga."""
+"""SNR and Surface background ratio (SBR) calculation local plugin for
+Ginga.
+"""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -8,6 +10,7 @@ import numpy as np
 # GINGA
 from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
+from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
@@ -27,7 +30,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         self._sigtype_options = ['box', 'circular', 'polygon']
         self._dummy_value = 0
-        #self._default_bgradius_offset = 10
+        # self._default_bgradius_offset = 10
         self._text_label = 'SNR/SBR'
         self._text_label_offset = 4
         self._status_color_ready = 'grey'
@@ -182,7 +185,8 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
                 (b.sig_med, 'Median signal in inner circle'),
                 (b.bg_std, 'Background std. dev. in annulus'),
                 (b.sbr_value, 'SBR value'),
-                (b.min_sbr, 'Calculated SBR below this value raises red flag')):
+                (b.min_sbr,
+                 'Calculated SBR below this value raises red flag')):
             bitem.set_tooltip(tt_text)
 
         vbox.add_widget(w, stretch=0)
@@ -228,11 +232,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         self.gui_up = True
 
     def instructions(self):
-        self.tw.set_text("""To calculate: Draw (or redraw) a signal region with the right mouse button. For polygon, while still holding right mouse button down, press "v" to change direction or "z" to undo. Click or drag left mouse button to reposition signal region. You can also manually fine-tune region parameters by entering values in the respective text boxes. Background annulus can be adjusted by manually entering its parameter values. All X and Y values must be 0-indexed.
-
-Signal is calculated from the inner region (box, circular, or polygon). Background is calculated from the annulus. SNR is calculated by dividing centroid data from {0} with those from {1} (background annulus is not used); It is set to 0 if image has no {1} extension. SBR is calculated by dividing median of centroid data with standard deviation of sigma-clipped background annulus (both from {0}). If SBR is less than given limit, status box will be {2} instead of {3}.""".format(
-            self._sci_extname, self._err_extname,
-            self._status_color_notok, self._status_color_ok))
+        self.tw.set_text("""To calculate: Draw (or redraw) a signal region with the right mouse button. For polygon, while still holding right mouse button down, press "v" to change direction or "z" to undo. Click or drag left mouse button to reposition signal region. You can also manually fine-tune region parameters by entering values in the respective text boxes. Background annulus can be adjusted by manually entering its parameter values. All X and Y values must be 0-indexed.\n\nSignal is calculated from the inner region (box, circular, or polygon). Background is calculated from the annulus. SNR is calculated by dividing centroid data from {0} with those from {1} (background annulus is not used); It is set to 0 if image has no {1} extension. SBR is calculated by dividing median of centroid data with standard deviation of sigma-clipped background annulus (both from {0}). If SBR is less than given limit, status box will be {2} instead of {3}.""".format(self._sci_extname, self._err_extname, self._status_color_notok, self._status_color_ok))  # noqa
 
     def redo(self):
         """Calculate SBR and SNR."""
@@ -1086,5 +1086,4 @@ Signal is calculated from the inner region (box, circular, or polygon). Backgrou
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-from ginga.util.toolbox import generate_cfg_example
 __doc__ = generate_cfg_example('plugin_SNRCalc', package='stginga')

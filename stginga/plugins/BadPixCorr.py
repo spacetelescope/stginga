@@ -8,6 +8,7 @@ import numpy as np
 # GINGA
 from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
+from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
@@ -168,7 +169,7 @@ To calculate from annulus or use spline interpolation, enter values for the inne
 
 To replace bad pixels with a given value: Select "constant" from the "Fill From" drop-down box. Enter the fill value.
 
-Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will also be updated accordingly.""")
+Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will also be updated accordingly.""")  # noqa
 
     def redo(self):
         """This updates circle/point values from drawing.
@@ -770,7 +771,8 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         if self.corrtype == 'circular':
             bpx_obj = obj.objects[0]
             mask = image.get_shape_mask(bpx_obj)
-            s += 'x={0}, y={1}, r={2}'.format(self.xcen, self.ycen, self.radius)
+            s += 'x={0}, y={1}, r={2}'.format(
+                self.xcen, self.ycen, self.radius)
         else:  # single pixel
             mask = np.zeros(data.shape, dtype=np.bool)
             xx = int(self.xcen)
@@ -828,7 +830,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         # This issues a 'modified' callback, which sets timestamp and
         # calls redo().
         image.set_data(data, metadata=image.metadata)
-        #self.fitsimage.auto_levels()
+        # self.fitsimage.auto_levels()
 
         # Store change history in metadata
         iminfo = self.chinfo.get_image_info(imname)
@@ -919,7 +921,8 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         self.xcen = pardict.get('xcen', self.xcen)
         self.ycen = pardict.get('ycen', self.ycen)
         self.radius = pardict.get('radius', self.radius)
-        self.annulus_radius = pardict.get('annulus_radius', self.annulus_radius)
+        self.annulus_radius = pardict.get(
+            'annulus_radius', self.annulus_radius)
         self.annulus_width = pardict.get('annulus_width', self.annulus_width)
         self.algorithm = pardict.get('algorithm', self.algorithm)
         self.sigma = pardict.get('sigma', self.sigma)
@@ -1011,5 +1014,4 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-from ginga.util.toolbox import generate_cfg_example
 __doc__ = generate_cfg_example('plugin_BadPixCorr', package='stginga')
