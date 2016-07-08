@@ -1,12 +1,18 @@
 stginga
 =======
 
+.. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
+    :target: http://www.astropy.org
+    :alt: Powered by Astropy Badge
+
+.. image:: https://travis-ci.org/spacetelescope/stginga.svg?branch=master
+    :target: https://travis-ci.org/spacetelescope/stginga
+    :alt: Travis CI results
+
+.. image:: https://readthedocs.org/projects/stginga/badge/?version=latest
+    :target: https://stginga.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
+
 `Ginga <https://github.com/ejeschke/ginga>`_ products specific to STScI data
 analysis.
-
-|docs|
-
-.. |docs| image:: https://readthedocs.org/projects/stginga/badge/?version=latest
-    :alt: Documentation Status
-    :scale: 100%
-    :target: https://stginga.readthedocs.io/en/latest/?badge=latest
