@@ -36,10 +36,11 @@ array (e.g., the ``ERR`` extension), its SNR can also be calculated:
 
     \overline{\mathrm{SNR}} = \mathrm{MEAN}(a)
 
-While SNR is more popular, SBR is useful for images without existing or reliable
-errors. User can also define a minimum limit for SBR check, so that the GUI can
-provide a quick visual indication on whether the image achieves the desired SBR
-or not.
+While SNR is more popular, SBR is useful for images without existing or
+reliable errors. User can also define a minimum limit for SBR check, so that
+the GUI can provide a quick visual indication on whether the image achieves the
+desired SBR or not. As part of the statistics, mean background value is also
+provided albeit not used in SBR nor SNR calculations.
 
 User can save the calculated values in the image header using the "Update HDR"
 button. Calculation parameters can be saved to a JSON file, which then can be

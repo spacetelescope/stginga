@@ -167,7 +167,8 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
             ('Spacer3', 'spacer'),
             ('Median signal:', 'label', 'sig med', 'llabel'),
             ('Background STDEV:', 'label', 'bg std', 'llabel'),
-            ('SBR Value:', 'label', 'SBR Value', 'llabel'),
+            ('Background mean:', 'label', 'bg mean', 'llabel'),
+            ('SBR value:', 'label', 'SBR Value', 'llabel'),
             ('Min SBR:', 'label', 'Min SBR', 'llabel'),
             ('Spacer4', 'spacer'))
         w, b = Widgets.build_info(captions, orientation=self.orientation)
@@ -184,6 +185,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
                 (b.max_snr, 'Max SNR in inner circle'),
                 (b.sig_med, 'Median signal in inner circle'),
                 (b.bg_std, 'Background std. dev. in annulus'),
+                (b.bg_mean, 'Background mean in annulus'),
                 (b.sbr_value, 'SBR value'),
                 (b.min_sbr,
                  'Calculated SBR below this value raises red flag')):
@@ -327,13 +329,17 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         sig_med = np.median(sci_data)
         bg_std = utils.calc_stat(bg_data, sigma=self.sigma, niter=self.niter,
                                  algorithm='stddev')
+        bg_mean = utils.calc_stat(bg_data, sigma=self.sigma, niter=self.niter,
+                                  algorithm='mean')
         self.w.sig_med.set_text(str(sig_med))
         self.w.bg_std.set_text(str(bg_std))
+        self.w.bg_mean.set_text(str(bg_mean))
         self._debug_str += (
             ', bg_x={0}, bg_y={1}, bg_r={2}, dannulus={3}, '
-            'sigma={4}, niter={5}, sig_med={6}, bg_std={7}'.format(
+            'sigma={4}, niter={5}, sig_med={6}, bg_std={7}, '
+            'bg_mean={8}'.format(
                 bg_obj.x, bg_obj.y, bg_obj.radius, bg_obj.width,
-                self.sigma, self.niter, sig_med, bg_std))
+                self.sigma, self.niter, sig_med, bg_std, bg_mean))
 
         if bg_std != 0:
             sbrval = sig_med / bg_std
@@ -400,6 +406,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         self.w.max_snr.set_text(dummy_text)
         self.w.sig_med.set_text(dummy_text)
         self.w.bg_std.set_text(dummy_text)
+        self.w.bg_mean.set_text(dummy_text)
         self.w.sbr_value.set_text(dummy_text)
         self.w.min_sbr.set_text(dummy_text)
 
@@ -954,6 +961,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         pardict['sig_med'] = float(self.w.sig_med.get_text())
         pardict['bg_std'] = float(self.w.bg_std.get_text())
+        pardict['bg_mean'] = float(self.w.bg_mean.get_text())
         pardict['sbr_value'] = float(self.w.sbr_value.get_text())
         pardict['min_sbr'] = float(self.w.min_sbr.get_text())
         pardict['sbr_status_label'] = self.sbr_status_label.get_text()
