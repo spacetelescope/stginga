@@ -2,8 +2,7 @@
 See :ref:`stginga-run`.
 
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+from __future__ import absolute_import, division, print_function
 
 # STDLIB
 import warnings

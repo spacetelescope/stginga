@@ -1,8 +1,7 @@
 """SNR and Surface background ratio (SBR) calculation local plugin for
 Ginga.
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+from __future__ import absolute_import, division, print_function
 
 # THIRD-PARTY
 import numpy as np
