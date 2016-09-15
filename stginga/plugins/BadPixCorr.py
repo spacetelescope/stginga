@@ -703,7 +703,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         self.fitsimage.redraw(whence=3)
         return self.redo()
 
-    def set_griddata_method_cb(w, index):
+    def set_griddata_method_cb(self, w, index):
         method = self._griddata_options[index]
         return self.set_griddata_method(method)
 
