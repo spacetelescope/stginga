@@ -6,7 +6,6 @@ import sys
 
 # GINGA
 from ginga import main as gmain
-from ginga.misc.Bunch import Bunch
 
 # Suppress logging "no handlers" message from Ginga
 import logging
@@ -40,7 +39,7 @@ gmain.default_layout = ['seq', {}, [
                     'vbox', {'name': 'main', 'width': 700},
                     {'row': [
                         'ws', {'wstype': 'tabs', 'name': 'channels',
-                               'group': 1}
+                               'group': 1, 'use_toolbar': True}
                     ],
                      'stretch': 1
                     },
