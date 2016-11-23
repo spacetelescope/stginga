@@ -6,7 +6,7 @@
 #
 
 # GINGA
-from ginga.misc.plugins.Pick import Pick
+from ginga.rv.plugins.Pick import Pick
 
 # LOCAL
 from stginga.plugins.MultiImage import Region

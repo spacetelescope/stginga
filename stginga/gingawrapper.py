@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function
 import sys
 
 # GINGA
-from ginga import main as gmain
+from ginga.rv import main as gmain
 
 # Suppress logging "no handlers" message from Ginga
 import logging
