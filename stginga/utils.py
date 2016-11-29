@@ -338,7 +338,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
 
     # Adjust WCS
 
-    slice_factor = 1 / zoom_factor
+    slice_factor = int(1 / zoom_factor)
     old_wcs = wcs.WCS(hdr)  # To account for distortion, add "pf" as 2nd arg
 
     # Supress RuntimeWarning about ignoring cdelt because cd is present.
