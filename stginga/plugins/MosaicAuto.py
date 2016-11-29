@@ -13,7 +13,7 @@ from astropy.wcs import WCS
 from ginga.AstroImage import AstroImage
 from ginga.gw import Widgets
 from ginga.misc import Bunch
-from ginga.misc.plugins.Mosaic import Mosaic
+from ginga.rv.plugins.Mosaic import Mosaic
 from ginga.util.toolbox import generate_cfg_example
 
 __all__ = []
