@@ -4,4 +4,4 @@ Cython
 astropy-helpers
 astropy
 nbconvert
-ginga
+-e git+https://github.com/ejeschke/ginga.git#egg=ginga
