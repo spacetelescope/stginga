@@ -3,5 +3,6 @@ matplotlib
 Cython
 astropy-helpers
 astropy
+jupyter_client
 nbconvert
--e git+https://github.com/ejeschke/ginga.git#egg=ginga
+ginga>=2.6.1
