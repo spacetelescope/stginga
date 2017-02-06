@@ -373,7 +373,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         try:
             obj = self.canvas.getObjectByTag(self.pstag)
-        except:
+        except Exception:
             """Ignore"""
         else:
             self.canvas.delete_objects([obj])
@@ -465,7 +465,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         x1, y1, x2, y2 = self.region.bbox(coord=coord)
         try:
             obj = self.canvas.getObjectByTag(self.pstag)
-        except:  # Need be general due to ginga
+        except Exception:  # Need be general due to ginga
             self.pstag = self.canvas.add(
                 self.dc.Rectangle(x1, y1, x2, y2,
                                   color='cyan',

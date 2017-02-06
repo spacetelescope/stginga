@@ -44,7 +44,7 @@ class MIPick(Pick):
         if opmon.is_active(self.multiimage_name):
             try:
                 multiimage = opmon.getPlugin(self.multiimage_name)
-            except:
+            except Exception:
                 multiimage = None
             else:
                 multiimage.region = self.region
@@ -121,7 +121,7 @@ class MIPick(Pick):
             # If multiimage, redo there also.
             try:
                 self.multiimage.redo()
-            except:
+            except Exception:
                 """Doesn't matter"""
                 pass
 
@@ -204,7 +204,7 @@ class MIPick(Pick):
         if self.picktag:
             try:
                 canvas.deleteObjectByTag(self.picktag)
-            except:
+            except Exception:
                 pass
 
         # Get rectangle:

@@ -216,7 +216,7 @@ Select one or more images from the list below to highlight their positions on th
         if self.footprintstag:
             try:
                 self.canvas.deleteObjectByTag(self.footprintstag, redraw=True)
-            except:
+            except Exception:
                 pass
 
         if self.img_mosaic is None or len(res_dict) < 1:

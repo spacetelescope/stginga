@@ -437,7 +437,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
     def update(self, canvas, button, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.sbrtag)
-        except:
+        except Exception:
             return True
 
         if obj.kind == 'compound':
@@ -450,7 +450,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         try:
             canvas.deleteObjectByTag(self.sbrtag, redraw=False)
-        except:
+        except Exception:
             pass
 
         # Update displayed values
@@ -465,7 +465,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
     def drag(self, canvas, button, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.sbrtag)
-        except:
+        except Exception:
             return True
 
         if obj.kind == 'compound':
@@ -481,7 +481,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         if obj.kind == 'compound':
             try:
                 canvas.deleteObjectByTag(self.sbrtag, redraw=False)
-            except:
+            except Exception:
                 pass
             self.sbrtag = canvas.add(sig_obj)
         else:
@@ -502,7 +502,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         if self.sbrtag:
             try:
                 canvas.deleteObjectByTag(self.sbrtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         # Change signal region appearance
@@ -987,7 +987,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         if self.sbrtag:
             try:
                 self.canvas.deleteObjectByTag(self.sbrtag, redraw=True)
-            except:
+            except Exception:
                 pass
 
         # Ingest values from file. Retain current value if not found.
@@ -1077,7 +1077,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         p_canvas = self.fitsimage.get_canvas()
         try:
             p_canvas.deleteObjectByTag(self.layertag)
-        except:
+        except Exception:
             pass
         self.gui_up = False
         self.fv.showStatus('')
