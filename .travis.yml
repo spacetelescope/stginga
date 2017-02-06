@@ -34,7 +34,6 @@ env:
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_DEPENDENCIES=''
-        - CONDA_SPHINX_DEPENDENCIES='nbconvert tornado scipy'
 
         # If there are matplotlib or other GUI tests, uncomment the following
         # line to use the X virtual framebuffer.
@@ -59,8 +58,7 @@ matrix:
         # may run for a long time
         - python: 3.5
           env: SETUP_CMD='build_docs -w'
-               CONDA_DEPENDENCIES=$CONDA_SPHINX_DEPENDENCIES
-               PIP_DEPENDENCIES='ginga pandoc'
+               PIP_DEPENDENCIES='ginga pandoc nbconvert tornado scipy'
 
         # DISABLED FOR NOW
         # Try Astropy development version
@@ -72,11 +70,10 @@ matrix:
         # Do a PEP8 test with pycodestyle
         - python: 3.5
           env: MAIN_CMD='pycodestyle stginga --count' SETUP_CMD=''
-          
+
     allow_failures:
       - env: SETUP_CMD='build_docs -w'
-             CONDA_DEPENDENCIES=$CONDA_SPHINX_DEPENDENCIES
-             PIP_DEPENDENCIES='ginga pandoc'
+             PIP_DEPENDENCIES='ginga pandoc nbconvert tornado scipy'
 
 install:
 
