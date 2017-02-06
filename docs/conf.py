@@ -140,8 +140,8 @@ htmlhelp_basename = project + 'doc'
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
-latex_documents = [('index', project + '.tex', project + u' Documentation',
-                    author, 'manual')]
+# latex_documents = [('index', project + '.tex', project + u' Documentation',
+#                     author, 'manual')]
 
 
 # -- Options for manual page output --------------------------------------------
@@ -179,13 +179,9 @@ if eval(setup_cfg.get('edit_on_github')):
 def notebooks_to_rst(app):
     from glob import glob
 
-    try:
-        # post "big-split", nbconvert is a separate namespace
-        from nbconvert.nbconvertapp import NbConvertApp
-        from nbconvert.writers import FilesWriter
-    except ImportError:
-        from IPython.nbconvert.nbconvertapp import NbConvertApp
-        from IPython.nbconvert.writers import FilesWriter
+    # post "big-split", nbconvert is a separate namespace
+    from nbconvert.nbconvertapp import NbConvertApp
+    from nbconvert.writers import FilesWriter
 
     class OrphanizerWriter(FilesWriter):
         def write(self, output, resources, **kwargs):
