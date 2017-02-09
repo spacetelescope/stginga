@@ -71,10 +71,6 @@ matrix:
         - python: 3.5
           env: MAIN_CMD='pycodestyle stginga --count' SETUP_CMD=''
 
-    allow_failures:
-      - env: SETUP_CMD='build_docs -w'
-             PIP_DEPENDENCIES='ginga pandoc nbconvert tornado scipy'
-
 install:
 
     # We now use the ci-helpers package to set up our testing environment.
