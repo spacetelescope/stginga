@@ -422,7 +422,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         if self.pxdqtag:
             try:
                 self.canvas.deleteObjectByTag(self.pxdqtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         if self._curshape is None:
@@ -481,7 +481,7 @@ class DQInspect(LocalPlugin, MEFMixin):
     def update(self, canvas, button, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.pxdqtag)
-        except:
+        except Exception:
             return True
 
         if obj.kind == 'compound':
@@ -497,7 +497,7 @@ class DQInspect(LocalPlugin, MEFMixin):
 
         try:
             canvas.deleteObjectByTag(self.pxdqtag, redraw=False)
-        except:
+        except Exception:
             pass
 
         # Update displayed values
@@ -512,7 +512,7 @@ class DQInspect(LocalPlugin, MEFMixin):
     def drag(self, canvas, button, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.pxdqtag)
-        except:
+        except Exception:
             return True
 
         if obj.kind == 'compound':
@@ -531,7 +531,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         if obj.kind == 'compound':
             try:
                 canvas.deleteObjectByTag(self.pxdqtag, redraw=False)
-            except:
+            except Exception:
                 pass
             self.pxdqtag = canvas.add(pix_obj)
         else:
@@ -552,7 +552,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         if self.pxdqtag:
             try:
                 canvas.deleteObjectByTag(self.pxdqtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         # Round to nearest pixel
@@ -656,7 +656,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         p_canvas = self.fitsimage.get_canvas()
         try:
             p_canvas.deleteObjectByTag(self.layertag)
-        except:
+        except Exception:
             pass
         self.gui_up = False
         self.fv.showStatus("")

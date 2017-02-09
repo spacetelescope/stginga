@@ -259,7 +259,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
     def update(self, canvas, button, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.bpixcorrtag)
-        except:
+        except Exception:
             return True
 
         if obj.kind == 'compound':
@@ -272,7 +272,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
 
         try:
             canvas.deleteObjectByTag(self.bpixcorrtag, redraw=False)
-        except:
+        except Exception:
             pass
 
         # Update displayed values
@@ -287,7 +287,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
     def drag(self, canvas, button, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.bpixcorrtag)
-        except:
+        except Exception:
             return True
 
         if obj.kind == 'compound':
@@ -303,7 +303,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         if obj.kind == 'compound':
             try:
                 canvas.deleteObjectByTag(self.bpixcorrtag, redraw=False)
-            except:
+            except Exception:
                 pass
             self.bpixcorrtag = canvas.add(bpx_obj)
         else:
@@ -324,7 +324,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         if self.bpixcorrtag:
             try:
                 canvas.deleteObjectByTag(self.bpixcorrtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         # Round to nearest pixel
@@ -454,7 +454,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         if has_drawing and self.bpixcorrtag:
             try:
                 self.canvas.deleteObjectByTag(self.bpixcorrtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         if filltype in ('annulus', 'spline'):
@@ -909,7 +909,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         if self.bpixcorrtag:
             try:
                 self.canvas.deleteObjectByTag(self.bpixcorrtag, redraw=True)
-            except:
+            except Exception:
                 pass
 
         # Ingest values from file. Retain current value if not found.
@@ -997,7 +997,7 @@ Click "Fix Bad Pixels" to replace the bad pixel(s). The associated DQ flags will
         p_canvas = self.fitsimage.get_canvas()
         try:
             p_canvas.deleteObjectByTag(self.layertag)
-        except:
+        except Exception:
             pass
         self.gui_up = False
         self.fv.showStatus('')

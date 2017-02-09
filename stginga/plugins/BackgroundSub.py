@@ -260,7 +260,7 @@ Click "Subtract" to remove background.""")  # noqa
     def update(self, canvas, button, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.bgsubtag)
-        except:
+        except Exception:
             return True
 
         if obj.kind == 'compound':
@@ -273,7 +273,7 @@ Click "Subtract" to remove background.""")  # noqa
 
         try:
             canvas.deleteObjectByTag(self.bgsubtag, redraw=False)
-        except:
+        except Exception:
             pass
 
         # Update displayed values
@@ -288,7 +288,7 @@ Click "Subtract" to remove background.""")  # noqa
     def drag(self, canvas, button, data_x, data_y):
         try:
             obj = self.canvas.getObjectByTag(self.bgsubtag)
-        except:
+        except Exception:
             return True
 
         if obj.kind == 'compound':
@@ -304,7 +304,7 @@ Click "Subtract" to remove background.""")  # noqa
         if obj.kind == 'compound':
             try:
                 canvas.deleteObjectByTag(self.bgsubtag, redraw=False)
-            except:
+            except Exception:
                 pass
             self.bgsubtag = canvas.add(bg_obj)
         else:
@@ -325,7 +325,7 @@ Click "Subtract" to remove background.""")  # noqa
         if self.bgsubtag:
             try:
                 canvas.deleteObjectByTag(self.bgsubtag, redraw=False)
-            except:
+            except Exception:
                 pass
 
         if self.bgtype not in ('annulus', 'box'):
@@ -755,7 +755,7 @@ Click "Subtract" to remove background.""")  # noqa
         if self.bgsubtag:
             try:
                 self.canvas.deleteObjectByTag(self.bgsubtag, redraw=True)
-            except:
+            except Exception:
                 pass
 
         # Ingest values from file. Retain current value if not found.
@@ -839,7 +839,7 @@ Click "Subtract" to remove background.""")  # noqa
         p_canvas = self.fitsimage.get_canvas()
         try:
             p_canvas.deleteObjectByTag(self.layertag)
-        except:
+        except Exception:
             pass
         self.gui_up = False
         self.fv.showStatus('')
