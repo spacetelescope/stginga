@@ -11,16 +11,19 @@ from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
-from stginga.plugins.local_plugin_mixin import MEFMixin, ParamMixin
+from stginga.plugins.local_plugin_mixin import HelpMixin, MEFMixin, ParamMixin
 
 __all__ = []
 
 
-class BackgroundSub(LocalPlugin, MEFMixin, ParamMixin):
+class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
     """Background subtraction on an image."""
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super(BackgroundSub, self).__init__(fv, fitsimage)
+
+        self.help_url = ('http://stginga.readthedocs.io/en/latest/stginga/'
+                         'plugins_manual/backgroundsub.html')
 
         self.layertag = 'backgroundsub-canvas'
         self.bgsubtag = None
@@ -34,7 +37,7 @@ class BackgroundSub(LocalPlugin, MEFMixin, ParamMixin):
         # User preferences. Some are just default values and can also be
         # changed by GUI.
         prefs = self.fv.get_preferences()
-        settings = prefs.createCategory('plugin_BackgroundSub')
+        settings = prefs.create_category('plugin_BackgroundSub')
         settings.load(onError='silent')
         self.bgsubcolor = settings.get('bgsubcolor', 'magenta')
         self.bgtype = settings.get('bgtype', 'annulus')
@@ -56,16 +59,20 @@ class BackgroundSub(LocalPlugin, MEFMixin, ParamMixin):
         self.bgval = self._dummy_value
         self._debug_str = ''
 
-        self.dc = self.fv.getDrawClasses()
+        self.dc = fv.get_draw_classes()
 
         # The rest are set by set_bgtype()
         canvas = self.dc.DrawingCanvas()
+        canvas.enable_draw(True)
         canvas.enable_edit(False)
+        canvas.set_drawtype(self.bgtype, color=self.bgsubcolor,
+                            linestyle='dash')
         canvas.set_callback('draw-event', self.draw_cb)
-        canvas.set_callback('cursor-down', self.drag)
-        canvas.set_callback('cursor-move', self.drag)
-        canvas.set_callback('cursor-up', self.update)
-        canvas.setSurface(self.fitsimage)
+        canvas.add_draw_mode('move', down=self.drag, move=self.drag,
+                             up=self.update)
+        canvas.set_draw_mode('draw')
+        canvas.register_for_cursor_drawing(self.fitsimage)
+        canvas.set_surface(self.fitsimage)
         self.canvas = canvas
 
         fv.add_callback('remove-image', lambda *args: self.redo())
@@ -80,17 +87,9 @@ class BackgroundSub(LocalPlugin, MEFMixin, ParamMixin):
         vbox.set_border_width(4)
         vbox.set_spacing(2)
 
-        msgFont = self.fv.getFont('sansFont', 12)
-        tw = Widgets.TextArea(wrap=True, editable=False)
-        tw.set_font(msgFont)
-        self.tw = tw
-
-        fr = Widgets.Expander('Instructions')
-        fr.set_widget(tw)
-        vbox.add_widget(fr, stretch=0)
-
         fr = Widgets.Frame('Background Selection')
-        captions = (('Type:', 'label', 'BG type', 'combobox'), )
+        captions = (('Type:', 'label', 'BG type', 'combobox'),
+                    ('Move', 'radiobutton', 'Draw', 'radiobutton'))
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
@@ -99,6 +98,16 @@ class BackgroundSub(LocalPlugin, MEFMixin, ParamMixin):
             combobox.append_text(name)
         b.bg_type.set_index(self._bgtype_options.index(self.bgtype))
         b.bg_type.add_callback('activated', self.set_bgtype_cb)
+
+        mode = self.canvas.get_draw_mode()
+        b.move.set_state(mode == 'move')
+        b.move.add_callback(
+            'activated', lambda w, val: self.set_mode_cb('move', val))
+        b.move.set_tooltip('Choose this to position region')
+        b.draw.set_state(mode == 'draw')
+        b.draw.add_callback(
+            'activated', lambda w, val: self.set_mode_cb('draw', val))
+        b.draw.set_tooltip('Choose this to draw a new region')
 
         fr.set_widget(w)
         vbox.add_widget(fr, stretch=0)
@@ -144,6 +153,9 @@ class BackgroundSub(LocalPlugin, MEFMixin, ParamMixin):
         btn = Widgets.Button('Close')
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button('Help')
+        btn.add_callback('activated', lambda w: self.help())
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         top.add_widget(btns, stretch=0)
@@ -153,17 +165,6 @@ class BackgroundSub(LocalPlugin, MEFMixin, ParamMixin):
         self.set_bgtype(self.bgtype)
 
         self.gui_up = True
-
-    def instructions(self):
-        self.tw.set_text("""Select how background would be calculated: Annulus, box, or constant value.
-
-To calculate from annulus or box: Draw (or redraw) a region with the right mouse button. Click or drag left mouse button to reposition region. You can also manually fine-tune region parameters by entering values in the respective text boxes. All X and Y values must be 0-indexed. Select algorithm from drop-down box, and enter desired parameter values.
-
-To use a constant value: Enter the background value.
-
-Click "Save Parameters" to save current subtraction parameters to a file. To save the background value, do this BEFORE you subtract.
-
-Click "Subtract" to remove background.""")  # noqa
 
     def redo(self):
         if not self.gui_up:
@@ -201,7 +202,7 @@ Click "Subtract" to remove background.""")  # noqa
             return True
 
         try:
-            obj = self.canvas.getObjectByTag(self.bgsubtag)
+            obj = self.canvas.get_object_by_tag(self.bgsubtag)
         except KeyError:
             return True
         if obj.kind != 'compound':
@@ -257,9 +258,9 @@ Click "Subtract" to remove background.""")  # noqa
 
         return True
 
-    def update(self, canvas, button, data_x, data_y):
+    def update(self, canvas, event, data_x, data_y, viewer):
         try:
-            obj = self.canvas.getObjectByTag(self.bgsubtag)
+            obj = self.canvas.get_object_by_tag(self.bgsubtag)
         except Exception:
             return True
 
@@ -272,7 +273,7 @@ Click "Subtract" to remove background.""")  # noqa
             return True
 
         try:
-            canvas.deleteObjectByTag(self.bgsubtag, redraw=False)
+            canvas.delete_object_by_tag(self.bgsubtag, redraw=False)
         except Exception:
             pass
 
@@ -285,9 +286,9 @@ Click "Subtract" to remove background.""")  # noqa
         self.draw_cb(canvas, tag)
         return True
 
-    def drag(self, canvas, button, data_x, data_y):
+    def drag(self, canvas, event, data_x, data_y, viewer):
         try:
-            obj = self.canvas.getObjectByTag(self.bgsubtag)
+            obj = self.canvas.get_object_by_tag(self.bgsubtag)
         except Exception:
             return True
 
@@ -303,28 +304,24 @@ Click "Subtract" to remove background.""")  # noqa
 
         if obj.kind == 'compound':
             try:
-                canvas.deleteObjectByTag(self.bgsubtag, redraw=False)
+                canvas.delete_object_by_tag(self.bgsubtag, redraw=False)
             except Exception:
                 pass
             self.bgsubtag = canvas.add(bg_obj)
         else:
             canvas.redraw(whence=3)
 
-        # Update displayed values
-        self.xcen = data_x
-        self.ycen = data_y
-
         return True
 
     def draw_cb(self, canvas, tag):
-        obj = canvas.getObjectByTag(tag)
+        obj = canvas.get_object_by_tag(tag)
         if obj.kind not in ('annulus', 'rectangle'):
             return True
-        canvas.deleteObjectByTag(tag, redraw=False)
+        canvas.delete_object_by_tag(tag, redraw=False)
 
         if self.bgsubtag:
             try:
-                canvas.deleteObjectByTag(self.bgsubtag, redraw=False)
+                canvas.delete_object_by_tag(self.bgsubtag, redraw=False)
             except Exception:
                 pass
 
@@ -355,7 +352,19 @@ Click "Subtract" to remove background.""")  # noqa
         lbl_obj = self.dc.Text(x, y2 + self._text_label_offset,
                                self._text_label, color=self.bgsubcolor)
         self.bgsubtag = canvas.add(self.dc.CompoundObject(bg_obj, lbl_obj))
+        self.set_mode('move')
         return self.redo()
+
+    def set_mode_cb(self, mode, tf):
+        """Called when one of the Move/Draw radio buttons is selected."""
+        if tf:
+            self.canvas.set_draw_mode(mode)
+        return True
+
+    def set_mode(self, mode):
+        self.canvas.set_draw_mode(mode)
+        self.w.move.set_state(mode == 'move')
+        self.w.draw.set_state(mode == 'draw')
 
     def set_bgtype_cb(self, w, index):
         bgtype = self._bgtype_options[index]
@@ -373,8 +382,9 @@ Click "Subtract" to remove background.""")  # noqa
         self.w.bgtype_attr_vbox.remove_all()
         self.w.background_value.set_text(str(self._dummy_value))
         self.w.subtract.set_enabled(False)
+        self.set_mode('draw')
 
-        self.canvas.deleteAllObjects()
+        self.canvas.delete_all_objects()
 
         # Reset parameters
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
@@ -474,7 +484,7 @@ Click "Subtract" to remove background.""")  # noqa
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.bgsubtag)
+            obj = self.canvas.get_object_by_tag(self.bgsubtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 2)):
@@ -500,7 +510,7 @@ Click "Subtract" to remove background.""")  # noqa
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.bgsubtag)
+            obj = self.canvas.get_object_by_tag(self.bgsubtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 2)):
@@ -533,7 +543,7 @@ Click "Subtract" to remove background.""")  # noqa
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.bgsubtag)
+            obj = self.canvas.get_object_by_tag(self.bgsubtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 2)):
@@ -564,7 +574,7 @@ Click "Subtract" to remove background.""")  # noqa
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.bgsubtag)
+            obj = self.canvas.get_object_by_tag(self.bgsubtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 2)):
@@ -592,7 +602,7 @@ Click "Subtract" to remove background.""")  # noqa
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.bgsubtag)
+            obj = self.canvas.get_object_by_tag(self.bgsubtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 2)):
@@ -623,7 +633,7 @@ Click "Subtract" to remove background.""")  # noqa
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.bgsubtag)
+            obj = self.canvas.get_object_by_tag(self.bgsubtag)
         except KeyError:
             return True
         if obj.kind != 'compound':
@@ -754,7 +764,7 @@ Click "Subtract" to remove background.""")  # noqa
         # Clear existing canvas
         if self.bgsubtag:
             try:
-                self.canvas.deleteObjectByTag(self.bgsubtag, redraw=True)
+                self.canvas.delete_object_by_tag(self.bgsubtag, redraw=True)
             except Exception:
                 pass
 
@@ -812,12 +822,10 @@ Click "Subtract" to remove background.""")  # noqa
         return True
 
     def start(self):
-        self.instructions()
-
         # insert canvas, if not already
         p_canvas = self.fitsimage.get_canvas()
         try:
-            obj = p_canvas.getObjectByTag(self.layertag)
+            p_canvas.get_object_by_tag(self.layertag)
         except KeyError:
             # Add drawing layer
             p_canvas.add(self.canvas, tag=self.layertag)
@@ -825,24 +833,24 @@ Click "Subtract" to remove background.""")  # noqa
         self.resume()
 
     def pause(self):
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def resume(self):
         # turn off any mode user may be in
         self.modes_off()
 
-        self.canvas.ui_setActive(True)
-        self.fv.showStatus('Draw a region with the right mouse button')
+        self.canvas.ui_set_active(True)
+        self.fv.show_status('Draw a region with the left mouse button')
 
     def stop(self):
         # remove the canvas from the image
         p_canvas = self.fitsimage.get_canvas()
         try:
-            p_canvas.deleteObjectByTag(self.layertag)
+            p_canvas.delete_object_by_tag(self.layertag)
         except Exception:
             pass
         self.gui_up = False
-        self.fv.showStatus('')
+        self.fv.show_status('')
 
     def __str__(self):
         """

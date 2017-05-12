@@ -17,7 +17,7 @@ from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
-from stginga.plugins.local_plugin_mixin import MEFMixin
+from stginga.plugins.local_plugin_mixin import HelpMixin, MEFMixin
 
 __all__ = []
 
@@ -45,11 +45,14 @@ DQFLAG SHORT_DESCRIPTION LONG_DESCRIPTION
 """  # noqa
 
 
-class DQInspect(LocalPlugin, MEFMixin):
+class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
     """DQ inspection on an image."""
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super(DQInspect, self).__init__(fv, fitsimage)
+
+        self.help_url = ('http://stginga.readthedocs.io/en/latest/stginga/'
+                         'plugins_manual/dqinspect.html')
 
         self.layertag = 'dqinspect-canvas'
         self.pxdqtag = None
@@ -78,7 +81,7 @@ class DQInspect(LocalPlugin, MEFMixin):
 
         # User preferences
         prefs = self.fv.get_preferences()
-        self.settings = prefs.createCategory('plugin_DQInspect')
+        self.settings = prefs.create_category('plugin_DQInspect')
         self.settings.load(onError='silent')
         self.pxdqcolor = self.settings.get('pxdqcolor', 'red')
 
@@ -100,17 +103,18 @@ class DQInspect(LocalPlugin, MEFMixin):
         self.imdqcolumns = self.pxdqcolumns
         self.imdqllist = None
 
-        self.dc = self.fv.getDrawClasses()
+        self.dc = self.fv.get_draw_classes()
 
         canvas = self.dc.DrawingCanvas()
         canvas.enable_draw(True)
         canvas.enable_edit(False)
         canvas.set_drawtype('point', color=self.pxdqcolor)
         canvas.set_callback('draw-event', self.draw_cb)
-        canvas.set_callback('cursor-down', self.drag)
-        canvas.set_callback('cursor-move', self.drag)
-        canvas.set_callback('cursor-up', self.update)
-        canvas.setSurface(self.fitsimage)
+        canvas.add_draw_mode('move', down=self.drag, move=self.drag,
+                             up=self.update)
+        canvas.set_draw_mode('draw')
+        canvas.register_for_cursor_drawing(self.fitsimage)
+        canvas.set_surface(self.fitsimage)
         self.canvas = canvas
 
         fv.add_callback('remove-image', lambda *args: self.redo())
@@ -125,21 +129,23 @@ class DQInspect(LocalPlugin, MEFMixin):
         vbox.set_border_width(4)
         vbox.set_spacing(2)
 
-        msgFont = self.fv.getFont('sansFont', 12)
-        tw = Widgets.TextArea(wrap=True, editable=False)
-        tw.set_font(msgFont)
-        self.tw = tw
-
-        fr = Widgets.Expander('Instructions')
-        fr.set_widget(tw)
-        vbox.add_widget(fr, stretch=0)
-
         fr = Widgets.Frame('Single Pixel')
-        captions = [('X:', 'label', 'X', 'entry'),
+        captions = [('Move', 'radiobutton', 'Draw', 'radiobutton'),
+                    ('X:', 'label', 'X', 'entry'),
                     ('Y:', 'label', 'Y', 'entry'),
                     ('DQ Flag:', 'label', 'DQ', 'llabel')]
         w, b = Widgets.build_info(captions, orientation=orientation)
         self.w.update(b)
+
+        mode = self.canvas.get_draw_mode()
+        b.move.set_state(mode == 'move')
+        b.move.add_callback(
+            'activated', lambda w, val: self.set_mode_cb('move', val))
+        b.move.set_tooltip('Choose this to move marked pixel')
+        b.draw.set_state(mode == 'draw')
+        b.draw.add_callback(
+            'activated', lambda w, val: self.set_mode_cb('draw', val))
+        b.draw.set_tooltip('Choose this to mark pixel')
 
         b.x.set_tooltip('X of pixel')
         b.x.set_text(str(self.xcen))
@@ -197,6 +203,9 @@ class DQInspect(LocalPlugin, MEFMixin):
         btn = Widgets.Button('Close')
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button('Help')
+        btn.add_callback('activated', lambda w: self.help())
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         top.add_widget(btns, stretch=0)
@@ -206,9 +215,6 @@ class DQInspect(LocalPlugin, MEFMixin):
 
         # Populate fields based on active image
         self.redo()
-
-    def instructions(self):
-        self.tw.set_text("""It is important that you have all the possible DQ definition files defined in your plugin configuration file if you do not want to use default values! Otherwise, results might be inaccurate. The DQ definition file is select by {0} keyword in the image header.\n\nTo inspect a single pixel: Select a pixel by right-clicking on the image. Click or drag left mouse button to reposition pixel marker. You can also manually fine-tune the position by entering values in the respective text boxes. All X and Y values must be 0-indexed. DQ flags that went into the pixel will be listed along with their respective definitions.\n\nTo inspect the whole image: Select one or more desired DQ flags from the list. Affected pixel(s) will be marked on the image.""".format(self._ins_key, self._ext_key, self._dq_extname))  # noqa
 
     def recreate_pxdq(self, dqparser, dqs, pixval):
         """Refresh single pixel results table with given data."""
@@ -421,7 +427,7 @@ class DQInspect(LocalPlugin, MEFMixin):
         # Clear existing canvas
         if self.pxdqtag:
             try:
-                self.canvas.deleteObjectByTag(self.pxdqtag, redraw=False)
+                self.canvas.delete_object_by_tag(self.pxdqtag, redraw=False)
             except Exception:
                 pass
 
@@ -478,9 +484,9 @@ class DQInspect(LocalPlugin, MEFMixin):
         self.fitsimage.redraw()  # Need this to clear mask immediately
         return True
 
-    def update(self, canvas, button, data_x, data_y):
+    def update(self, canvas, event, data_x, data_y, viewer):
         try:
-            obj = self.canvas.getObjectByTag(self.pxdqtag)
+            obj = self.canvas.get_object_by_tag(self.pxdqtag)
         except Exception:
             return True
 
@@ -496,7 +502,7 @@ class DQInspect(LocalPlugin, MEFMixin):
             return True
 
         try:
-            canvas.deleteObjectByTag(self.pxdqtag, redraw=False)
+            canvas.delete_object_by_tag(self.pxdqtag, redraw=False)
         except Exception:
             pass
 
@@ -509,9 +515,9 @@ class DQInspect(LocalPlugin, MEFMixin):
         self.draw_cb(canvas, tag)
         return True
 
-    def drag(self, canvas, button, data_x, data_y):
+    def drag(self, canvas, event, data_x, data_y, viewer):
         try:
-            obj = self.canvas.getObjectByTag(self.pxdqtag)
+            obj = self.canvas.get_object_by_tag(self.pxdqtag)
         except Exception:
             return True
 
@@ -530,28 +536,24 @@ class DQInspect(LocalPlugin, MEFMixin):
 
         if obj.kind == 'compound':
             try:
-                canvas.deleteObjectByTag(self.pxdqtag, redraw=False)
+                canvas.delete_object_by_tag(self.pxdqtag, redraw=False)
             except Exception:
                 pass
             self.pxdqtag = canvas.add(pix_obj)
         else:
             canvas.redraw(whence=3)
 
-        # Update displayed values
-        self.xcen = data_x
-        self.ycen = data_y
-
         return True
 
     def draw_cb(self, canvas, tag):
-        obj = canvas.getObjectByTag(tag)
+        obj = canvas.get_object_by_tag(tag)
         if obj.kind != 'point':
             return True
-        canvas.deleteObjectByTag(tag, redraw=False)
+        canvas.delete_object_by_tag(tag, redraw=False)
 
         if self.pxdqtag:
             try:
-                canvas.deleteObjectByTag(self.pxdqtag, redraw=False)
+                canvas.delete_object_by_tag(self.pxdqtag, redraw=False)
             except Exception:
                 pass
 
@@ -564,15 +566,26 @@ class DQInspect(LocalPlugin, MEFMixin):
 
         # Text label
         yt = y + self._text_label_offset
-        obj_lbl = self.dc.Text(
-            x, yt, self._text_label, color=self.pxdqcolor)
+        obj_lbl = self.dc.Text(x, yt, self._text_label, color=self.pxdqcolor)
 
         # Update displayed values
         self.xcen = x
         self.ycen = y
 
         self.pxdqtag = canvas.add(self.dc.CompoundObject(obj, obj_lbl))
+        self.set_mode('move')
         return self.redo()
+
+    def set_mode_cb(self, mode, tf):
+        """Called when one of the Move/Draw radio buttons is selected."""
+        if tf:
+            self.canvas.set_draw_mode(mode)
+        return True
+
+    def set_mode(self, mode):
+        self.canvas.set_draw_mode(mode)
+        self.w.move.set_state(mode == 'move')
+        self.w.draw.set_state(mode == 'draw')
 
     def set_xcen(self):
         try:
@@ -582,7 +595,7 @@ class DQInspect(LocalPlugin, MEFMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.pxdqtag)
+            obj = self.canvas.get_object_by_tag(self.pxdqtag)
         except KeyError:
             return True
         if obj.kind != 'compound':
@@ -604,7 +617,7 @@ class DQInspect(LocalPlugin, MEFMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.pxdqtag)
+            obj = self.canvas.get_object_by_tag(self.pxdqtag)
         except KeyError:
             return True
         if obj.kind != 'compound':
@@ -627,12 +640,10 @@ class DQInspect(LocalPlugin, MEFMixin):
         return True
 
     def start(self):
-        self.instructions()
-
         # insert canvas, if not already
         p_canvas = self.fitsimage.get_canvas()
         try:
-            obj = p_canvas.getObjectByTag(self.layertag)
+            p_canvas.get_object_by_tag(self.layertag)
         except KeyError:
             # Add drawing layer
             p_canvas.add(self.canvas, tag=self.layertag)
@@ -640,14 +651,14 @@ class DQInspect(LocalPlugin, MEFMixin):
         self.resume()
 
     def pause(self):
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def resume(self):
         # turn off any mode user may be in
         self.modes_off()
 
-        self.canvas.ui_setActive(True)
-        self.fv.showStatus('Draw a region with the right mouse button')
+        self.canvas.ui_set_active(True)
+        self.fv.show_status('Mark pixel with the left mouse button')
 
     def stop(self):
         self._reset_imdq_on_error()
@@ -655,11 +666,11 @@ class DQInspect(LocalPlugin, MEFMixin):
         # remove the canvas from the image
         p_canvas = self.fitsimage.get_canvas()
         try:
-            p_canvas.deleteObjectByTag(self.layertag)
+            p_canvas.delete_object_by_tag(self.layertag)
         except Exception:
             pass
         self.gui_up = False
-        self.fv.showStatus("")
+        self.fv.show_status('')
 
     def __str__(self):
         """

@@ -16,13 +16,19 @@ from ginga.misc import Bunch
 from ginga.rv.plugins.Mosaic import Mosaic
 from ginga.util.toolbox import generate_cfg_example
 
+# STGINGA
+from stginga.plugins.local_plugin_mixin import HelpMixin
+
 __all__ = []
 
 
-class MosaicAuto(Mosaic):
+class MosaicAuto(HelpMixin, Mosaic):
     """Mosaic with option to highlight individual component."""
     def __init__(self, fv, fitsimage):
         super(MosaicAuto, self).__init__(fv, fitsimage)
+
+        self.help_url = ('http://stginga.readthedocs.io/en/latest/stginga/'
+                         'plugins_manual/mosaicauto.html')
 
         # To store individual images and their footprints
         self._wcs_origin = 0
@@ -30,7 +36,7 @@ class MosaicAuto(Mosaic):
         self.imlist_columns = [('Image', 'IMAGE')]
         self.footprintstag = None
 
-        self.list_plugin_obj = self.fv.gpmon.getPlugin('Contents')
+        self.list_plugin_obj = self.fv.gpmon.get_plugin('Contents')
 
         # CURRENTLY DISABLED. Because having a manual button might make it
         # easier to add "recreate" feature in the future, if needed.
@@ -44,15 +50,6 @@ class MosaicAuto(Mosaic):
     def build_gui(self, container):
         """Build GUI such that image list area is maximized."""
         vbox, sw, orientation = Widgets.get_oriented_box(container)
-
-        self.msgFont = self.fv.getFont("sansFont", 12)
-        tw = Widgets.TextArea(wrap=True, editable=False)
-        tw.set_font(self.msgFont)
-        self.tw = tw
-
-        fr = Widgets.Expander("Instructions")
-        fr.set_widget(tw)
-        container.add_widget(fr, stretch=0)
 
         self.treeview = Widgets.TreeView(auto_expand=True,
                                          sortable=True,
@@ -98,19 +95,17 @@ class MosaicAuto(Mosaic):
         btns = Widgets.HBox()
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button('Close')
         btn.add_callback('activated', lambda w: self.close())
+        btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button('Help')
+        btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
         container.add_widget(btns, stretch=0)
 
         self.recreate_imlist()
         self.gui_up = True
-
-    def instructions(self):
-        self.tw.set_text("""Click "Create Mosaic" to create a mosaic using all currently open images. This can only be done once. If you do not see it on the main display, try the "zoom to fit window size" button (magnifying glass with "[:]" at the bottom).
-
-Select one or more images from the list below to highlight their positions on the mosaic. Once you have selected the image(s) to keep, click "Save Selection" to write the image list to output file.""")  # noqa
 
     def recreate_imlist(self):
         """Refresh image list for new selection."""
@@ -215,7 +210,8 @@ Select one or more images from the list below to highlight their positions on th
         # Clear existing footprint
         if self.footprintstag:
             try:
-                self.canvas.deleteObjectByTag(self.footprintstag, redraw=True)
+                self.canvas.delete_object_by_tag(
+                    self.footprintstag, redraw=True)
             except Exception:
                 pass
 
@@ -292,18 +288,16 @@ Select one or more images from the list below to highlight their positions on th
         self.logger.debug(msg)
 
         if self.gui_up:
-            self.canvas.deleteAllObjects()
+            self.canvas.delete_all_objects()
 
     # Re-implemented parent method
     def start(self):
         """Start the plugin but do not let user create auto mosaic if
         there is already a mosaic."""
-        self.instructions()
         # insert layer if it is not already
         p_canvas = self.fitsimage.get_canvas()
         try:
-            obj = p_canvas.getObjectByTag(self.layertag)
-
+            p_canvas.get_object_by_tag(self.layertag)
         except KeyError:
             # Add canvas layer
             p_canvas.add(self.canvas, tag=self.layertag)
