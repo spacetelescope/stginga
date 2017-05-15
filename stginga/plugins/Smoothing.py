@@ -16,16 +16,19 @@ from ginga.gw import Widgets
 from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
-from stginga.plugins.local_plugin_mixin import ParamMixin
+from stginga.plugins.local_plugin_mixin import HelpMixin, ParamMixin
 
 __all__ = []
 
 
-class Smoothing(LocalPlugin, ParamMixin):
+class Smoothing(HelpMixin, LocalPlugin, ParamMixin):
     """Smoothing on an image."""
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super(Smoothing, self).__init__(fv, fitsimage)
+
+        self.help_url = ('http://stginga.readthedocs.io/en/latest/stginga/'
+                         'plugins_manual/smoothing.html')
 
         self._smooth_options = ['boxcar', 'gauss', 'medfilt']
         self._mode_options = ['reflect', 'constant', 'nearest', 'mirror',
@@ -39,7 +42,7 @@ class Smoothing(LocalPlugin, ParamMixin):
         # User preferences. Some are just default values and can also be
         # changed by GUI.
         prefs = self.fv.get_preferences()
-        settings = prefs.createCategory('plugin_Smoothing')
+        settings = prefs.create_category('plugin_Smoothing')
         settings.load(onError='silent')
         self.algorithm = settings.get('algorithm', 'boxcar')
         self.smoothpars = settings.get('smoothpars', self._default_pars)
@@ -55,15 +58,6 @@ class Smoothing(LocalPlugin, ParamMixin):
         vbox, sw, self.orientation = Widgets.get_oriented_box(container)
         vbox.set_border_width(4)
         vbox.set_spacing(2)
-
-        msgFont = self.fv.getFont('sansFont', 12)
-        tw = Widgets.TextArea(wrap=True, editable=False)
-        tw.set_font(msgFont)
-        self.tw = tw
-
-        fr = Widgets.Expander('Instructions')
-        fr.set_widget(tw)
-        vbox.add_widget(fr, stretch=0)
 
         fr = Widgets.Frame('Smoothing Algorithm')
         captions = (('Algorithm:', 'label', 'smooth type', 'combobox'),
@@ -116,6 +110,9 @@ class Smoothing(LocalPlugin, ParamMixin):
         btn.add_callback('activated', lambda w: self.close())
         self.w.close = btn
         btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button('Help')
+        btn.add_callback('activated', lambda w: self.help())
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         top.add_widget(btns, stretch=0)
@@ -136,12 +133,6 @@ class Smoothing(LocalPlugin, ParamMixin):
 
         for w in all_w:
             w.set_enabled(enable)
-
-    def instructions(self):
-        self.tw.set_text(
-            'Select smoothing algorithm and enter associated parameter '
-            'values. Then click "Smooth" to create a new smoothed image. '
-            'It might take a while and be resource intensive.')
 
     def set_algo_cb(self, w, index):
         self.algorithm = self._smooth_options[index]
@@ -326,21 +317,20 @@ class Smoothing(LocalPlugin, ParamMixin):
         return True
 
     def start(self):
-        self.instructions()
         self.resume()
 
     def pause(self):
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def resume(self):
         # turn off any mode user may be in
         self.modes_off()
 
-        self.fv.showStatus('See instructions')
+        self.fv.show_status('See Help')
 
     def stop(self):
         self.gui_up = False
-        self.fv.showStatus('')
+        self.fv.show_status('')
 
     def __str__(self):
         """

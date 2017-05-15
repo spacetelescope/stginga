@@ -13,21 +13,24 @@ from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
-from stginga.plugins.local_plugin_mixin import MEFMixin, ParamMixin
+from stginga.plugins.local_plugin_mixin import HelpMixin, MEFMixin, ParamMixin
 
 __all__ = []
 
 
-class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
+class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
     """SNR and SBR calculations on an image."""
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super(SNRCalc, self).__init__(fv, fitsimage)
 
+        self.help_url = ('http://stginga.readthedocs.io/en/latest/stginga/'
+                         'plugins_manual/snrcalc.html')
+
         self.layertag = 'sbrcalc-canvas'
         self.sbrtag = None
 
-        self._sigtype_options = ['box', 'circular', 'polygon']
+        self._sigtype_options = ['box', 'circle', 'polygon']
         self._dummy_value = 0
         # self._default_bgradius_offset = 10
         self._text_label = 'SNR/SBR'
@@ -38,11 +41,11 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # User preferences
         prefs = self.fv.get_preferences()
-        settings = prefs.createCategory('plugin_SNRCalc')
+        settings = prefs.create_category('plugin_SNRCalc')
         settings.load(onError='silent')
         self.sbrcolor = settings.get('sbrcolor', 'blue3')
         self.sbrbgcolor = settings.get('sbrbgcolor', 'magenta')
-        self.sigtype = settings.get('sigtype', 'circular')
+        self.sigtype = settings.get('sigtype', 'circle')
         self.bgradius = settings.get('bgradius', 200)
         self.annulus_width = settings.get('annulus_width', 10)
         self.sigma = settings.get('sigma', 1.8)
@@ -65,16 +68,19 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         # Used for results
         self._debug_str = ''
 
-        self.dc = self.fv.getDrawClasses()
+        self.dc = self.fv.get_draw_classes()
 
         canvas = self.dc.DrawingCanvas()
         canvas.enable_draw(True)
         canvas.enable_edit(False)
+        canvas.set_drawtype(self.sigtype, color=self.sbrcolor,
+                            linestyle='dash')
         canvas.set_callback('draw-event', self.draw_cb)
-        canvas.set_callback('cursor-down', self.drag)
-        canvas.set_callback('cursor-move', self.drag)
-        canvas.set_callback('cursor-up', self.update)
-        canvas.setSurface(self.fitsimage)
+        canvas.add_draw_mode('move', down=self.drag, move=self.drag,
+                             up=self.update)
+        canvas.set_draw_mode('draw')
+        canvas.register_for_cursor_drawing(self.fitsimage)
+        canvas.set_surface(self.fitsimage)
         self.canvas = canvas
 
         fv.add_callback('remove-image', lambda *args: self.redo())
@@ -89,17 +95,9 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         vbox.set_border_width(4)
         vbox.set_spacing(2)
 
-        msgFont = self.fv.getFont('sansFont', 12)
-        tw = Widgets.TextArea(wrap=True, editable=False)
-        tw.set_font(msgFont)
-        self.tw = tw
-
-        fr = Widgets.Expander('Instructions')
-        fr.set_widget(tw)
-        vbox.add_widget(fr, stretch=0)
-
         fr = Widgets.Frame('Signal Selection')
-        captions = (('Type:', 'label', 'Sig type', 'combobox'), )
+        captions = (('Type:', 'label', 'Sig type', 'combobox'),
+                    ('Move', 'radiobutton', 'Draw', 'radiobutton'))
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
@@ -108,6 +106,16 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
             combobox.append_text(name)
         b.sig_type.set_index(self._sigtype_options.index(self.sigtype))
         b.sig_type.add_callback('activated', self.set_sigtype_cb)
+
+        mode = self.canvas.get_draw_mode()
+        b.move.set_state(mode == 'move')
+        b.move.add_callback(
+            'activated', lambda w, val: self.set_mode_cb('move', val))
+        b.move.set_tooltip('Choose this to position region')
+        b.draw.set_state(mode == 'draw')
+        b.draw.add_callback(
+            'activated', lambda w, val: self.set_mode_cb('draw', val))
+        b.draw.set_tooltip('Choose this to draw a new region')
 
         fr.set_widget(w)
         vbox.add_widget(fr, stretch=0)
@@ -220,6 +228,9 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         btn = Widgets.Button('Close')
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button('Help')
+        btn.add_callback('activated', lambda w: self.help())
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         top.add_widget(sw, stretch=1)
@@ -231,9 +242,6 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         self.set_sigtype(self.sigtype)
 
         self.gui_up = True
-
-    def instructions(self):
-        self.tw.set_text("""To calculate: Draw (or redraw) a signal region with the right mouse button. For polygon, while still holding right mouse button down, press "v" to change direction or "z" to undo. Click or drag left mouse button to reposition signal region. You can also manually fine-tune region parameters by entering values in the respective text boxes. Background annulus can be adjusted by manually entering its parameter values. All X and Y values must be 0-indexed.\n\nSignal is calculated from the inner region (box, circular, or polygon). Background is calculated from the annulus. SNR is calculated by dividing centroid data from {0} with those from {1} (background annulus is not used); It is set to 0 if image has no {1} extension. SBR is calculated by dividing median of centroid data with standard deviation of sigma-clipped background annulus (both from {0}). If SBR is less than given limit, status box will be {2} instead of {3}.""".format(self._sci_extname, self._err_extname, self._status_color_notok, self._status_color_ok))  # noqa
 
     def redo(self):
         """Calculate SBR and SNR."""
@@ -268,7 +276,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
             return True
 
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if obj.kind != 'compound':
@@ -281,7 +289,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
             self.w.box_h.set_text(str(self.boxheight))
             self._debug_str += ', w={0}, h={1}'.format(
                 self.boxwidth, self.boxheight)
-        elif self.sigtype == 'circular':
+        elif self.sigtype == 'circle':
             self.w.r.set_text(str(self.radius))
             self._debug_str += ', r={0}'.format(self.radius)
         else:  # polygon
@@ -434,9 +442,9 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
             self.sbr_status_label.set_color(bg=self._status_color_notok)
             self.sbr_status_label.set_text('SBR too low!')
 
-    def update(self, canvas, button, data_x, data_y):
+    def update(self, canvas, event, data_x, data_y, viewer):
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except Exception:
             return True
 
@@ -449,7 +457,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
             return True
 
         try:
-            canvas.deleteObjectByTag(self.sbrtag, redraw=False)
+            canvas.delete_object_by_tag(self.sbrtag, redraw=False)
         except Exception:
             pass
 
@@ -462,9 +470,9 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         self.draw_cb(canvas, tag)
         return True
 
-    def drag(self, canvas, button, data_x, data_y):
+    def drag(self, canvas, event, data_x, data_y, viewer):
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except Exception:
             return True
 
@@ -480,28 +488,24 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         if obj.kind == 'compound':
             try:
-                canvas.deleteObjectByTag(self.sbrtag, redraw=False)
+                canvas.delete_object_by_tag(self.sbrtag, redraw=False)
             except Exception:
                 pass
             self.sbrtag = canvas.add(sig_obj)
         else:
             canvas.redraw(whence=3)
 
-        # Update displayed values
-        self.xcen = data_x
-        self.ycen = data_y
-
         return True
 
     def draw_cb(self, canvas, tag):
-        obj = canvas.getObjectByTag(tag)
+        obj = canvas.get_object_by_tag(tag)
         if obj.kind not in ('circle', 'polygon', 'rectangle'):
             return True
-        canvas.deleteObjectByTag(tag, redraw=False)
+        canvas.delete_object_by_tag(tag, redraw=False)
 
         if self.sbrtag:
             try:
-                canvas.deleteObjectByTag(self.sbrtag, redraw=False)
+                canvas.delete_object_by_tag(self.sbrtag, redraw=False)
             except Exception:
                 pass
 
@@ -539,7 +543,19 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
                                color=self.sbrcolor)
 
         self.sbrtag = canvas.add(self.dc.CompoundObject(obj, bg_obj, lbl_obj))
+        self.set_mode('move')
         return self.redo()
+
+    def set_mode_cb(self, mode, tf):
+        """Called when one of the Move/Draw radio buttons is selected."""
+        if tf:
+            self.canvas.set_draw_mode(mode)
+        return True
+
+    def set_mode(self, mode):
+        self.canvas.set_draw_mode(mode)
+        self.w.move.set_state(mode == 'move')
+        self.w.draw.set_state(mode == 'draw')
 
     def set_sigtype_cb(self, w, index):
         sigtype = self._sigtype_options[index]
@@ -557,8 +573,9 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         # Remove old params
         self.w.sigtype_attr_vbox.remove_all()
         self._clear_results()
+        self.set_mode('draw')
 
-        self.canvas.deleteAllObjects()
+        self.canvas.delete_all_objects()
 
         # Reset parameters
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
@@ -571,12 +588,12 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         if sigtype == 'polygon':
             dtype = 'polygon'
 
-        else:  # box, circular
+        else:  # box, circle
             if sigtype == 'box':
                 dtype = 'rectangle'
                 captions += [('Width:', 'label', 'box w', 'entry'),
                              ('Height:', 'label', 'box h', 'entry')]
-            else:  # circular
+            else:  # circle
                 dtype = 'circle'
                 captions += [('Radius:', 'label', 'r', 'entry')]
 
@@ -600,7 +617,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
             b.box_h.set_text(str(self.boxheight))
             b.box_h.add_callback('activated', lambda w: self.set_boxheight())
 
-        elif sigtype == 'circular':
+        elif sigtype == 'circle':
             b.r.set_tooltip('Radius of circular signal region')
             b.r.set_text(str(self.radius))
             b.r.add_callback('activated', lambda w: self.set_radius())
@@ -613,7 +630,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
     def align_centers(self):
         """Make background annulus center the same as signal region."""
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -644,7 +661,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -671,7 +688,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -698,7 +715,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -723,7 +740,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -750,7 +767,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -777,7 +794,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -800,7 +817,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -826,7 +843,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -853,7 +870,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
 
         # Get the compound object that sits on the canvas.
         try:
-            obj = self.canvas.getObjectByTag(self.sbrtag)
+            obj = self.canvas.get_object_by_tag(self.sbrtag)
         except KeyError:
             return True
         if ((obj.kind != 'compound') or (len(obj.objects) < 3)):
@@ -968,7 +985,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         if self.sigtype == 'box':
             pardict['boxwidth'] = self.boxwidth
             pardict['boxheight'] = self.boxheight
-        elif self.sigtype == 'circular':
+        elif self.sigtype == 'circle':
             pardict['radius'] = self.radius
         else:  # polygon
             pardict['poly_pts'] = self._poly_pts
@@ -986,7 +1003,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         # Clear existing canvas
         if self.sbrtag:
             try:
-                self.canvas.deleteObjectByTag(self.sbrtag, redraw=True)
+                self.canvas.delete_object_by_tag(self.sbrtag, redraw=True)
             except Exception:
                 pass
 
@@ -1020,7 +1037,7 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
             sig_obj = self.dc.Rectangle(
                 x1=x1, y1=y1, x2=x2, y2=y2, color=self.sbrcolor)
 
-        elif self.sigtype == 'circular':
+        elif self.sigtype == 'circle':
             self.radius = pardict.get('radius', self.radius)
 
             sig_obj = self.dc.Circle(x=self.xcen, y=self.ycen,
@@ -1050,12 +1067,10 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         return True
 
     def start(self):
-        self.instructions()
-
         # insert canvas, if not already
         p_canvas = self.fitsimage.get_canvas()
         try:
-            obj = p_canvas.getObjectByTag(self.layertag)
+            p_canvas.get_object_by_tag(self.layertag)
         except KeyError:
             # Add drawing layer
             p_canvas.add(self.canvas, tag=self.layertag)
@@ -1063,24 +1078,24 @@ class SNRCalc(LocalPlugin, MEFMixin, ParamMixin):
         self.resume()
 
     def pause(self):
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def resume(self):
         # turn off any mode user may be in
         self.modes_off()
 
-        self.canvas.ui_setActive(True)
-        self.fv.showStatus('Draw a region with the right mouse button')
+        self.canvas.ui_set_active(True)
+        self.fv.show_status('Draw a region with the right mouse button')
 
     def stop(self):
         # remove the canvas from the image
         p_canvas = self.fitsimage.get_canvas()
         try:
-            p_canvas.deleteObjectByTag(self.layertag)
+            p_canvas.delete_object_by_tag(self.layertag)
         except Exception:
             pass
         self.gui_up = False
-        self.fv.showStatus('')
+        self.fv.show_status('')
 
     def __str__(self):
         """

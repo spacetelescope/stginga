@@ -21,7 +21,26 @@ except ImportError:
 # STGINGA
 from stginga import utils
 
-__all__ = ['MEFMixin', 'ParamMixin']
+__all__ = ['HelpMixin', 'MEFMixin', 'ParamMixin']
+
+
+class HelpMixin(object):
+    def help(self):
+        """Display online help for the plugin."""
+        if not self.fv.gpmon.has_plugin('WBrowser'):
+            self._help_docstring()
+            return
+
+        self.fv.start_global_plugin('WBrowser')
+
+        # need to let GUI finish processing, it seems
+        self.fv.update_pending()
+
+        obj = self.fv.gpmon.get_plugin('WBrowser')
+
+        # Unlike Ginga, we do not attempt to download offline doc
+        # but just point to online doc directly.
+        obj.browse(self.help_url)
 
 
 class MEFMixin(object):
@@ -54,7 +73,7 @@ class MEFMixin(object):
         """
         self._no_keyword = 'N/A'
 
-        gen_settings = prefs.createCategory('general')
+        gen_settings = prefs.create_category('general')
         gen_settings.load(onError='silent')
         self._sci_extname = gen_settings.get('sciextname', 'SCI')
         self._err_extname = gen_settings.get('errextname', 'ERR')
