@@ -14,7 +14,8 @@ preferences afterwards by modifying them again manually.
 Note that our versions of *existing* Ginga configuration files do not have
 a complete list of possible configuration values. We simply list the values
 that we recommend for overriding Ginga defaults. For a full list, please refer
-to the respective examples in ``ginga/examples/configs``.
+to the respective examples in
+`ginga/examples/configs <https://github.com/ejeschke/ginga/tree/master/ginga/examples/configs>`_.
 
 Our own plugin configurations are described with their respective
 :ref:`stginga-plugins`. Meanwhile, we explain the importance of overriding some
@@ -59,6 +60,34 @@ STScI FITS data structure. If they are not set, HST defaults are used:
     dqextname = 'DQ'
     instrumentkey = 'INSTRUME'
     targnamekey = 'TARGNAME'
+
+
+.. _stginga-ginga-config-py:
+
+ginga_config.py
+---------------
+
+This is the same file as mentioned in :ref:`stginga-run-gingaconfig`.
+The following add default catalog services to the :ref:`ginga:plugins-catalogs`
+local plugin:
+
+.. code-block:: python
+
+    from ginga.util.catalog import AstroPyCatalogServer
+
+    # TODO: Add MAST interface when available on Astroquery.
+    # Add Cone Search services
+    catalogs = [
+        ('The HST Guide Star Catalog, Version 1.2 (Lasker+ 1996) 1',
+         'GSC_1.2'),
+        ('The PMM USNO-A1.0 Catalogue (Monet 1997) 1', 'USNO_A1'),
+        ('The USNO-A2.0 Catalogue (Monet+ 1998) 1', 'USNO_A2'),
+    ]
+    bank = ginga.get_ServerBank()
+    for longname, shortname in catalogs:
+        obj = AstroPyCatalogServer(
+            ginga.logger, longname, shortname, '', shortname)
+        bank.addCatalogServer(obj)
 
 
 .. _stginga-contents-cfg:
