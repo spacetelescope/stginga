@@ -462,7 +462,8 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         self.w.filltype_attr_vbox.remove_all()
         if has_drawing and self.bpixcorrtag:
             try:
-                self.canvas.delete_object_by_tag(self.bpixcorrtag, redraw=False)
+                self.canvas.delete_object_by_tag(
+                    self.bpixcorrtag, redraw=False)
             except Exception:
                 pass
 
