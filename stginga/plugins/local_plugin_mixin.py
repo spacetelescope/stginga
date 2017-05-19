@@ -264,6 +264,8 @@ class ParamMixin(object):
         pardict = self.params_dict()
         fname = Widgets.SaveDialog(
             title='Save parameters', selectedfilter='*.json').get_path()
+        if isinstance(fname, tuple):
+            fname = fname[0]
         if not fname:  # Cancel
             return
         if os.path.exists(fname):
