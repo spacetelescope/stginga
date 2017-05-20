@@ -266,9 +266,7 @@ class MosaicAuto(HelpMixin, Mosaic):
 
         fname = Widgets.SaveDialog(
             title='Save image list', selectedfilter='*.txt').get_path()
-        if isinstance(fname, tuple):
-            fname = fname[0]
-        if not fname:  # Cancel
+        if fname is None:  # Cancel
             return
         if os.path.exists(fname):
             s = '{0} will be overwritten'.format(fname)
