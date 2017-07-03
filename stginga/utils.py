@@ -8,11 +8,13 @@ import warnings
 
 # THIRD-PARTY
 import numpy as np
+import astropy
 from astropy import wcs
 from astropy.io import ascii, fits
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
 from astropy.utils.exceptions import AstropyUserWarning
+from astropy.utils.introspection import minversion
 from scipy.interpolate import griddata
 from scipy.ndimage.interpolation import zoom
 
@@ -387,4 +389,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
     # Write to output file
     hdu = fits.PrimaryHDU(data)
     hdu.header = hdr
-    hdu.writeto(outfile, clobber=clobber)
+    if minversion(astropy, '1.3'):
+        hdu.writeto(outfile, overwrite=clobber)
+    else:
+        hdu.writeto(outfile, clobber=clobber)
