@@ -1,6 +1,6 @@
 """Automatic mosaic local plugin for Ginga."""
 from __future__ import absolute_import, division, print_function
-from ginga.util.six import itervalues
+from ginga.util import six
 
 # STDLIB
 import os
@@ -35,8 +35,12 @@ class MosaicAuto(HelpMixin, Mosaic):
         self._imlist = {}
         self.imlist_columns = [('Image', 'IMAGE')]
         self.footprintstag = None
+        self._recreate_fp = True
 
         self.list_plugin_obj = self.fv.gpmon.get_plugin('Contents')
+
+        # Enable selection from canvas
+        self.canvas.set_callback('cursor-down', self.hl_canvas2table)
 
         # CURRENTLY DISABLED. Because having a manual button might make it
         # easier to add "recreate" feature in the future, if needed.
@@ -51,16 +55,27 @@ class MosaicAuto(HelpMixin, Mosaic):
         """Build GUI such that image list area is maximized."""
         vbox, sw, orientation = Widgets.get_oriented_box(container)
 
+        nb = Widgets.TabWidget()
+        container.add_widget(nb, stretch=1)
+
         self.treeview = Widgets.TreeView(auto_expand=True,
                                          sortable=True,
                                          selection='multiple',
                                          use_alt_row_color=True)
         self.treeview.setup_table(self.imlist_columns, 1, 'IMAGE')
         self.treeview.add_callback('selected', self.draw_footprint_cb)
-        container.add_widget(self.treeview, stretch=1)
+        nb.add_widget(self.treeview, title='All')
 
-        captions = (('Create Mosaic', 'button', 'Save Selection', 'button',
-                     'Spacer1', 'spacer'), )
+        self.treeviewsel = Widgets.TreeView(auto_expand=True,
+                                            sortable=True,
+                                            use_alt_row_color=True)
+        self.treeviewsel.setup_table(self.imlist_columns, 1, 'IMAGE')
+        nb.add_widget(self.treeviewsel, title='Selected')
+
+        captions = (('Create Mosaic', 'button'),
+                    ('Select All', 'button', 'Deselect All', 'button',
+                     'Spacer1', 'spacer'),
+                    ('Save Selection', 'button'))
         w, b = Widgets.build_info(captions, orientation=orientation)
         self.w.update(b)
 
@@ -68,6 +83,15 @@ class MosaicAuto(HelpMixin, Mosaic):
         b.create_mosaic.set_tooltip(
             'Build mosaic from currently opened images')
         b.create_mosaic.add_callback('activated', lambda w: self.auto_mosaic())
+
+        b.select_all.set_tooltip('Select all footprints')
+        b.select_all.add_callback('activated', lambda w: self.select_all_cb())
+        b.select_all.set_enabled(False)
+
+        b.deselect_all.set_tooltip('Clear selection')
+        b.deselect_all.add_callback(
+            'activated', lambda w: self.deselect_all_cb())
+        b.deselect_all.set_enabled(False)
 
         b.save_selection.set_tooltip('Save selected image(s) to output XML')
         b.save_selection.add_callback(
@@ -104,27 +128,19 @@ class MosaicAuto(HelpMixin, Mosaic):
         btns.add_widget(Widgets.Label(''), stretch=1)
         container.add_widget(btns, stretch=0)
 
-        self.recreate_imlist()
         self.gui_up = True
-
-    def recreate_imlist(self):
-        """Refresh image list for new selection."""
-        if not self.gui_up:
-            return
-
-        treedict = Bunch.caselessDict()
-        for imname in self._imlist:
-            treedict[imname] = Bunch.Bunch(IMAGE=imname)
-        self.treeview.set_tree(treedict)
 
     def auto_mosaic(self):
         """Create new mosaic using image list from Contents."""
         astroimage_obj = AstroImage()
         self._imlist = {}
+        self._recreate_fp = True
+        self.treeview.clear()
+        self.treeviewsel.clear()
 
         # Get image list from Contents, excluding other mosaics
         file_dict = self.list_plugin_obj.name_dict[self.chname]
-        for bnch in itervalues(file_dict):
+        for bnch in six.itervalues(file_dict):
             if ((not isinstance(bnch, Bunch.Bunch)) or
                     ('mosaic' in bnch.NAME.lower())):
                 continue
@@ -139,11 +155,9 @@ class MosaicAuto(HelpMixin, Mosaic):
             else:
                 image = astroimage_obj
                 image.load_file(impath)
-            footprint = image.wcs.wcs.calc_footprint()
+            footprint = image.wcs.wcs.calc_footprint()  # Astropy only?
             self._imlist[imname] = Bunch.Bunch(
                 footprint=footprint, path=impath)
-
-        self.recreate_imlist()
 
         if len(self._imlist) == 0:
             s = 'No images available for mosaic'
@@ -153,7 +167,8 @@ class MosaicAuto(HelpMixin, Mosaic):
 
         # Always start a new mosaic.
         # Remove duplicates in case an image have multiple extensions opened.
-        images = list(set([bnch.path for bnch in itervalues(self._imlist)]))
+        images = list(set([bnch.path for bnch in
+                           six.itervalues(self._imlist)]))
         self.fv.nongui_do(self.fv.error_wrap, self.mosaic, images,
                           new_mosaic=True)
         self.fitsimage.auto_levels()
@@ -162,7 +177,62 @@ class MosaicAuto(HelpMixin, Mosaic):
         # gets confusing.
         self.w.create_mosaic.set_enabled(False)
 
+        # Populate table listing.
+        treedict = Bunch.caselessDict()
+        for imname in self._imlist:
+            treedict[imname] = Bunch.Bunch(IMAGE=imname)
+        self.treeview.set_tree(treedict)
+
         return True
+
+    def _create_footprint_obj(self):
+        """Create a compound object containing all footprint polygons."""
+
+        # Nothing has changed
+        if not self._recreate_fp:
+            return
+
+        # Clear existing footprint
+        if self.footprintstag:
+            try:
+                self.canvas.delete_object_by_tag(
+                    self.footprintstag, redraw=True)
+            except Exception:
+                pass
+
+        # No mosaic created; nothing to do.
+        if self.img_mosaic is None:
+            self.logger.error('Mosaic is not found, cannot create polygons')
+            return
+
+        # Get mosaic WCS
+        header = self.img_mosaic.get_header()
+        w = WCS(header)
+
+        # Create footprint of each image
+        fpcolor = self.settings.get('footprintscolor', 'red')
+        fpwidth = self.settings.get('footprintlinewidth', 5)
+        polygonlist = []
+        for imname, bnch in six.iteritems(self._imlist):
+            self.logger.debug('Drawing footprint for {0}'.format(imname))
+            if bnch.footprint is None:
+                continue
+            pixcrd = w.wcs_world2pix(bnch.footprint, self._wcs_origin)
+            obj = self.dc.Polygon(pixcrd, color=fpcolor, linewidth=fpwidth,
+                                  alpha=0)  # Hide until selected
+            obj.imname = imname  # Needed for selection
+            polygonlist.append(obj)
+
+        if len(polygonlist) > 0:
+            self.footprintstag = self.canvas.add(
+                self.dc.CompoundObject(*polygonlist))
+            self.w.select_all.set_enabled(True)
+            self.w.deselect_all.set_enabled(True)
+        else:
+            self.w.select_all.set_enabled(False)
+            self.w.deselect_all.set_enabled(False)
+
+        self._recreate_fp = False
 
     # Re-implemented parent method
     def drop_cb(self, canvas, paths):
@@ -175,6 +245,7 @@ class MosaicAuto(HelpMixin, Mosaic):
 
     def add_image_cb(self, viewer, chname, image, image_info):
         """Add an image to the mosaic."""
+        self._recreate_fp = True
         header = image.get_header()
 
         # Do not add mosaic to another mosaic
@@ -194,53 +265,161 @@ class MosaicAuto(HelpMixin, Mosaic):
         # Format is [[X1, Y1], ..., [X4, Y4]]
         footprint = image.wcs.wcs.calc_footprint()
         self._imlist[imname] = Bunch.Bunch(footprint=footprint, path=impath)
+        self._create_footprint_obj()
 
-        self.recreate_imlist()
+        # Update table listing
+        treedict = Bunch.caselessDict()
+        treedict[imname] = Bunch.Bunch(IMAGE=imname)
+        self.treeview.add_tree(treedict)
 
         self.logger.info('{0} added to mosaic'.format(imname))
         return True
 
+    def hl_canvas2table(self, canvas, button, data_x, data_y):
+        """Highlight footprint on table when user click on canvas."""
+
+        # Footprints not created properly if done during mosaicking,
+        # so create them here if needed.
+        self._create_footprint_obj()
+
+        # Nothing to do if no masks are displayed
+        try:
+            obj = canvas.get_object_by_tag(self.footprintstag)
+        except Exception:
+            return
+
+        if obj.kind != 'compound':
+            return
+
+        # Get existing selection from table listing
+        imname_from_table = list(self.treeview.get_selected())
+        n = len(imname_from_table)
+
+        # Select if not selected and vice versa,
+        # also do the same to table listing.
+        for poly in obj.get_items_at((data_x, data_y)):
+            imname = poly.imname
+            treepath = (imname, )
+
+            if imname in imname_from_table:  # De-select
+                poly.alpha = 0
+                n -= 1
+
+                # TODO: This currently only works for Qt! Refactor when
+                # https://github.com/ejeschke/ginga/issues/532 is resolved.
+                item = self.treeview._path_to_item(treepath)
+                item.setSelected(False)
+
+            else:  # Select
+                poly.alpha = 1
+                n += 1
+                self.treeview.select_path(treepath)
+
+        # Refresh selected listing
+        self.treeviewsel.set_tree(self.treeview.get_selected())
+
+        if n > 0:
+            self.w.save_selection.set_enabled(True)
+        else:
+            self.w.save_selection.set_enabled(False)
+
+        self.canvas.redraw(whence=3)
+        return True
+
     def draw_footprint_cb(self, w, res_dict):
         """Display selected footprint(s)."""
-        if not self.gui_up:
-            return True
-
         self.w.save_selection.set_enabled(False)
+        self.treeviewsel.clear()
 
-        # Clear existing footprint
-        if self.footprintstag:
-            try:
-                self.canvas.delete_object_by_tag(
-                    self.footprintstag, redraw=True)
-            except Exception:
-                pass
+        # Footprints not created properly if done during mosaicking,
+        # so create them here if needed.
+        self._create_footprint_obj()
 
-        if self.img_mosaic is None or len(res_dict) < 1:
-            return True
+        if self.footprintstag is None:
+            return
 
-        # Get mosaic WCS
-        header = self.img_mosaic.get_header()
-        w = WCS(header)
+        try:
+            obj = self.canvas.get_object_by_tag(self.footprintstag)
+        except Exception as e:
+            self.logger.error(str(e))
+            return
 
-        # Create footprint of each image
-        fpcolor = self.settings.get('footprintscolor', 'red')
-        fpwidth = self.settings.get('footprintlinewidth', 5)
-        polygonlist = []
-        for imname in res_dict:
-            self.logger.debug('Drawing footprint for {0}'.format(imname))
-            bnch = self._imlist.get(imname, None)
-            if bnch is None or bnch.footprint is None:
-                continue
-            pixcrd = w.wcs_world2pix(bnch.footprint, self._wcs_origin)
-            polygonlist.append(
-                self.dc.Polygon(pixcrd, color=fpcolor, linewidth=fpwidth))
+        if obj.kind != 'compound':
+            return
 
-        # Draw footprint(s) on canvas
-        if len(polygonlist) > 0:
-            self.footprintstag = self.canvas.add(
-                self.dc.CompoundObject(*polygonlist))
+        # Show only selected footprint(s) on canvas.
+        n = 0
+        for poly in obj.objects:
+            if poly.imname in res_dict:
+                n += 1
+                poly.alpha = 1
+            else:
+                poly.alpha = 0
+
+        if n > 0:
+            self.treeviewsel.set_tree(res_dict)
+            # Display highlighted entries only in second table
             self.w.save_selection.set_enabled(True)
 
+        self.canvas.redraw(whence=3)
+        return True
+
+    def select_all_cb(self):
+        """Highlight all footprints."""
+        self.w.save_selection.set_enabled(False)
+        self.treeviewsel.clear()
+
+        # Footprints not created properly if done during mosaicking,
+        # so create them here if needed.
+        self._create_footprint_obj()
+
+        if self.footprintstag is None:
+            return
+
+        try:
+            obj = self.canvas.get_object_by_tag(self.footprintstag)
+        except Exception:
+            return
+
+        if obj.kind != 'compound':
+            return
+
+        for poly in obj.objects:
+            poly.alpha = 1
+            self.treeview.select_path((poly.imname, ))
+
+        # Refresh selected listing
+        self.treeviewsel.set_tree(self.treeview.get_selected())
+        self.w.save_selection.set_enabled(True)
+
+        self.canvas.redraw(whence=3)
+        return True
+
+    def deselect_all_cb(self):
+        """Clear selection."""
+        self.w.save_selection.set_enabled(False)
+        self.treeviewsel.clear()
+        self.treeview.clear_selection()
+
+        # Footprints not created properly if done during mosaicking,
+        # so create them here if needed.
+        self._create_footprint_obj()
+
+        if self.footprintstag is None:
+            return
+
+        try:
+            obj = self.canvas.get_object_by_tag(self.footprintstag)
+        except Exception:
+            return
+
+        if obj.kind != 'compound':
+            return
+
+        for poly in obj.objects:
+            poly.alpha = 0
+
+        self.canvas.redraw(whence=3)
         return True
 
     def get_selected_paths(self):
@@ -282,13 +461,21 @@ class MosaicAuto(HelpMixin, Mosaic):
         msg = 'Removed mosaic'
         self.img_mosaic = None
         self.footprintstag = None
-        self._imlist.clear()
-        self.recreate_imlist()
-        self.update_status(msg)
+        self._recreate_fp = True
+        self._imlist = {}
+        self.treeview.clear()
+        self.treeviewsel.clear()
+
         self.logger.debug(msg)
 
         if self.gui_up:
+            self.update_status(msg)
+            self.w.create_mosaic.set_enabled(True)
+            self.w.select_all.set_enabled(False)
+            self.w.deselect_all.set_enabled(False)
+            self.w.save_selection.set_enabled(False)
             self.canvas.delete_all_objects()
+            self.canvas.redraw(whence=3)
 
     # Re-implemented parent method
     def start(self):
