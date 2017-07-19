@@ -177,6 +177,9 @@ class MosaicAuto(HelpMixin, Mosaic):
         # gets confusing.
         self.w.create_mosaic.set_enabled(False)
 
+        self.w.select_all.set_enabled(True)
+        self.w.deselect_all.set_enabled(True)
+
         # Populate table listing.
         treedict = Bunch.caselessDict()
         for imname in self._imlist:
