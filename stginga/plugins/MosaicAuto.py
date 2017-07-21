@@ -298,9 +298,15 @@ class MosaicAuto(HelpMixin, Mosaic):
         imname_from_table = list(self.treeview.get_selected())
         n = len(imname_from_table)
 
+        # Get selected polygons
+        try:
+            poly_items = obj.get_items_at(data_x, data_y)
+        except TypeError:  # ginga >= 2.6.5
+            poly_items = obj.get_items_at((data_x, data_y))
+
         # Select if not selected and vice versa,
         # also do the same to table listing.
-        for poly in obj.get_items_at((data_x, data_y)):
+        for poly in poly_items:
             imname = poly.imname
             treepath = (imname, )
 
