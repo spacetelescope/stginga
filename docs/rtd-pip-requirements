@@ -3,6 +3,7 @@ matplotlib
 Cython
 astropy-helpers
 astropy
+tornado
 jupyter_client
 nbconvert
-ginga>=2.6.1
+ginga>=2.6.2
