@@ -314,10 +314,13 @@ class MosaicAuto(HelpMixin, Mosaic):
                 poly.alpha = 0
                 n -= 1
 
-                # TODO: This currently only works for Qt! Refactor when
-                # https://github.com/ejeschke/ginga/issues/532 is resolved.
-                item = self.treeview._path_to_item(treepath)
-                item.setSelected(False)
+                try:
+                    self.treeview.select_path(treepath, state=False)
+                except TypeError:
+                    # Use Qt-specific API; no choice here.
+                    # https://github.com/ejeschke/ginga/issues/532
+                    item = self.treeview._path_to_item(treepath)
+                    item.setSelected(False)
 
             else:  # Select
                 poly.alpha = 1
