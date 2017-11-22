@@ -4,14 +4,7 @@ See :ref:`stginga-run`.
 """
 from __future__ import absolute_import, division, print_function
 
-# STDLIB
-import warnings
-
-# THIRD-PARTY
-from astropy.utils.exceptions import AstropyUserWarning
-
 # GINGA
-from ginga import __version__ as ginga_version
 from ginga.misc.Bunch import Bunch
 
 __all__ = ['load_plugins', 'show_plugin_install_info']
@@ -47,12 +40,6 @@ def load_plugins(ginga):
 
 
 def _get_stginga_plugins():
-    # TODO: When we use stable Ginga release, not the dev, we can remove this
-    # and just have version check in setup.py
-    if ginga_version < '2.5.20160222004742':
-        warnings.warn('Your Ginga version {0} is old, stginga might not work '
-                      'properly'.format(ginga_version), AstropyUserWarning)
-
     gpfx = 'stginga.plugins'  # To load custom plugins in Ginga namespace
 
     global_plugins = []

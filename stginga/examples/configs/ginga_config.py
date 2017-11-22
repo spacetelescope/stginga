@@ -17,4 +17,6 @@ def pre_gui_config(ginga):
 
 
 def post_gui_config(ginga):
-    pass
+    # Auto start local plugins
+    ginga.add_channel('Image')
+    ginga.start_local_plugin('Image', 'MultiDim', None)
