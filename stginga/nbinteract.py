@@ -5,6 +5,7 @@ import os
 
 from astropy.io import fits
 from astropy.utils import isiterable
+from astropy.utils.decorators import deprecated
 
 import tornado.httpserver
 import tornado.web
@@ -17,6 +18,7 @@ from ginga.web.pgw import Widgets, js, PgHelp, ipg
 __all__ = ['GingaServer']
 
 
+@deprecated('0.2.2', alternative="See Ginga's example notebook")
 class GingaServer(object):
     """IPython Notebook server for ``stginga``.
 

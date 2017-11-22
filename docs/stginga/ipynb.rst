@@ -3,6 +3,12 @@
 Running stginga with Jupyter/IPython Notebooks
 ==============================================
 
+.. warning::
+
+    :mod:`~stginga.nbinteract` is deprecated and will be removed in a future
+    release.
+    Please see `this notebook example provided by Ginga <https://github.com/ejeschke/ginga/blob/master/ginga/examples/jupyter-notebook/Jupyter%20Widget%20Ideas.ipynb>`_ instead.
+
 :mod:`stginga` includes the :mod:`~stginga.nbinteract`, a module to simplify the use of
 the ginga viewer inside, or in close association with,
 `Jupyter (formerly IPython) notebooks <https://jupyter.org/>`_. The module is
