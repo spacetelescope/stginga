@@ -90,6 +90,16 @@ local plugin:
                 ginga.logger, longname, shortname, '', shortname)
             bank.addCatalogServer(obj)
 
+Meanwhile, this automatically loads the ``MultiDim`` local plugin for the
+"Image" channel when Ginga starts:
+
+.. code-block:: python
+
+    def post_gui_config(ginga):
+        # Auto start local plugins
+        ginga.add_channel('Image')
+        ginga.start_local_plugin('Image', 'MultiDim', None)
+
 
 .. _stginga-contents-cfg:
 
