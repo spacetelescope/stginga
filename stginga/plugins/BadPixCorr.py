@@ -1,6 +1,9 @@
 """Bad pixel correction local plugin for Ginga."""
 from __future__ import absolute_import, division, print_function
 
+# STDLIB
+from datetime import datetime
+
 # THIRD-PARTY
 import numpy as np
 
@@ -842,8 +845,8 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         # self.fitsimage.auto_levels()
 
         # Store change history in metadata
-        iminfo = self.chinfo.get_image_info(imname)
-        iminfo.reason_modified = s
+        info = {'time_modified': datetime.utcnow(), 'reason_modified': s}
+        self.fv.update_image_info(image, info)
 
         # Update DQ extension
         if dqsrc is not False:
@@ -868,8 +871,8 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
             dqsrc.set_data(dqdata, metadata=dqsrc.metadata)
 
             # Store change history in metadata
-            iminfo = self.chinfo.get_image_info(dqname)
-            iminfo.reason_modified = s
+            info = {'time_modified': datetime.utcnow(), 'reason_modified': s}
+            self.fv.update_image_info(dqsrc, info)
 
         # Switch back to SCI
         self.chinfo.switch_image(image)

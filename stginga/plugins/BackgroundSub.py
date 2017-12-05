@@ -1,6 +1,9 @@
 """Background subtraction local plugin for Ginga."""
 from __future__ import absolute_import, division, print_function
 
+# STDLIB
+from datetime import datetime
+
 # THIRD-PARTY
 import numpy as np
 
@@ -716,8 +719,8 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         # self.fitsimage.auto_levels()
 
         # Store change history in metadata
-        iminfo = self.chinfo.get_image_info(image.get('name'))
-        iminfo.reason_modified = s
+        info = {'time_modified': datetime.utcnow(), 'reason_modified': s}
+        self.fv.update_image_info(image, info)
 
         return True
 

@@ -3,6 +3,9 @@ Ginga.
 """
 from __future__ import absolute_import, division, print_function
 
+# STDLIB
+from datetime import datetime
+
 # THIRD-PARTY
 import numpy as np
 
@@ -944,8 +947,8 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         image.make_callback('modified')
 
         # Store change history in metadata
-        iminfo = self.chinfo.get_image_info(imname)
-        iminfo.reason_modified = s
+        info = {'time_modified': datetime.utcnow(), 'reason_modified': s}
+        self.fv.update_image_info(image, info)
 
         return True
 

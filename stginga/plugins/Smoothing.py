@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 # STDLIB
 import ast
 import time
+from datetime import datetime
 
 # THIRD-PARTY
 from scipy import ndimage
@@ -244,14 +245,11 @@ class Smoothing(HelpMixin, LocalPlugin, ParamMixin):
         self.fv.gui_call(
             self.fv.add_image, new_name, new_im, chname=self.chname)
 
-        # This sets timestamp
-        new_im.make_callback('modified')
-
         # Add change log
         s = 'Smoothed {0} using {1}, {2}'.format(
             old_name, self.algorithm, debug_str)
-        iminfo = self.chinfo.get_image_info(new_name)
-        iminfo.reason_modified = s
+        info = {'time_modified': datetime.utcnow(), 'reason_modified': s}
+        self.fv.update_image_info(new_im, info)
         self.logger.info(s)
 
         t2 = time.time()
