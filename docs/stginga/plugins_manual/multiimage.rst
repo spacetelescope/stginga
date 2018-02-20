@@ -3,6 +3,8 @@
 MultiImage
 ==========
 
+.. warning:: This is experimental; not actively maintain and might not work.
+
 .. image:: images/multiimage_screenshot.png
   :width: 800px
   :alt: MultiImage plugin

@@ -1,8 +1,7 @@
 language: python
 
 python:
-    - 2.7
-    - 3.5
+    - 3.6
 
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
@@ -42,21 +41,22 @@ env:
     matrix:
         # Make sure that egg_info works without dependencies
         - SETUP_CMD='egg_info'
-        # DISABLED UNTIL WE HAVE REAL TESTS
-        # Try all python versions with the latest numpy
-        #- SETUP_CMD='test'
 
 matrix:
     include:
 
+        # Test in Python 2.
+        - python: 2.7
+          env: ASTROPY_VERSION=lts
+
         # DISABLED FOR NOW
         # Do a coverage test in Python 3.
-        #- python: 3.5
+        #- python: 3.6
         #  env: SETUP_CMD='test --coverage'
 
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
-        - python: 3.5
+        - python: 3.6
           env: SETUP_CMD='build_docs -w'
                PIP_DEPENDENCIES='ginga pandoc nbconvert tornado scipy'
 
@@ -65,9 +65,9 @@ matrix:
         #- python: 3.6
         #  env: ASTROPY_VERSION=development
 
-        # Do a PEP8 test with pycodestyle
-        - python: 3.5
-          env: MAIN_CMD='pycodestyle stginga --count' SETUP_CMD=''
+        # Do a PEP8 test with flake8
+        - python: 3.6
+          env: MAIN_CMD='flake8 stginga --count' SETUP_CMD=''
 
 install:
 

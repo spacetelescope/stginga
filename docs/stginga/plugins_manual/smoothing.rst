@@ -3,6 +3,8 @@
 Smoothing
 ---------
 
+.. warning:: This is experimental; not actively maintain and might not work.
+
 .. image:: images/smoothing_before.png
   :width: 800px
   :alt: Smoothing plugin, before

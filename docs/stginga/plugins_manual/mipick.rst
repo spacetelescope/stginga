@@ -3,6 +3,8 @@
 MIPick
 ======
 
+.. warning:: This is experimental; not actively maintain and might not work.
+
 .. image:: images/mipick_screenshot.png
   :width: 800px
   :alt: MIPick plugin

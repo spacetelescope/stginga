@@ -8,18 +8,11 @@ available, in addition to the ones that already come with Ginga. Some are
 customizable via plugin configuration files, which are available in the
 `stginga/examples/configs <https://github.com/spacetelescope/stginga/tree/master/stginga/examples/configs>`_ directory.
 
+
 .. _stginga-local-plugins:
 
 Local Plugins
 -------------
-
-These plugins work together to display the same object across multiple images:
-
-.. toctree::
-   :maxdepth: 2
-
-   multiimage
-   mipick
 
 These plugins behave like a regular Ginga plugin:
 
@@ -40,6 +33,16 @@ one way is to use the ``--plugins`` option along with ``stginga`` command
    :maxdepth: 2
 
    mosaicauto
+
+These plugins are not actively maintained. If you really, really want to use
+them, see instructions at
+`experimental/README.rst <https://github.com/spacetelescope/stginga/tree/master/experimental/README.rst>`_:
+
+.. toctree::
+   :maxdepth: 2
+
+   mipick
+   multiimage
    smoothing
 
 
