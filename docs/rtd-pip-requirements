@@ -1,6 +1,7 @@
 numpy
 matplotlib
 Cython
+scipy>=0.18
 astropy-helpers
 astropy
 tornado
