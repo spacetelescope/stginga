@@ -33,5 +33,3 @@ The smoothed image is inserted into Ginga as a new image, leaving the original
 image untouched. Details on the smoothing performed can be viewed using
 :ref:`ginga:sec-plugins-changehistory`. In addition, it can be saved using
 :ref:`ginga:sec-plugins-global-saveimage`.
-
-.. automodule:: stginga.plugins.Smoothing

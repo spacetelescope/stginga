@@ -1,4 +1,19 @@
-"""Background subtraction local plugin for Ginga."""
+"""
+Background subtraction on an image.
+
+**Plugin Type: Local**
+
+``BackgroundSub`` is a local plugin, which means it is associated with a
+channel.  An instance can be opened for each channel.
+
+**Usage**
+
+This plugin is used to calculate and subtract background value. Currently,
+it only handles constant background. Subtraction parameters can be saved to a
+JSON file, which then can be reloaded as well. The subtracted image can be
+saved using :ref:`ginga:sec-plugins-global-saveimage`.
+
+"""
 from __future__ import absolute_import, division, print_function
 
 # STDLIB
@@ -10,17 +25,16 @@ import numpy as np
 # GINGA
 from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
-from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
 from stginga.plugins.local_plugin_mixin import HelpMixin, MEFMixin, ParamMixin
 
-__all__ = []
+__all__ = ['BackgroundSub']
 
 
 class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
-    """Background subtraction on an image."""
+
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super(BackgroundSub, self).__init__(fv, fitsimage)
@@ -866,4 +880,6 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-__doc__ = generate_cfg_example('plugin_BackgroundSub', package='stginga')
+from ginga.util.toolbox import generate_cfg_example  # noqa
+if __doc__ is not None:
+    __doc__ += generate_cfg_example('plugin_BackgroundSub', package='stginga')
