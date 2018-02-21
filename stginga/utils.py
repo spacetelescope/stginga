@@ -311,7 +311,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
         Unsupported number of dimension or invalid WCS.
 
     """
-    if not clobber and os.path.exists(outfile):
+    if not clobber and os.path.exists(outfile):  # pragma: no cover
         if debug:
             warnings.warn('{0} already exists'.format(outfile),
                           AstropyUserWarning)
@@ -329,7 +329,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
             continue
         hdr[key] = prihdr[key]
 
-    if data.ndim != 2:
+    if data.ndim != 2:  # pragma: no cover
         raise ValueError('Unsupported ndim={0}'.format(data.ndim))
 
     # Scale the data.
@@ -375,7 +375,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
     # Update header
     if 'XTENSION' in hdr:
         del hdr['XTENSION']
-    if 'SIMPLE' in hdr:
+    if 'SIMPLE' in hdr:  # pragma: no cover
         hdr['SIMPLE'] = True
     else:
         hdr.insert(0, ('SIMPLE', True))
@@ -389,7 +389,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
     # Write to output file
     hdu = fits.PrimaryHDU(data)
     hdu.header = hdr
-    if minversion(astropy, '1.3'):
+    if minversion(astropy, '1.3'):  # pragma: no cover
         hdu.writeto(outfile, overwrite=clobber)
     else:
         hdu.writeto(outfile, clobber=clobber)

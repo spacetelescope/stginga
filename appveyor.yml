@@ -14,14 +14,14 @@ environment:
       # so Cython is required for testing. If your package does not include
       # Cython code, you can set CONDA_DEPENDENCIES=''
       #CONDA_DEPENDENCIES: "Cython"
-      CONDA_DEPENDENCIES: ""
+      CONDA_DEPENDENCIES: "numpy scipy astropy ginga"
 
   matrix:
 
       # We test Python 2.7 and 3.6
 
       - PYTHON_VERSION: "2.7"
-        ASTROPY_VERSION: "stable"
+        ASTROPY_VERSION: "lts"
         NUMPY_VERSION: "stable"
 
       - PYTHON_VERSION: "3.6"
