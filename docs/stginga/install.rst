@@ -9,12 +9,16 @@ Installation
 * SciPy 0.18 or later.
 * Ginga 2.7 or later, available from
   `Ginga's GitHub page <https://github.com/ejeschke/ginga/>`_.
-* The latest version of ``stginga`` available from
-  `stginga's GitHub page <https://github.com/spacetelescope/stginga>`_.
 
-We suggest using  `Anaconda <https://www.continuum.io/downloads>`_ as a
-Python distribution that is known to work with ``stginga``.
+We suggest using `Anaconda <https://www.continuum.io/downloads>`_ as a
+Python distribution that is known to work with ``stginga``::
 
-To install ``stginga`` from source::
+    conda install stginga -c http://ssb.stsci.edu/astroconda
 
-    python setup.py install [--prefix=/my/install/path]
+Alternately, ``stginga`` 0.3 and beyond is also available on PyPI::
+
+    pip install stginga
+
+If you wish to install the development version instead::
+
+    pip install git+https://github.com/spacetelescope/stginga.git@master

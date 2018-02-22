@@ -5,9 +5,6 @@ Reference/API
 
 .. automodapi:: stginga.gingawrapper
 
-.. automodapi:: stginga.nbinteract
-   :no-inheritance-diagram:
-
 .. automodapi:: stginga.plugin_info
 
 .. automodapi:: stginga.utils

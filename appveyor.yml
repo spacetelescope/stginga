@@ -21,7 +21,7 @@ environment:
       # We test Python 2.7 and 3.6
 
       - PYTHON_VERSION: "2.7"
-        ASTROPY_VERSION: "lts"
+        ASTROPY_VERSION: "stable"
         NUMPY_VERSION: "stable"
 
       - PYTHON_VERSION: "3.6"

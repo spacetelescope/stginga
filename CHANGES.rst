@@ -1,19 +1,30 @@
 0.3 (unreleased)
 ----------------
 
+This is the last release to support Python 2.
+
 New Features
 ^^^^^^^^^^^^
-- Use new notification system for ChangeHistory that will go with Ginga 2.7.
+- Use new notification system for ``ChangeHistory`` that goes with Ginga 2.7.
   [#147,#149,ejeschke/ginga#621]
-- Added example to auto-start MultiDim in ginga_config.py. [#144]
+- Added example to auto-start ``MultiDim`` in ``ginga_config.py``. [#144]
+
+API changes
+^^^^^^^^^^^
+- ``MIPick``, ``MultiImage``, and ``Smoothing`` plugins are moved to
+  "experimental" folder. So is the custom layout that goes with ``MultiImage``
+  and ``MIPick``. These are no longer actively supported. [#152]
+- ``WBrowser`` now supports docstring rendering while offline when Internet
+  connection is unavalable. [#152]
 
 Bug fixes
 ^^^^^^^^^
-- Use toolkit-agnostic treeview deselection for MosaicAuto. [#142]
+- Use toolkit-agnostic treeview deselection for ``MosaicAuto``. [#142]
 
 Other Changes and Additions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- Updated astropy-helpers to v2.0.2.
+- Updated ``astropy-helpers`` to v2.0.4. [#152]
+- Deprecated Jupyter notebook support is removed. [#152]
 
 0.2.1 (2017-07-20)
 ------------------
