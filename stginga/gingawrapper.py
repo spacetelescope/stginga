@@ -37,16 +37,14 @@ def run_stginga(sys_argv):
     # Note: Unable to get this to work from within ginga_config.py
     # Example:
     #     glb_plg_to_remove = ['WBrowser', 'RC', 'SAMP', 'IRAF']
-    glb_plg_to_remove = []
-    lcl_plg_to_remove = []
-    _remove_plugins(glb_plg_to_remove, gmain.global_plugins)
-    _remove_plugins(lcl_plg_to_remove, gmain.local_plugins)
+    plg_to_remove = []
+    _remove_plugins(plg_to_remove, gmain.plugins)
 
     # Add custom plugins.
     # If we use this, we do not have to use ginga_config.py
     stglobal_plugins, stlocal_plugins = _get_stginga_plugins()
-    gmain.global_plugins += stglobal_plugins
-    gmain.local_plugins += stlocal_plugins
+    gmain.plugins += stglobal_plugins
+    gmain.plugins += stlocal_plugins
 
     # Enforce Qt (--toolkit or -t) -- DISABLED
     # new_argv = ['--toolkit=qt' if 'toolkit' in s else s for s in sys_argv]
@@ -55,7 +53,7 @@ def run_stginga(sys_argv):
 
     # Auto start core global plugins
     for gplgname in ('ChangeHistory', ):
-        gplg = _locate_plugin(gmain.global_plugins, gplgname)
+        gplg = _locate_plugin(gmain.plugins, gplgname)
         gplg.start = True
 
     # Start Ginga
