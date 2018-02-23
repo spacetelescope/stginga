@@ -1,4 +1,4 @@
-0.3 (unreleased)
+0.3 (2018-02-23)
 ----------------
 
 This is the last release to support Python 2.
@@ -16,6 +16,8 @@ API changes
   and ``MIPick``. These are no longer actively supported. [#152]
 - ``WBrowser`` now supports docstring rendering while offline when Internet
   connection is unavalable. [#152]
+- All ``stginga`` plugins are now under ``Custom`` category in Ginga's
+  Operations menu. [#152]
 
 Bug fixes
 ^^^^^^^^^
