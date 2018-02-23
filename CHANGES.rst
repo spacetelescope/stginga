@@ -1,3 +1,18 @@
+1.0 (unreleased)
+----------------
+
+New Features
+^^^^^^^^^^^^
+
+API changes
+^^^^^^^^^^^
+
+Bug fixes
+^^^^^^^^^
+
+Other Changes and Additions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 0.3 (2018-02-23)
 ----------------
 
