@@ -45,13 +45,13 @@ def _get_stginga_plugins():
     global_plugins = []
     local_plugins = [
         Bunch(module='BackgroundSub', workspace='dialogs', pfx=gpfx,
-              category='stginga', ptype='local'),
+              category='Custom', ptype='local'),
         Bunch(module='BadPixCorr', workspace='dialogs', pfx=gpfx,
-              category='stginga', ptype='local'),
+              category='Custom', ptype='local'),
         Bunch(module='DQInspect', workspace='dialogs', pfx=gpfx,
-              category='stginga', ptype='local'),
+              category='Custom', ptype='local'),
         Bunch(module='SNRCalc', workspace='dialogs', pfx=gpfx,
-              category='stginga', ptype='local'),
+              category='Custom', ptype='local'),
         ]
     return global_plugins, local_plugins
 
