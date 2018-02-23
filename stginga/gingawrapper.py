@@ -13,79 +13,6 @@ logging.raiseExceptions = False
 
 __all__ = ['run_stginga']
 
-# Manage the default layout. Yes, OMG, hacky hacky
-gmain.default_layout = ['seq', {}, [
-    'vbox',  {'name': 'top', 'width': 1520, 'height': 900},
-    {'row': ['hbox', {'name': 'menu'}], 'stretch': 0},
-    {'row': [
-        'vpanel', {}, [
-            'vbox', {},
-            {'row': [
-                'hpanel', {'name': 'hpnl'}, [
-                    'ws', {'name': 'left', 'width': 300, 'group': 2}, [
-                        ('Info', [
-                            'vpanel', {}, [
-                                'ws', {'name': 'uleft', 'height': 300,
-                                       'show_tabs': False, 'group': 3}
-                            ],
-                            [
-                                'ws', {'name': 'lleft', 'height': 430,
-                                       'show_tabs': True, 'group': 3}
-                            ]
-                        ])
-                    ]
-                ],
-                [
-                    'vbox', {'name': 'main', 'width': 700},
-                    {'row': [
-                        'ws', {'wstype': 'tabs', 'name': 'channels',
-                               'group': 1, 'use_toolbar': True}
-                    ],
-                     'stretch': 1
-                    },
-                    {'row': [
-                        'ws', {'wstype': 'stack', 'name': 'cbar',
-                               'group': 99}
-                    ],
-                     'stretch': 0
-                    },
-                    {'row': [
-                        'ws', {'wstype': 'stack', 'name': 'readout',
-                               'group': 99}
-                    ],
-                     'stretch': 0
-                    },
-                    {'row': [
-                        'ws', {'wstype': 'stack', 'name': 'operations',
-                               'group': 99}
-                    ],
-                     'stretch': 0
-                    }
-                ],
-                [
-                    'ws', {'name': 'right', 'width': 430, 'group': 2}, [
-                        ('Dialogs', [
-                            'ws', {'name': 'dialogs', 'group': 2}
-                        ])
-                    ]
-                ]
-            ],
-             'stretch': 1}, [
-                 'ws', {'name': 'toolbar', 'height': 40,
-                        'show_tabs': False, 'group': 2}
-             ]
-        ],
-        [
-            'hbox', {'name': 'pstamps'}
-        ],
-    ]},
-    {'row': [
-        'hbox', {'name': 'status'}
-    ],
-     'stretch': 0
-    }
-]]
-
 
 def run_stginga(sys_argv):
     """Run this from command line.
@@ -110,16 +37,14 @@ def run_stginga(sys_argv):
     # Note: Unable to get this to work from within ginga_config.py
     # Example:
     #     glb_plg_to_remove = ['WBrowser', 'RC', 'SAMP', 'IRAF']
-    glb_plg_to_remove = []
-    lcl_plg_to_remove = []
-    _remove_plugins(glb_plg_to_remove, gmain.global_plugins)
-    _remove_plugins(lcl_plg_to_remove, gmain.local_plugins)
+    plg_to_remove = []
+    _remove_plugins(plg_to_remove, gmain.plugins)
 
     # Add custom plugins.
     # If we use this, we do not have to use ginga_config.py
     stglobal_plugins, stlocal_plugins = _get_stginga_plugins()
-    gmain.global_plugins += stglobal_plugins
-    gmain.local_plugins += stlocal_plugins
+    gmain.plugins += stglobal_plugins
+    gmain.plugins += stlocal_plugins
 
     # Enforce Qt (--toolkit or -t) -- DISABLED
     # new_argv = ['--toolkit=qt' if 'toolkit' in s else s for s in sys_argv]
@@ -128,7 +53,7 @@ def run_stginga(sys_argv):
 
     # Auto start core global plugins
     for gplgname in ('ChangeHistory', ):
-        gplg = _locate_plugin(gmain.global_plugins, gplgname)
+        gplg = _locate_plugin(gmain.plugins, gplgname)
         gplg.start = True
 
     # Start Ginga

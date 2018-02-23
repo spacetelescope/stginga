@@ -1,5 +1,53 @@
-"""SNR and Surface background ratio (SBR) calculation local plugin for
-Ginga.
+"""
+Signal-to-Noise Ratio (SNR) and Surface Background Ratio (SBR)
+calculations on an image.
+
+**Plugin Type: Local**
+
+``SNRCalc`` is a local plugin, which means it is associated with a
+channel.  An instance can be opened for each channel.
+
+**Usage**
+
+This plugin is used to calculate SBR and SNR, as follow.
+
+SBR is as defined by `Ball <http://www.ballaerospace.com/>`_, *"Take the median
+value of the pixels within the image. In the case of a defocused spot, this is
+just the median value within the 'top hat' portion of the image. Next, take the
+standard deviation of the pixels that are clearly in the background, that is,
+have no incident photons on them. Take the ratio of these two quantities, and
+you have the signal-to-background ratio."*
+
+Given selected science (:math:`S`) and background (:math:`B`) regions:
+
+.. math::
+
+    \\mathrm{SBR} = \\frac{\\mathrm{MEDIAN}(S)}{\\mathrm{STDEV}(B)}
+
+For the science region above, as long as the image has an accompanying error
+array (e.g., the ``ERR`` extension), its SNR can also be calculated:
+
+.. math::
+
+    a = \\frac{S}{\\mathrm{ERR}}
+
+    \\mathrm{SNR}_{\\mathrm{min}} = \\mathrm{MIN}(a)
+
+    \\mathrm{SNR}_{\\mathrm{max}} = \\mathrm{MAX}(a)
+
+    \\overline{\\mathrm{SNR}} = \\mathrm{MEAN}(a)
+
+While SNR is more popular, SBR is useful for images without existing or
+reliable errors. User can also define a minimum limit for SBR check, so that
+the GUI can provide a quick visual indication on whether the image achieves the
+desired SBR or not. As part of the statistics, mean background value is also
+provided albeit not used in SBR nor SNR calculations.
+
+User can save the calculated values in the image header using the "Update HDR"
+button. Calculation parameters can be saved to a JSON file, which then can be
+reloaded as well. The image with updated header can be saved using
+:ref:`ginga:sec-plugins-global-saveimage`.
+
 """
 from __future__ import absolute_import, division, print_function
 
@@ -12,17 +60,16 @@ import numpy as np
 # GINGA
 from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
-from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
 from stginga.plugins.local_plugin_mixin import HelpMixin, MEFMixin, ParamMixin
 
-__all__ = []
+__all__ = ['SNRCalc']
 
 
 class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
-    """SNR and SBR calculations on an image."""
+
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super(SNRCalc, self).__init__(fv, fitsimage)
@@ -1111,4 +1158,6 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-__doc__ = generate_cfg_example('plugin_SNRCalc', package='stginga')
+from ginga.util.toolbox import generate_cfg_example  # noqa
+if __doc__ is not None:
+    __doc__ += generate_cfg_example('plugin_SNRCalc', package='stginga')

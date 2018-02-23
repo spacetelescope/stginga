@@ -44,12 +44,14 @@ def _get_stginga_plugins():
 
     global_plugins = []
     local_plugins = [
-        Bunch(module='MultiImage', ws='dialogs', pfx=gpfx),
-        Bunch(module='MIPick', ws='dialogs', pfx=gpfx),
-        Bunch(module='BackgroundSub', ws='dialogs', pfx=gpfx),
-        Bunch(module='BadPixCorr', ws='dialogs', pfx=gpfx),
-        Bunch(module='DQInspect', ws='dialogs', pfx=gpfx),
-        Bunch(module='SNRCalc', ws='dialogs', pfx=gpfx),
+        Bunch(module='BackgroundSub', workspace='dialogs', pfx=gpfx,
+              category='Custom', ptype='local'),
+        Bunch(module='BadPixCorr', workspace='dialogs', pfx=gpfx,
+              category='Custom', ptype='local'),
+        Bunch(module='DQInspect', workspace='dialogs', pfx=gpfx,
+              category='Custom', ptype='local'),
+        Bunch(module='SNRCalc', workspace='dialogs', pfx=gpfx,
+              category='Custom', ptype='local'),
         ]
     return global_plugins, local_plugins
 

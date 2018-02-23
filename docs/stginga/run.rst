@@ -3,10 +3,10 @@
 Running Ginga With stginga Plugins
 ==================================
 
-``stginga`` includes additional plugins to beyond those provided by Ginga
-itself that add functionality.  There are a few different ways to start
-Ginga in a way that will make it recognize those plugins; Only use *one* of the
-following options:
+``stginga`` includes plugins beyond those provided by Ginga itself that add
+functionalities specific to STScI needs. There are a few different ways to
+start Ginga in a way that will make it recognize these plugins; Only use *one*
+of the following options:
 
 #. :ref:`stginga-run-script`
 #. :ref:`stginga-run-gingaconfig`
@@ -18,7 +18,7 @@ following options:
 The stginga Script
 ------------------
 
-The simplest way is to simply use a script packaged with ``stginga`` that knows
+The simplest way is to use a script packaged with ``stginga`` that knows
 how to preload the :ref:`STScI plugins <stginga-plugins>`::
 
     stginga [args]

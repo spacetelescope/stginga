@@ -1,4 +1,18 @@
-"""DQ flag inspection local plugin for Ginga."""
+"""
+DQ inspection on an image.
+
+**Plugin Type: Local**
+
+``DQInspect`` is a local plugin, which means it is associated with a
+channel.  An instance can be opened for each channel.
+
+**Usage**
+
+This local plugin is used to inspect the associated DQ array of a given image.
+It shows the different DQ flags that went into a given pixel (middle right)
+and also the overall mask of the selected DQ flag(s) (bottom right).
+
+"""
 from __future__ import absolute_import, division, print_function
 
 # STDLIB
@@ -13,13 +27,12 @@ from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
 from ginga.misc import Bunch
 from ginga.util.dp import masktorgb
-from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga import utils
 from stginga.plugins.local_plugin_mixin import HelpMixin, MEFMixin
 
-__all__ = []
+__all__ = ['DQInspect']
 
 # Default DQ flags (HST)
 _def_tab = """# TELESCOPE = HST
@@ -46,7 +59,7 @@ DQFLAG SHORT_DESCRIPTION LONG_DESCRIPTION
 
 
 class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
-    """DQ inspection on an image."""
+
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super(DQInspect, self).__init__(fv, fitsimage)
@@ -683,4 +696,6 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-__doc__ = generate_cfg_example('plugin_DQInspect', package='stginga')
+from ginga.util.toolbox import generate_cfg_example  # noqa
+if __doc__ is not None:
+    __doc__ += generate_cfg_example('plugin_DQInspect', package='stginga')

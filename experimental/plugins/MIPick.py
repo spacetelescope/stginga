@@ -1,9 +1,4 @@
-#
-# MIPick.py -- Multi-Image Pick plugin for Ginga reference viewer
-#
-# This is open-source software licensed under a BSD license.
-# Please see the file LICENSE.txt for details.
-#
+"""Multi-Image Pick plugin for Ginga reference viewer."""
 
 # GINGA
 from ginga.rv.plugins.Pick import Pick

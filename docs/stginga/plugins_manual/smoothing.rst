@@ -3,6 +3,8 @@
 Smoothing
 ---------
 
+.. warning:: This is experimental; not actively maintain and might not work.
+
 .. image:: images/smoothing_before.png
   :width: 800px
   :alt: Smoothing plugin, before
@@ -31,5 +33,3 @@ The smoothed image is inserted into Ginga as a new image, leaving the original
 image untouched. Details on the smoothing performed can be viewed using
 :ref:`ginga:sec-plugins-changehistory`. In addition, it can be saved using
 :ref:`ginga:sec-plugins-global-saveimage`.
-
-.. automodule:: stginga.plugins.Smoothing

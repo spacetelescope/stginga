@@ -1,4 +1,4 @@
-"""Image smoothing local plugin for Ginga."""
+"""Smoothing on an image."""
 from __future__ import absolute_import, division, print_function
 
 # STDLIB
@@ -14,7 +14,6 @@ from scipy.signal import boxcar
 from ginga.AstroImage import AstroImage
 from ginga.GingaPlugin import LocalPlugin
 from ginga.gw import Widgets
-from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga.plugins.local_plugin_mixin import HelpMixin, ParamMixin
@@ -22,8 +21,10 @@ from stginga.plugins.local_plugin_mixin import HelpMixin, ParamMixin
 __all__ = []
 
 
+# TODO: If this plugin becomes active again, need modernize doc rendering.
+# See https://github.com/spacetelescope/stginga/issues/134
 class Smoothing(HelpMixin, LocalPlugin, ParamMixin):
-    """Smoothing on an image."""
+
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super(Smoothing, self).__init__(fv, fitsimage)
@@ -336,9 +337,3 @@ class Smoothing(HelpMixin, LocalPlugin, ParamMixin):
         name of the plugin.
         """
         return 'smoothing'
-
-
-# Replace module docstring with config doc for auto insert by Sphinx.
-# In the future, if we need the real docstring, we can append instead of
-# overwrite.
-__doc__ = generate_cfg_example('plugin_Smoothing', package='stginga')

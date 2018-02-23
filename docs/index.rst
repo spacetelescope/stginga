@@ -27,5 +27,4 @@ Using ``stginga``
 
    stginga/run
    stginga/plugins_manual/index
-   stginga/ipynb
    stginga/ref_api

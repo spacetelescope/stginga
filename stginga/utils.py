@@ -8,13 +8,11 @@ import warnings
 
 # THIRD-PARTY
 import numpy as np
-import astropy
 from astropy import wcs
 from astropy.io import ascii, fits
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
 from astropy.utils.exceptions import AstropyUserWarning
-from astropy.utils.introspection import minversion
 from scipy.interpolate import griddata
 from scipy.ndimage.interpolation import zoom
 
@@ -55,13 +53,6 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
     if len(arr) < 1:
         return 0.0
 
-    # NOTE: Now requires Astropy 1.1 or later, so this check is not needed.
-    # from astropy import version as astropy_version
-    # if ((astropy_version.major==1 and astropy_version.minor==0) or
-    #         (astropy_version.major < 1)):
-    #     arr_masked = sigma_clip(arr, sig=sigma, iters=niter)
-    # else:
-    #     arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
     arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
 
     arr = arr_masked.data[~arr_masked.mask]
@@ -311,7 +302,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
         Unsupported number of dimension or invalid WCS.
 
     """
-    if not clobber and os.path.exists(outfile):
+    if not clobber and os.path.exists(outfile):  # pragma: no cover
         if debug:
             warnings.warn('{0} already exists'.format(outfile),
                           AstropyUserWarning)
@@ -329,7 +320,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
             continue
         hdr[key] = prihdr[key]
 
-    if data.ndim != 2:
+    if data.ndim != 2:  # pragma: no cover
         raise ValueError('Unsupported ndim={0}'.format(data.ndim))
 
     # Scale the data.
@@ -375,7 +366,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
     # Update header
     if 'XTENSION' in hdr:
         del hdr['XTENSION']
-    if 'SIMPLE' in hdr:
+    if 'SIMPLE' in hdr:  # pragma: no cover
         hdr['SIMPLE'] = True
     else:
         hdr.insert(0, ('SIMPLE', True))
@@ -389,7 +380,4 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
     # Write to output file
     hdu = fits.PrimaryHDU(data)
     hdu.header = hdr
-    if minversion(astropy, '1.3'):
-        hdu.writeto(outfile, overwrite=clobber)
-    else:
-        hdu.writeto(outfile, clobber=clobber)
+    hdu.writeto(outfile, overwrite=clobber)

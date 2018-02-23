@@ -2,7 +2,7 @@ language: python
 
 python:
     - 2.7
-    - 3.5
+    - 3.6
 
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
@@ -33,7 +33,7 @@ env:
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES=''
+        - CONDA_DEPENDENCIES='numpy scipy astropy ginga'
 
         # If there are matplotlib or other GUI tests, uncomment the following
         # line to use the X virtual framebuffer.
@@ -42,32 +42,29 @@ env:
     matrix:
         # Make sure that egg_info works without dependencies
         - SETUP_CMD='egg_info'
-        # DISABLED UNTIL WE HAVE REAL TESTS
-        # Try all python versions with the latest numpy
-        #- SETUP_CMD='test'
+        # Run actual tests
+        - SETUP_CMD='test'
 
 matrix:
     include:
 
-        # DISABLED FOR NOW
-        # Do a coverage test in Python 3.
-        #- python: 3.5
-        #  env: SETUP_CMD='test --coverage'
-
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
-        - python: 3.5
+        - python: 3.6
           env: SETUP_CMD='build_docs -w'
-               PIP_DEPENDENCIES='ginga pandoc nbconvert tornado scipy'
 
         # DISABLED FOR NOW
-        # Try Astropy development version
+        # Do a coverage test in Python 3.
         #- python: 3.6
-        #  env: ASTROPY_VERSION=development
+        #  env: SETUP_CMD='test --coverage'
 
-        # Do a PEP8 test with pycodestyle
-        - python: 3.5
-          env: MAIN_CMD='pycodestyle stginga --count' SETUP_CMD=''
+        # Try Astropy development version
+        - python: 3.6
+          env: ASTROPY_VERSION=development
+
+        # Do a PEP8 test with flake8
+        - python: 3.6
+          env: MAIN_CMD='flake8 stginga --count' SETUP_CMD=''
 
 install:
 

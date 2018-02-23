@@ -1,4 +1,34 @@
-"""Automatic mosaic local plugin for Ginga."""
+"""
+Mosaic with option to highlight individual component.
+
+**Plugin Type: Local**
+
+``MosaicAuto`` is a local plugin, which means it is associated with a
+channel. An instance can be opened for each channel.
+
+**Usage**
+
+.. warning:: This can be very memory intensive.
+
+This plugin is used to automatically create a mosaic of all currently
+loaded images in the channel. The position of an image on the mosaic is
+determined by its WCS without distortion correction. This is meant as a
+quick-look tool, not an `AstroDrizzle <http://drizzlepac.stsci.edu/>`_
+replacement. Currently, such a mosaic can only be created once per Ginga
+session.
+
+Once the mosaic is successfully created, user can select the desired
+image name(s) to highlight associated footprint(s) on the mosaic.
+Alternately, user can also click directly on the displayed mosaic to
+highlight a footprint; Clicking on a highlighted footprint again will
+un-highlight it.
+
+A shortlist of only the selected image names are displayed under the "Selected"
+tab. This list can be saved to a file by clicking "Save Selection" button.
+Optionally, the mosaic itself can be saved using
+:ref:`ginga:sec-plugins-global-saveimage`.
+
+"""
 from __future__ import absolute_import, division, print_function
 from ginga.util import six
 
@@ -14,16 +44,15 @@ from ginga.AstroImage import AstroImage
 from ginga.gw import Widgets
 from ginga.misc import Bunch
 from ginga.rv.plugins.Mosaic import Mosaic
-from ginga.util.toolbox import generate_cfg_example
 
 # STGINGA
 from stginga.plugins.local_plugin_mixin import HelpMixin
 
-__all__ = []
+__all__ = ['MosaicAuto']
 
 
 class MosaicAuto(HelpMixin, Mosaic):
-    """Mosaic with option to highlight individual component."""
+
     def __init__(self, fv, fitsimage):
         super(MosaicAuto, self).__init__(fv, fitsimage)
 
@@ -523,4 +552,6 @@ class MosaicAuto(HelpMixin, Mosaic):
 # Replace module docstring with config doc for auto insert by Sphinx.
 # In the future, if we need the real docstring, we can append instead of
 # overwrite.
-__doc__ = generate_cfg_example('plugin_Mosaic', package='stginga')
+from ginga.util.toolbox import generate_cfg_example  # noqa
+if __doc__ is not None:
+    __doc__ += generate_cfg_example('plugin_Mosaic', package='stginga')

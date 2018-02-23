@@ -1,10 +1,5 @@
 numpy
-matplotlib
-Cython
 scipy>=0.18
 astropy-helpers
-astropy
-tornado
-jupyter_client
-nbconvert
-ginga>=2.6.2
+astropy>=2
+ginga>=2.7
