@@ -549,9 +549,7 @@ class MosaicAuto(HelpMixin, Mosaic):
         return 'mosaicauto'
 
 
-# Replace module docstring with config doc for auto insert by Sphinx.
-# In the future, if we need the real docstring, we can append instead of
-# overwrite.
+# Append module docstring with config doc for auto insert by Sphinx.
 from ginga.util.toolbox import generate_cfg_example  # noqa
 if __doc__ is not None:
     __doc__ += generate_cfg_example('plugin_Mosaic', package='stginga')
