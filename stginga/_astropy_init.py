@@ -7,17 +7,14 @@ try:
     _ASTROPY_SETUP_
 except NameError:
     from sys import version_info
-    if version_info[0] >= 3:
-        import builtins
-    else:
-        import __builtin__ as builtins
+    import builtins
     builtins._ASTROPY_SETUP_ = False
 
 try:
     from .version import version as __version__
 except ImportError:
-    __version__ = '0.1.dev'
-__vdate__ = '2016-03-29'
+    __version__ = '1.0.dev'
+__vdate__ = '2018-05-16'
 try:
     from .version import githash as __githash__
 except ImportError:

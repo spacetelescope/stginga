@@ -1,7 +1,4 @@
 """Utility functions for ``stginga``."""
-from __future__ import absolute_import, division, print_function
-from astropy.extern.six.moves import map
-
 # STDLIB
 import os
 import warnings

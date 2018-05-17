@@ -13,6 +13,8 @@ Bug fixes
 Other Changes and Additions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Python 2 support is dropped. Minimum Python version supported is now 3.5.
+
 0.3 (2018-02-23)
 ----------------
 

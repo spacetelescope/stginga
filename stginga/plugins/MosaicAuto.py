@@ -29,9 +29,6 @@ Optionally, the mosaic itself can be saved using
 :ref:`ginga:sec-plugins-global-saveimage`.
 
 """
-from __future__ import absolute_import, division, print_function
-from ginga.util import six
-
 # STDLIB
 import os
 
@@ -169,7 +166,7 @@ class MosaicAuto(HelpMixin, Mosaic):
 
         # Get image list from Contents, excluding other mosaics
         file_dict = self.list_plugin_obj.name_dict[self.chname]
-        for bnch in six.itervalues(file_dict):
+        for bnch in file_dict.values():
             if ((not isinstance(bnch, Bunch.Bunch)) or
                     ('mosaic' in bnch.NAME.lower())):
                 continue
@@ -196,8 +193,7 @@ class MosaicAuto(HelpMixin, Mosaic):
 
         # Always start a new mosaic.
         # Remove duplicates in case an image have multiple extensions opened.
-        images = list(set([bnch.path for bnch in
-                           six.itervalues(self._imlist)]))
+        images = list(set([bnch.path for bnch in self._imlist.values()]))
         self.fv.nongui_do(self.fv.error_wrap, self.mosaic, images,
                           new_mosaic=True)
         self.fitsimage.auto_levels()
@@ -245,7 +241,7 @@ class MosaicAuto(HelpMixin, Mosaic):
         fpcolor = self.settings.get('footprintscolor', 'red')
         fpwidth = self.settings.get('footprintlinewidth', 5)
         polygonlist = []
-        for imname, bnch in six.iteritems(self._imlist):
+        for imname, bnch in self._imlist.items():
             self.logger.debug('Drawing footprint for {0}'.format(imname))
             if bnch.footprint is None:
                 continue
