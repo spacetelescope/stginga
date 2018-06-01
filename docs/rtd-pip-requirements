@@ -1,5 +1,5 @@
 numpy
 scipy>=0.18
 astropy-helpers
-astropy>=2
+astropy>=3
 ginga>=2.7

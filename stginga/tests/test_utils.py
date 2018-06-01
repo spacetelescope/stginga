@@ -3,11 +3,14 @@
 import numpy as np
 import pytest
 from astropy.io import fits
+from astropy.utils import minversion
 from astropy.utils.data import get_pkg_data_filename
 from numpy.testing import assert_allclose, assert_array_equal
 
 from ..utils import (calc_stat, interpolate_badpix, find_ext, DQParser,
                      scale_image)
+
+SCIPY_LT_1_1_0 = not minversion('scipy', '1.1.0')
 
 
 class TestCalcStat(object):
@@ -86,11 +89,21 @@ class TestStuffWithFITS(object):
         """WCS handling is not tested."""
         outfile = self.filename.replace('test.fits', 'out.fits')
         scale_image(self.filename, outfile, 0.5, ext='SCI')
-        ans = [[0, 2, 4, 7, 9],
-               [22, 25, 27, 29, 31],
-               [45, 47, 49, 52, 54],
-               [68, 70, 72, 74, 77],
-               [90, 92, 95, 97, 99]]
+
+        # https://github.com/scipy/scipy/issues/8845
+        if SCIPY_LT_1_1_0:
+            ans = [[0, 2, 4, 7, 9],
+                   [22, 25, 27, 29, 31],
+                   [45, 47, 49, 52, 54],
+                   [68, 70, 72, 74, 77],
+                   [90, 92, 95, 97, 99]]
+        else:
+            ans = [[0, 2, 5, 7, 9],
+                   [22, 25, 27, 29, 31],
+                   [45, 47, 50, 52, 54],
+                   [68, 70, 72, 74, 77],
+                   [90, 92, 95, 97, 99]]
+
         with fits.open(outfile) as pf:
             assert pf[0].header['INSTRUME'] == 'ACS'
             assert_allclose(pf[0].data, ans)

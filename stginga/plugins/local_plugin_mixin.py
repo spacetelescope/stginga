@@ -1,5 +1,4 @@
 """Mixin classes for local plugins for Ginga."""
-from __future__ import absolute_import, division, print_function
 
 # STDLIB
 import json

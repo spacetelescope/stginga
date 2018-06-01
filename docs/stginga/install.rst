@@ -5,10 +5,11 @@ Installation
 
 ``stginga`` requires:
 
-* Astropy 2.0 or later.
-* SciPy 0.18 or later.
-* Ginga 2.7 or later, available from
-  `Ginga's GitHub page <https://github.com/ejeschke/ginga/>`_.
+* Python 3
+* Astropy 3.0 or later
+* SciPy 0.18 or later
+* Ginga 2.7 or later, see
+  `Ginga's documentation <https://ginga.readthedocs.io/>`_
 
 We suggest using `Anaconda <https://www.continuum.io/downloads>`_ as a
 Python distribution that is known to work with ``stginga``::

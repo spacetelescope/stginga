@@ -13,8 +13,6 @@ It shows the different DQ flags that went into a given pixel (middle right)
 and also the overall mask of the selected DQ flag(s) (bottom right).
 
 """
-from __future__ import absolute_import, division, print_function
-
 # STDLIB
 import os
 

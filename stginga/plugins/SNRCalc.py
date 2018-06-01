@@ -49,8 +49,6 @@ reloaded as well. The image with updated header can be saved using
 :ref:`ginga:sec-plugins-global-saveimage`.
 
 """
-from __future__ import absolute_import, division, print_function
-
 # STDLIB
 from datetime import datetime
 
