@@ -15,7 +15,7 @@ __pycache__
 htmlcov
 .coverage
 MANIFEST
-docs/stginga/notebooks/ginga_nbinteract.rst
+.ipynb_checkpoints
 
 # Sphinx
 docs/api
