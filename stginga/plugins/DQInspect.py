@@ -238,7 +238,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         for row in dqs:
             flag = row[dqparser._dqcol]
             val = row[dqstr]
-            treedict[str(flag)] = Bunch.Bunch(FLAG=flag, DESCRIP=val)
+            treedict[flag] = Bunch.Bunch(FLAG=flag, DESCRIP=val)
 
         self.pxdqlist.set_tree(treedict)
         self.w.dq.set_text(str(pixval))
@@ -258,7 +258,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
             row = dqparser.tab[dqparser.tab[dqparser._dqcol] == key]
             flag = row[dqparser._dqcol][0]
             val = row[dqstr][0]
-            treedict[str(flag)] = Bunch.Bunch(FLAG=flag, DESCRIP=val)
+            treedict[flag] = Bunch.Bunch(FLAG=flag, DESCRIP=val)
 
         self.imdqlist.set_tree(treedict)
 
