@@ -9,9 +9,12 @@ from astropy import wcs
 from astropy.io import ascii, fits
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
+from astropy.utils import minversion
 from astropy.utils.exceptions import AstropyUserWarning
 from scipy.interpolate import griddata
 from scipy.ndimage.interpolation import zoom
+
+ASTROPY_LT_3_1 = not minversion('astropy', '3.1')
 
 __all__ = ['calc_stat', 'interpolate_badpix', 'find_ext', 'DQParser',
            'scale_image']
@@ -50,8 +53,14 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
     if len(arr) < 1:
         return 0.0
 
-    arr_masked = sigma_clip(arr, sigma=sigma, iters=niter)
+    kwargs = {'sigma': sigma}
 
+    if ASTROPY_LT_3_1:
+        kwargs['iters'] = niter
+    else:
+        kwargs['maxiters'] = niter
+
+    arr_masked = sigma_clip(arr, **kwargs)
     arr = arr_masked.data[~arr_masked.mask]
 
     if len(arr) < 1:

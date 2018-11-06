@@ -47,7 +47,7 @@ Optionally, if data quality (DQ) extension is available, pixels marked as
 "not good" can be excluded from calculations as well.
 
 It also supports saving/loading parameters to/from JSON file. Calculated
-values can be saved in the image header using the ``Update HDR'' button.
+values can be saved in the image header using the "Update HDR" button.
 The image with updated header only exists in the Ginga cache until it
 is forced out by viewing other images; to save it, use
 :ref:`ginga:sec-plugins-global-saveimage`.
