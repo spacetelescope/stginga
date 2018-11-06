@@ -304,7 +304,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         try:
             dqfile = get_pkg_data_filename(dqdict[instrument],
                                            package='stginga')
-        except Exception as e:
+        except Exception:
             dqfile = dqdict[instrument]
             if os.path.isfile(dqfile):
                 self.logger.info('Using external data {0}'.format(dqfile))
@@ -320,7 +320,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
 
         try:
             dqp = utils.DQParser(dqfile)
-        except Exception as e:
+        except Exception:
             self.logger.warn('Cannot extract DQ info from {0}, using '
                              'default'.format(dqfile))
             dqp = self._def_parser
