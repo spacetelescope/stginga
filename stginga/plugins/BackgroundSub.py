@@ -8,10 +8,23 @@ channel.  An instance can be opened for each channel.
 
 **Usage**
 
-This plugin is used to calculate and subtract background value. Currently,
-it only handles constant background. Subtraction parameters can be saved to a
-JSON file, which then can be reloaded as well. The subtracted image can be
-saved using :ref:`ginga:sec-plugins-global-saveimage`.
+This plugin is used to calculate and subtract background value.
+User draws a shape (e.g., annulus) to define the region from which background
+is calculated. In the "Attributes" box, parameters controlling the calculation
+can be adjusted. As user modifies the region or changes the parameters,
+background value would be recalculated accordingly.
+Optionally, if a data quality (DQ) extension is available, pixels marked as
+"not good" can be excluded from calculations as well.
+Subtraction parameters can be saved to a JSON file, which then can be reloaded.
+
+Finally, if desired, the calculated background can be subtracted off
+the displayed image in Ginga. However, the subtracted image only exists in an
+in-memory cache in Ginga; if the cache fills up, Ginga will eventually eject
+the image if it is not being viewed.
+To save the subtracted image out to a different file, use the
+:ref:`ginga:sec-plugins-global-saveimage` plugin in Ginga.
+Currently, this only handles constant background, therefore unsuitable for
+when background has a gradient or a pattern.
 
 """
 # STDLIB

@@ -1,5 +1,5 @@
 """
-DQ inspection on an image.
+Data quality (DQ) inspection on an image.
 
 **Plugin Type: Local**
 
@@ -8,9 +8,13 @@ channel.  An instance can be opened for each channel.
 
 **Usage**
 
-This local plugin is used to inspect the associated DQ array of a given image.
-It shows the different DQ flags that went into a given pixel (middle right)
-and also the overall mask of the selected DQ flag(s) (bottom right).
+This plugin is used to visualize the associated DQ array stored
+as a FITS HDU within an image. It shows the different DQ flags (top table)
+that went into a selected pixel (marked by a red "x") and also the overall
+mask of the selected DQ flag(s) (blue pixels; bottom table).
+For overall mask, when multiple flags are selected, each flag is assigned a
+different mask color at a reduced opacity for each.
+User has the option to customize flag definitions for different instruments.
 
 """
 # STDLIB
