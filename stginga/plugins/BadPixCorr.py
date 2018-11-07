@@ -8,11 +8,18 @@ channel. An instance can be opened for each channel.
 
 **Usage**
 
-This plugin is used to fix bad pixels. Currently, it only handles fixing
-a single bad pixel or bad pixels within a circular region. The corresponding
-DQ flags will also be set to the given new flag value (default is zero).
-Correction parameters can be saved to a JSON file, which then can be reloaded
-as well. The corrected image can be saved using
+This is a plugin for performing interactive bad pixel correction on an image.
+Currently, it only handles fixing a single bad pixel or bad pixels within a
+circular region. The bad pixel(s) can be filled either by a user-defined
+constant, a constant calculated from an annulus, or Scipy ``griddata``
+interpolation using the annulus. If data quality (DQ) extension is present,
+the corresponding DQ flags will also be set to the given new flag value
+(default is 0 for "good").
+
+It also supports saving/loading parameters to/from JSON file and
+the corrected image only exists in the Ginga in-memory cache;
+if the cache fills up, Ginga will eventually eject the image if it is not
+in use. To save the result image, use
 :ref:`ginga:sec-plugins-global-saveimage`.
 
 """

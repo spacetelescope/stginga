@@ -9,9 +9,10 @@ channel.  An instance can be opened for each channel.
 
 **Usage**
 
-This plugin is used to calculate SBR and SNR, as follow.
+This plugin is used to calculate SBR and SNR on an image, as follow.
 
-SBR is as defined by `Ball <http://www.ballaerospace.com/>`_, *"Take the median
+SBR is as defined by `Ball <http://www.ballaerospace.com/>`_
+(Acton 2015, private communications), *"Take the median
 value of the pixels within the image. In the case of a defocused spot, this is
 just the median value within the 'top hat' portion of the image. Next, take the
 standard deviation of the pixels that are clearly in the background, that is,
@@ -38,14 +39,17 @@ array (e.g., the ``ERR`` extension), its SNR can also be calculated:
     \\overline{\\mathrm{SNR}} = \\mathrm{MEAN}(a)
 
 While SNR is more popular, SBR is useful for images without existing or
-reliable errors. User can also define a minimum limit for SBR check, so that
-the GUI can provide a quick visual indication on whether the image achieves the
-desired SBR or not. As part of the statistics, mean background value is also
-provided albeit not used in SBR nor SNR calculations.
+reliable error values. User may define a minimum limit for SBR check, so that
+the GUI can provide a quick visual indication on whether the selected region
+achieves the desired SBR or not. As part of the statistics, mean background
+value is also provided albeit not used in SBR nor SNR calculations.
+Optionally, if data quality (DQ) extension is available, pixels marked as
+"not good" can be excluded from calculations as well.
 
-User can save the calculated values in the image header using the "Update HDR"
-button. Calculation parameters can be saved to a JSON file, which then can be
-reloaded as well. The image with updated header can be saved using
+It also supports saving/loading parameters to/from JSON file. Calculated
+values can be saved in the image header using the "Update HDR" button.
+The image with updated header only exists in the Ginga cache until it
+is forced out by viewing other images; to save it, use
 :ref:`ginga:sec-plugins-global-saveimage`.
 
 """
