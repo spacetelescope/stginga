@@ -1,4 +1,4 @@
-1.0 (unreleased)
+1.1 (unreleased)
 ----------------
 
 New Features
@@ -9,6 +9,19 @@ API changes
 
 Bug fixes
 ^^^^^^^^^
+
+Other Changes and Additions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1.0 (2018-11-08)
+----------------
+
+This version was successfully tested with Ginga 2.7.2 in Python 3.7.
+
+API changes
+^^^^^^^^^^^
+
+- Updated ACS DQ flags definition for ``DQInspect``.
 
 Other Changes and Additions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
