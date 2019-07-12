@@ -76,7 +76,7 @@ todo_include_todos = False
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = setup_cfg['package_name']
+project = setup_cfg['name']
 author = setup_cfg['author']
 copyright = '{0}, {1}'.format(
     datetime.datetime.now().year, setup_cfg['author'])
@@ -85,8 +85,8 @@ copyright = '{0}, {1}'.format(
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-__import__(setup_cfg['package_name'])
-package = sys.modules[setup_cfg['package_name']]
+__import__(setup_cfg['name'])
+package = sys.modules[setup_cfg['name']]
 
 # The short X.Y version.
 version = package.__version__.split('-', 1)[0]
@@ -155,18 +155,3 @@ man_pages = [('index', project.lower(), project + u' Documentation',
 
 intersphinx_mapping.update({
         'ginga': ('http://ginga.readthedocs.org/en/latest/', None)})
-
-# -- Options for the edit_on_github extension ----------------------------------
-
-if eval(setup_cfg.get('edit_on_github')):
-    extensions += ['astropy_helpers.sphinx.ext.edit_on_github']
-
-    versionmod = __import__(setup_cfg['package_name'] + '.version')
-    edit_on_github_project = setup_cfg['github_project']
-    if versionmod.version.release:
-        edit_on_github_branch = "v" + versionmod.version.version
-    else:
-        edit_on_github_branch = "master"
-
-    edit_on_github_source_root = ""
-    edit_on_github_doc_root = "docs"
