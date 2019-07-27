@@ -81,5 +81,6 @@ def _main():
     """Run from command line."""
     run_stginga(sys.argv)
 
+
 if __name__ == '__main__':
     _main()
