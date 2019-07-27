@@ -76,10 +76,6 @@ def _remove_plugins(rmlist, plist):
         plist.remove(plg)
 
 
-def _main():
+if __name__ == '__main__':
     """Run from command line."""
     run_stginga(sys.argv)
-
-
-if __name__ == '__main__':
-    _main()
