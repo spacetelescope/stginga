@@ -1,3 +1,6 @@
+The notebooks in this folder were developed to prototype experimental
+features. There is no guarantee that they still work as-is.
+
 The plugins in this folder were developed during JWST DADF sprints and
 are not actively maintained. There is no guarantee that they still work.
 
