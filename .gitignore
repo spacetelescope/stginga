@@ -15,7 +15,7 @@ __pycache__
 htmlcov
 .coverage
 MANIFEST
-docs/stginga/notebooks/ginga_nbinteract.rst
+.ipynb_checkpoints/
 
 # Sphinx
 docs/api
@@ -48,6 +48,7 @@ distribute-*.tar.gz
 .tox
 .*.sw[op]
 *~
+experimental/notebooks/*.fits
 
 # Mac OSX
 .DS_Store
