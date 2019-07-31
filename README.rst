@@ -9,10 +9,6 @@ stginga
     :target: https://travis-ci.org/spacetelescope/stginga
     :alt: Travis CI results
 
-.. image:: https://ci.appveyor.com/api/projects/status/ulg6cmh15xpyyvp5?svg=true
-    :target: https://ci.appveyor.com/project/pllim/stginga
-    :alt: Appveyor CI results
-
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
     :target: http://www.astropy.org
     :alt: Powered by Astropy Badge
