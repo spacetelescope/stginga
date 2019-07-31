@@ -31,6 +31,7 @@ env:
         - PYTHON_VERSION=3.7
         - NUMPY_VERSION=stable
         - ASTROPY_VERSION=stable
+        - GINGA_VERSION=stable
         - MAIN_CMD='python setup.py'
         - SETUP_CMD='test'
         - PIP_DEPENDENCIES=''
@@ -38,7 +39,7 @@ env:
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES='scipy ginga'
+        - CONDA_DEPENDENCIES='scipy'
 
         # If there are matplotlib or other GUI tests, uncomment the following
         # line to use the X virtual framebuffer.
@@ -63,9 +64,9 @@ matrix:
         #- os: linux
         #  env: PYTHON_VERSION=3.7 SETUP_CMD='test --coverage'
 
-        # Try Astropy development version
+        # Try Astropy and Ginga development versions
         - os: linux
-          env: ASTROPY_VERSION=development
+          env: ASTROPY_VERSION=development GINGA_VERSION=development
 
         # Try on Windows
         - os: windows
@@ -99,6 +100,10 @@ install:
     # well as at the start of the install section or in the before_install
     # section if they are needed before setting up conda) to install any
     # other dependencies.
+
+    # GINGA
+    - if [[ $GINGA_VERSION == development ]]; then pip -q install git+http://github.com/ejeschke/ginga; fi
+    - if [[ $GINGA_VERSION == stable ]]; then pip -q install ginga; fi
 
 script:
    - $MAIN_CMD $SETUP_CMD

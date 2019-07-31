@@ -28,7 +28,7 @@ enable_deprecations_as_exceptions()
 # from the list of packages for which version numbers are displayed
 # when running the tests
 PYTEST_HEADER_MODULES['Astropy'] = 'astropy'
-PYTEST_HEADER_MODULES['scikit-image'] = 'skimage'
+PYTEST_HEADER_MODULES['Ginga'] = 'ginga'
 del PYTEST_HEADER_MODULES['h5py']
 
 # Uncomment the following lines to display the version number of the
