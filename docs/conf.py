@@ -154,4 +154,4 @@ man_pages = [('index', project.lower(), project + u' Documentation',
 # -- Options for intersphinx ---------------------------------------------------
 
 intersphinx_mapping.update({
-        'ginga': ('http://ginga.readthedocs.org/en/latest/', None)})
+        'ginga': ('https://ginga.readthedocs.io/en/latest/', None)})

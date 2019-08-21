@@ -37,13 +37,13 @@ from astropy.io import ascii
 from astropy.wcs import WCS
 
 # GINGA
-from ginga.AstroImage import AstroImage
 from ginga.gw import Widgets
 from ginga.misc import Bunch
 from ginga.rv.plugins.Mosaic import Mosaic
 
 # STGINGA
 from stginga.plugins.local_plugin_mixin import HelpMixin
+from stginga.utils import GINGA_LT_3
 
 __all__ = ['MosaicAuto']
 
@@ -158,7 +158,12 @@ class MosaicAuto(HelpMixin, Mosaic):
 
     def auto_mosaic(self):
         """Create new mosaic using image list from Contents."""
-        astroimage_obj = AstroImage()
+        if GINGA_LT_3:
+            from ginga.AstroImage import AstroImage
+            astroimage_obj = AstroImage()
+        else:
+            from ginga.util.io_fits import load_file
+
         self._imlist = {}
         self._recreate_fp = True
         self.treeview.clear()
@@ -178,9 +183,11 @@ class MosaicAuto(HelpMixin, Mosaic):
             datasrc = self.chinfo.datasrc
             if imname in datasrc:
                 image = datasrc[imname]
-            else:
+            elif GINGA_LT_3:
                 image = astroimage_obj
                 image.load_file(impath)
+            else:
+                image = load_file(impath)
             footprint = image.wcs.wcs.calc_footprint()  # Astropy only?
             self._imlist[imname] = Bunch.Bunch(
                 footprint=footprint, path=impath)

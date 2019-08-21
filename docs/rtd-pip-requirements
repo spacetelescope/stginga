@@ -1,6 +1,5 @@
 numpy>=1.13
 scipy>=0.18
 sphinx-astropy
-astropy-helpers
 astropy>=3
 ginga>=2.7

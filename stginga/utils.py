@@ -14,57 +14,11 @@ from astropy.utils.exceptions import AstropyUserWarning
 from scipy.interpolate import griddata
 from scipy.ndimage.interpolation import zoom
 
-try:
-    from ginga.util.io_asdf import ASDFFileHandler
-except ImportError:
-    HAS_ASDFHANDLER = False
-    class ASDFFileHandler:  # noqa
-        pass
-else:
-    HAS_ASDFHANDLER = True
-
-try:
-    from jwst import datamodels
-except ImportError:
-    datamodels = None
-
 ASTROPY_LT_3_1 = not minversion('astropy', '3.1')
+GINGA_LT_3 = not minversion('ginga', '3.0')
 
-__all__ = ['JWSTASDFHandler', 'calc_stat', 'interpolate_badpix', 'find_ext',
-           'DQParser', 'scale_image']
-
-
-class JWSTASDFHandler(ASDFFileHandler):
-    """Class to handle JWST ASDF-in-FITS files.
-
-    .. warning:: This is experimental and subject to change.
-
-    .. note:: This requires Ginga 3.0 (unreleased as of July 2019) or later.
-              This also requires dev version of ``jwst`` pipeline.
-
-    """
-    factory_dict = {}
-
-    def __init__(self, *args, **kwargs):
-        if not HAS_ASDFHANDLER or datamodels is None:
-            raise ImportError('Requires Ginga>=3.0 and jwst')
-
-        super().__init__(*args, **kwargs)
-
-    @classmethod
-    def register_type(cls, name, klass):
-        cls.factory_dict[name.lower()] = klass
-
-    def load_file(self, filespec, dstobj=None, **kwdargs):
-        with datamodels.open(filespec) as dm:
-            dstobj.setup_data(dm.data)
-            dstobj.wcs.wcs = dm.meta.wcs  # Not dm.wcs!
-            dstobj.wcs.coordsys = dm.meta.wcs.output_frame.name
-
-        return dstobj
-
-    def save_as_file(self, path, data, header, **kwdargs):
-        raise NotImplementedError
+__all__ = ['calc_stat', 'interpolate_badpix', 'find_ext', 'DQParser',
+           'scale_image']
 
 
 def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
