@@ -54,11 +54,6 @@ env:
 matrix:
     include:
 
-        # Check for sphinx doc build warnings - we do this first because it
-        # may run for a long time
-        - os: linux
-          env: PYTHON_VERSION=3.6 SETUP_CMD='build_docs -w' PIP_DEPENDENCIES='sphinx-astropy'
-
         # DISABLED FOR NOW
         # Do a coverage test.
         #- os: linux

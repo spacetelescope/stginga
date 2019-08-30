@@ -39,7 +39,7 @@ except ImportError:
             sys.path.insert(1, a_h_path)
 
 # Load all of the global Astropy configuration
-from astropy_helpers.sphinx.conf import *
+from sphinx_astropy.conf.v1 import *
 
 # Get configuration information from setup.cfg
 from configparser import ConfigParser
@@ -154,4 +154,4 @@ man_pages = [('index', project.lower(), project + u' Documentation',
 # -- Options for intersphinx ---------------------------------------------------
 
 intersphinx_mapping.update({
-        'ginga': ('http://ginga.readthedocs.org/en/latest/', None)})
+        'ginga': ('https://ginga.readthedocs.io/en/latest/', None)})
