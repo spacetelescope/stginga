@@ -4,14 +4,22 @@
 New Features
 ^^^^^^^^^^^^
 
+- JWST ASDF file support. This feature is experimental and
+  subject to change. [#177]
+
 API changes
 ^^^^^^^^^^^
 
 Bug fixes
 ^^^^^^^^^
 
+- Fixed circle region type typo in example config files. [#167]
+
 Other Changes and Additions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Compatibility with Ginga 3. [#179]
+- Infrastructure update in accordance to Astropy APE 17. [#182]
 
 1.0 (2018-11-08)
 ----------------

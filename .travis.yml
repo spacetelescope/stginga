@@ -11,18 +11,6 @@ os:
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
 
-# The apt packages below are needed for sphinx builds. A full list of packages
-# that can be included can be found here:
-#
-# https://github.com/travis-ci/apt-package-whitelist/blob/master/ubuntu-precise
-
-addons:
-    apt:
-        packages:
-            - graphviz
-            - texlive-latex-extra
-            - dvipng
-
 env:
     global:
         # The following versions are the 'default' for tests, unless
@@ -32,8 +20,8 @@ env:
         - NUMPY_VERSION=stable
         - ASTROPY_VERSION=stable
         - GINGA_VERSION=stable
-        - MAIN_CMD='python setup.py'
-        - SETUP_CMD='test'
+        - INSTALL_CMD='pip install -e .'
+        - TEST_CMD='pytest --pyargs stginga docs'
         - PIP_DEPENDENCIES=''
 
         # For this package-template, we include examples of Cython modules,
@@ -45,31 +33,30 @@ env:
         # line to use the X virtual framebuffer.
         # - SETUP_XVFB=True
 
-    matrix:
-        # Make sure that egg_info works without dependencies
-        - SETUP_CMD='egg_info'
-        # Run actual tests
-        - SETUP_CMD='test'
-
 matrix:
     include:
 
-        # DISABLED FOR NOW
-        # Do a coverage test.
-        #- os: linux
-        #  env: PYTHON_VERSION=3.7 SETUP_CMD='test --coverage'
+        - os: linux
 
         # Try Astropy and Ginga development versions
         - os: linux
-          env: ASTROPY_VERSION=development GINGA_VERSION=development
+          env: PYTHON_VERSION=3.8 ASTROPY_VERSION=development GINGA_VERSION=development
 
         # Try on Windows
         - os: windows
-          env: SETUP_CMD='test'
 
-        # Do a PEP8 test with flake8
+        # Do a PEP 8 check with flake8
         - os: linux
-          env: MAIN_CMD='flake8 stginga --count' SETUP_CMD=''
+          env: TEST_CMD='flake8 stginga --count' INSTALL_CMD=''
+               CONDA_DEPENDENCIES=''
+               PIP_DEPENDENCIES='flake8'
+
+        # Do a PEP 517 check
+        - os: linux
+          env: INSTALL_CMD='python -m pep517.build --source .'
+               TEST_CMD='twine check dist/*'
+               CONDA_DEPENDENCIES=''
+               PIP_DEPENDENCIES='pep517 twine'
 
 install:
 
@@ -97,14 +84,9 @@ install:
     # other dependencies.
 
     # GINGA
-    - if [[ $GINGA_VERSION == development ]]; then pip -q install git+http://github.com/ejeschke/ginga; fi
+    - if [[ $GINGA_VERSION == development ]]; then pip -q install git+https://github.com/ejeschke/ginga; fi
     - if [[ $GINGA_VERSION == stable ]]; then pip -q install ginga; fi
 
 script:
-   - $MAIN_CMD $SETUP_CMD
-
-after_success:
-    # If coveralls.io is set up for this package, uncomment the line
-    # below and replace "packagename" with the name of your package.
-    # The coveragerc file may be customized as needed for your package.
-    # - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='stginga/tests/coveragerc'; fi
+   - $INSTALL_CMD
+   - $TEST_CMD
