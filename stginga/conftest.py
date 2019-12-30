@@ -1,27 +1,19 @@
-# this contains imports plugins that configure py.test for astropy tests.
-# by importing them here in conftest.py they are discoverable by py.test
-# no matter how it is invoked within the source tree.
-
 import os
 
-from astropy.version import version as astropy_version
-if astropy_version < '3.0':
-    # With older versions of Astropy, we actually need to import the pytest
-    # plugins themselves in order to make them discoverable by pytest.
-    from astropy.tests.pytest_plugins import *
-else:
-    # As of Astropy 3.0, the pytest plugins provided by Astropy are
-    # automatically made available when Astropy is installed. This means it's
-    # not necessary to import them here, but we still need to import global
-    # variables that are used for configuration.
-    from astropy.tests.plugins.display import (PYTEST_HEADER_MODULES,
+try:
+    from pytest_astropy_header.display import (PYTEST_HEADER_MODULES,
                                                TESTED_VERSIONS)
-    from astropy.tests.helper import enable_deprecations_as_exceptions
+except ImportError:
+    PYTEST_HEADER_MODULES = {}
 
-from . import version
+try:
+    from .version import version
+except ImportError:
+    version = 'unknown'
 
 # Uncomment the following line to treat all DeprecationWarnings as
 # exceptions
+from astropy.tests.helper import enable_deprecations_as_exceptions  # noqa
 enable_deprecations_as_exceptions()
 
 # Uncomment and customize the following lines to add/remove entries
@@ -29,14 +21,11 @@ enable_deprecations_as_exceptions()
 # when running the tests
 PYTEST_HEADER_MODULES['Astropy'] = 'astropy'
 PYTEST_HEADER_MODULES['Ginga'] = 'ginga'
-del PYTEST_HEADER_MODULES['h5py']
+if 'h5py' in PYTEST_HEADER_MODULES:
+    del PYTEST_HEADER_MODULES['h5py']
 
 # Uncomment the following lines to display the version number of the
 # package rather than the version number of Astropy in the top line when
 # running the tests.
-
-# This is to figure out the affiliated package version, rather than
-# using Astropy's
-
 packagename = os.path.basename(os.path.dirname(__file__))
-TESTED_VERSIONS[packagename] = version.version
+TESTED_VERSIONS[packagename] = version
