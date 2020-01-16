@@ -298,7 +298,8 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
 
         if instrument not in dqdict:
             self.logger.warn(
-                '{0} is not supported, using default'.format(instrument))
+                '{}={} is not supported, using default'.format(
+                    self._ins_key, instrument))
             return self._def_parser
 
         try:
@@ -320,9 +321,9 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
 
         try:
             dqp = utils.DQParser(dqfile)
-        except Exception:
-            self.logger.warn('Cannot extract DQ info from {0}, using '
-                             'default'.format(dqfile))
+        except Exception as err:
+            self.logger.warn('Cannot extract DQ info from {}, using '
+                             'default: {}'.format(dqfile, err))
             dqp = self._def_parser
 
         return dqp
