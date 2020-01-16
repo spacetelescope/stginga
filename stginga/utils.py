@@ -186,7 +186,7 @@ class DQParser(object):
         self.tab = ascii.read(
             os.path.expanduser(definition_file),
             names=(self._dqcol, self._sdcol, self._ldcol),
-            converters={self._dqcol: [ascii.convert_numpy(np.uint16)],
+            converters={self._dqcol: [ascii.convert_numpy(np.uint)],
                         self._sdcol: [ascii.convert_numpy(np.str)],
                         self._ldcol: [ascii.convert_numpy(np.str)]})
 
