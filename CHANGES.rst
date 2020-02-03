@@ -1,4 +1,4 @@
-1.1 (unreleased)
+1.1 (2020-02-03)
 ----------------
 
 New Features
@@ -7,18 +7,16 @@ New Features
 - JWST ASDF file support. This feature is experimental and
   subject to change. [#177]
 
-API changes
-^^^^^^^^^^^
-
 Bug fixes
 ^^^^^^^^^
 
 - Fixed circle region type typo in example config files. [#167]
+- Fixed JWST DQ definitions for ``DQInspect`` plugin. [#183]
 
 Other Changes and Additions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Compatibility with Ginga 3. [#179]
+- Compatibility with Ginga 3.0. [#179]
 - Infrastructure update in accordance to Astropy APE 17. [#182]
 
 1.0 (2018-11-08)
