@@ -1,3 +1,18 @@
+1.2 (unreleased)
+----------------
+
+New Features
+^^^^^^^^^^^^
+
+API changes
+^^^^^^^^^^^
+
+Bug fixes
+^^^^^^^^^
+
+Other Changes and Additions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 1.1 (2020-02-03)
 ----------------
 
