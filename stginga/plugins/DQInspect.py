@@ -14,7 +14,8 @@ that went into a selected pixel (marked by a red "x") and also the overall
 mask of the selected DQ flag(s) (blue pixels; bottom table).
 For overall mask, when multiple flags are selected, each flag is assigned a
 different mask color at a reduced opacity for each.
-User has the option to customize flag definitions for different instruments.
+User has the option to customize flag definitions for different telescope
+and instrument combos.
 
 """
 # STDLIB
@@ -84,15 +85,17 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         # TODO: Need better DQ definitions for supported instruments.
         # For DQ parser. Default defines only existing pkg data.
         self._def_parser = utils.DQParser(_def_tab)
-        self._def_dqdict = {'NIRCAM': 'data/dqflags_jwst.txt',
-                            'NIRSPEC': 'data/dqflags_jwst.txt',
-                            'NIRISS': 'data/dqflags_jwst.txt',
-                            'MIRI': 'data/dqflags_jwst.txt',
-                            'ACS': 'data/dqflags_acs.txt',
-                            'WFC3': 'data/dqflags_wfc3.txt',
-                            'COS': 'data/dqflags_hstgen.txt',
-                            'STIS': 'data/dqflags_hstgen.txt',
-                            'WFPC2': 'data/dqflags_hstgen.txt'}
+        self._def_dqdict = {'JWST': {'FGS': 'data/dqflags_jwst.txt',
+                                     'MIRI': 'data/dqflags_jwst.txt',
+                                     'NIRCAM': 'data/dqflags_jwst.txt',
+                                     'NIRISS': 'data/dqflags_jwst.txt',
+                                     'NIRSPEC': 'data/dqflags_jwst.txt'},
+                            'HST': {'ACS': 'data/dqflags_acs.txt',
+                                    'COS': 'data/dqflags_hstgen.txt',
+                                    'FGS': 'data/dqflags_hstgen.txt',
+                                    'STIS': 'data/dqflags_hstgen.txt',
+                                    'WFC3': 'data/dqflags_wfc3.txt',
+                                    'WFPC2': 'data/dqflags_hstgen.txt'}}
 
         # User preferences
         prefs = self.fv.get_preferences()
@@ -292,26 +295,27 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         self.w.npix.set_text(self._no_keyword)
         self.imdqlist.clear()
 
-    def _load_dqparser(self, instrument):
+    def _load_dqparser(self, telescope, instrument):
         """Create new DQParser for given instrument."""
         dqdict = self.settings.get('dqdict', self._def_dqdict)
 
-        if instrument not in dqdict:
+        if telescope not in dqdict or instrument not in dqdict[telescope]:
             self.logger.warn(
-                '{}={} is not supported, using default'.format(
-                    self._ins_key, instrument))
+                '{}={} and {}={} combo is not supported, using default'.format(
+                    self._tel_key, telescope, self._ins_key, instrument))
             return self._def_parser
 
         try:
-            dqfile = get_pkg_data_filename(dqdict[instrument],
+            dqfile = get_pkg_data_filename(dqdict[telescope][instrument],
                                            package='stginga')
         except Exception:
-            dqfile = dqdict[instrument]
+            dqfile = dqdict[telescope][instrument]
             if os.path.isfile(dqfile):
                 self.logger.info('Using external data {0}'.format(dqfile))
             else:
-                self.logger.warn('{0} not found for {1}, using default'.format(
-                    dqfile, instrument))
+                self.logger.warn(
+                    '{} not found for {}/{}, using default'.format(
+                        dqfile, telescope, instrument))
                 dqfile = None
         else:
             self.logger.info('Using package data {0}'.format(dqfile))
@@ -350,6 +354,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
 
         header = image.get_header()
         extname = header.get(self._ext_key, self._no_keyword).upper()
+        telescope = header.get(self._tel_key, None)
         instrument = header.get(self._ins_key, None)
 
         # If displayed extension is not DQ, extract DQ array with same EXTVER
@@ -373,19 +378,24 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
             return self._reset_imdq_on_error()
 
         # Get cached DQ parser first, if available
-        if instrument in self._dqparser:
+        if (telescope in self._dqparser and
+                instrument in self._dqparser[telescope]):
             self.logger.debug(
-                'Using cached DQ parser for {0}'.format(instrument))
-            dqparser = self._dqparser[instrument]
+                'Using cached DQ parser for {}/{}'.format(
+                    telescope, instrument))
+            dqparser = self._dqparser[telescope][instrument]
 
         # Create new parser and cache it.
         # Look in package data first. If not found, assume external data.
         # If no data file provided, use default.
         else:
             self.logger.debug(
-                'Creating new DQ parser for {0}'.format(instrument))
-            dqparser = self._load_dqparser(instrument)
-            self._dqparser[instrument] = dqparser
+                'Creating new DQ parser for {}/{}'.format(
+                    telescope, instrument))
+            dqparser = self._load_dqparser(telescope, instrument)
+            if telescope not in self._dqparser:
+                self._dqparser[telescope] = {}
+            self._dqparser[telescope][instrument] = dqparser
 
         iminfo = self.chinfo.get_image_info(dqname)
         cur_timestamp = iminfo.get('time_modified', None)
