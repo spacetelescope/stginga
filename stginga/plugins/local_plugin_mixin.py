@@ -59,6 +59,7 @@ class MEFMixin(object):
             self._ext_key
             self._extver_key
             self._ins_key
+            self._tel_key
 
         Also sets the following::
 
@@ -79,16 +80,18 @@ class MEFMixin(object):
         self._dq_extname = gen_settings.get('dqextname', 'DQ')
         self._ext_key = gen_settings.get('extnamekey', 'EXTNAME')
         self._extver_key = gen_settings.get('extverkey', 'EXTVER')
+        self._tel_key = gen_settings.get('telescopekey', 'TELESCOP')
         self._ins_key = gen_settings.get('instrumentkey', 'INSTRUME')
 
     def _info_for_other_ext(self, image, header):
         """Extract relevant metadata for loading another extension."""
         imfile = image.metadata['path']
         imname = image.metadata['name'].split('[')[0]
+        telescope = header.get(self._tel_key, None)
         instrument = header.get(self._ins_key, None)
         extver = header.get(self._extver_key, 0)
 
-        return imfile, imname, instrument, extver
+        return imfile, imname, telescope, instrument, extver
 
     def load_err(self, image, header):
         """Find and load ERR extension.
@@ -111,10 +114,9 @@ class MEFMixin(object):
             ERR image associated with given image, if available.
 
         """
-        imfile, imname, instrument, extver = self._info_for_other_ext(
-            image, header)
+        imfile, imname, telescope, instrument, extver = self._info_for_other_ext(image, header)  # noqa
 
-        if instrument == 'WFPC2':
+        if telescope == 'HST' and instrument == 'WFPC2':
             return False
 
         err_extnum = (self._err_extname, extver)
@@ -152,11 +154,10 @@ class MEFMixin(object):
             DQ image associated with given image, if available.
 
         """
-        imfile, imname, instrument, extver = self._info_for_other_ext(
-            image, header)
+        imfile, imname, telescope, instrument, extver = self._info_for_other_ext(image, header)  # noqa
         dq_extnum = (self._dq_extname, extver)
 
-        if instrument != 'WFPC2':
+        if telescope != 'HST' or instrument != 'WFPC2':
             dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
             dqsrc = utils.find_ext(imfile, dq_extnum)
 

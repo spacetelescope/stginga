@@ -4,8 +4,18 @@
 New Features
 ^^^^^^^^^^^^
 
+- Telescope name can now be extracted programmatically from header.
+  It looks for ``TELESCOP`` header keyword by default. This can be customized
+  using ``telescopekey`` in your ``~/ginga/general.cfg``. [#189]
+- ``DQInspect`` now understands the FGS instrument for both HST and JWST by
+  default. [#189]
+
 API changes
 ^^^^^^^^^^^
+
+- ``DQInspect`` now requires also the telescope name to construct ``dqdict``.
+  Please update your ``~/.ginga/plugin_DQInspect.cfg`` file, if applicable.
+  [#189]
 
 Bug fixes
 ^^^^^^^^^
