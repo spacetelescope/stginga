@@ -1,4 +1,4 @@
-1.2 (unreleased)
+1.2 (2020-07-20)
 ----------------
 
 New Features
@@ -17,11 +17,10 @@ API changes
   Please update your ``~/.ginga/plugin_DQInspect.cfg`` file, if applicable.
   [#189]
 
-Bug fixes
-^^^^^^^^^
-
 Other Changes and Additions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- This version should be compatible with Ginga 3.1.
 
 1.1 (2020-02-03)
 ----------------
