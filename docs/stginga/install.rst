@@ -14,6 +14,10 @@ Installation
 We suggest using `Anaconda <https://www.continuum.io/downloads>`_ as a
 Python distribution that is known to work with ``stginga``::
 
+    conda install stginga -c conda-forge
+
+or
+
     conda install stginga -c http://ssb.stsci.edu/astroconda
 
 Alternately, ``stginga`` 0.3 and beyond is also available on PyPI::
