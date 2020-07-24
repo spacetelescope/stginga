@@ -16,7 +16,7 @@ Python distribution that is known to work with ``stginga``::
 
     conda install stginga -c conda-forge
 
-or
+or::
 
     conda install stginga -c http://ssb.stsci.edu/astroconda
 
