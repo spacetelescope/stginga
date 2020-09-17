@@ -18,8 +18,8 @@ env:
         # to repeat them for all configurations.
         - PYTHON_VERSION=3.7
         - NUMPY_VERSION=stable
-        - ASTROPY_VERSION=stable
-        - GINGA_VERSION=stable
+        - ASTROPY_VERSION=4.1rc2
+        - GINGA_VERSION=development
         - INSTALL_CMD='pip install -e .'
         - TEST_CMD='pytest --pyargs stginga docs'
         - PIP_DEPENDENCIES=''
@@ -38,25 +38,8 @@ matrix:
 
         - os: linux
 
-        # Try Astropy and Ginga development versions
-        - os: linux
-          env: PYTHON_VERSION=3.8 ASTROPY_VERSION=development GINGA_VERSION=development
-
         # Try on Windows
         - os: windows
-
-        # Do a PEP 8 check with flake8
-        - os: linux
-          env: TEST_CMD='flake8 stginga --count' INSTALL_CMD=''
-               CONDA_DEPENDENCIES=''
-               PIP_DEPENDENCIES='flake8'
-
-        # Do a PEP 517 check
-        - os: linux
-          env: INSTALL_CMD='python -m pep517.build --source .'
-               TEST_CMD='twine check dist/*'
-               CONDA_DEPENDENCIES=''
-               PIP_DEPENDENCIES='pep517 twine'
 
 install:
 
