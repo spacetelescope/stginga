@@ -53,10 +53,10 @@ matrix:
 
         # Do a PEP 517 check
         - os: linux
-          env: INSTALL_CMD='python -m pep517.build --source .'
+          env: INSTALL_CMD='python -m build --sdist .'
                TEST_CMD='twine check dist/*'
                CONDA_DEPENDENCIES=''
-               PIP_DEPENDENCIES='pep517 twine'
+               PIP_DEPENDENCIES='build twine'
 
 install:
 
