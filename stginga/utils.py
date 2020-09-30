@@ -6,6 +6,7 @@ import warnings
 # THIRD-PARTY
 import numpy as np
 from astropy import wcs
+from astropy.convolution import convolve_fft, Box2DKernel
 from astropy.io import ascii, fits
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
@@ -18,7 +19,7 @@ ASTROPY_LT_3_1 = not minversion('astropy', '3.1')
 GINGA_LT_3 = not minversion('ginga', '3.0')
 
 __all__ = ['calc_stat', 'interpolate_badpix', 'find_ext', 'DQParser',
-           'scale_image']
+           'scale_wcs', 'scale_image', 'scale_image_with_dq']
 
 
 def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
@@ -83,7 +84,8 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
     return val
 
 
-def interpolate_badpix(image, badpix_mask, basis_mask, method='linear'):
+def interpolate_badpix(image, badpix_mask, basis_mask, method='linear',
+                       rescale=False):
     """Use spline interpolation to fix bad pixel(s).
 
     Parameters
@@ -98,11 +100,15 @@ def interpolate_badpix(image, badpix_mask, basis_mask, method='linear'):
     method : {'nearest', 'linear', 'cubic'}
         See :func:`~scipy.interpolate.griddata`.
 
+    rescale : bool
+        See :func:`~scipy.interpolate.griddata`.
+
     """
     y, x = np.where(basis_mask)
     z = image[basis_mask]
     ynew, xnew = np.where(badpix_mask)
-    image[badpix_mask] = griddata((x, y), z, (xnew, ynew), method=method)
+    image[badpix_mask] = griddata((x, y), z, (xnew, ynew), method=method,
+                                  rescale=rescale)
 
 
 def find_ext(imfile, ext):
@@ -264,21 +270,13 @@ class DQParser(object):
         return self.tab[idx]
 
 
-# This is needed by QUIP to pre-shrink input images for quick-look mosaic
-# in Ginga, but useful enough to put here for stginga's use if needed.
-# Warnings are suppressed because WEx that calls QUIP treats all screen outputs
-# as error messages.
-def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
-                debug=False):
-    """Rescale the image size in the given extension
-    by the given zoom factor and adjust WCS accordingly.
+def scale_wcs(input_hdr, zoom_factor, debug=False):
+    """Rescale FITS WCS by the given zoom factor.
+    This is used in :func:`scale_image` and :func:`scale_image_with_dq`.
 
     Both PC and CD matrices are supported. Distortion is not
     taken into account; therefore, this does not work on an
     image with ``CTYPE`` that ends in ``-SIP``.
-
-    Output image is a single-extension FITS file with only
-    the given extension header and data.
 
     .. note::
 
@@ -288,10 +286,99 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
 
     Parameters
     ----------
+    input_hdr : `astropy.io.fits.Header`
+        FITS header containing the WCS.
+
+    zoom_factor : float
+        See :func:`scipy.ndimage.interpolation.zoom`.
+
+    debug : bool
+        If `True`, print extra information to screen.
+
+    Returns
+    -------
+    hdr : `astropy.io.fits.Header`
+        Simple FITS header containing the rescaled WCS.
+
+    Raises
+    ------
+    ValueError
+        Invalid WCS.
+
+    """
+    slice_factor = int(1 / zoom_factor)
+    old_wcs = wcs.WCS(input_hdr)  # To account for distortion, add "pf" as 2nd arg  # noqa
+
+    # Supress RuntimeWarning about ignoring cdelt because cd is present.
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', RuntimeWarning)
+        new_wcs = old_wcs.slice(
+            (np.s_[::slice_factor], np.s_[::slice_factor]))
+
+    if old_wcs.wcs.has_pc():  # PC matrix
+        wshdr = new_wcs.to_header()
+
+    elif old_wcs.wcs.has_cd():  # CD matrix
+
+        # Supress RuntimeWarning about ignoring cdelt because cd is present
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', RuntimeWarning)
+            new_wcs.wcs.cd *= new_wcs.wcs.cdelt
+
+        new_wcs.wcs.set()
+        wshdr = new_wcs.to_header()
+
+        for i in range(1, 3):
+            for j in range(1, 3):
+                key = 'PC{0}_{1}'.format(i, j)
+                if key in wshdr:
+                    newkey = 'CD{0}_{1}'.format(i, j)
+                    wshdr.rename_keyword(key, newkey)
+                    if debug:
+                        print('{} -> {}'.format(key, newkey))
+
+    else:
+        raise ValueError('Missing CD or PC matrix for WCS')
+
+    hdr = input_hdr.copy()
+
+    if 'XTENSION' in hdr:
+        del hdr['XTENSION']
+    if 'SIMPLE' in hdr:  # pragma: no cover
+        hdr['SIMPLE'] = True
+    else:
+        hdr.insert(0, ('SIMPLE', True))
+    hdr.extend(
+        [c if c[0] not in hdr else c[0:] for c in wshdr.cards], update=True)
+
+    if debug:
+        old_wcs.printwcs()
+        wcs.WCS(wshdr).printwcs()
+        wcs.WCS(hdr).printwcs()
+
+    return hdr
+
+
+# This is needed by QUIP to pre-shrink input images for quick-look mosaic
+# in Ginga, but useful enough to put here for stginga's use if needed.
+# Warnings are suppressed because WEx that calls QUIP treats all screen outputs
+# as error messages.
+def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
+                debug=False):
+    """Rescale the image size in the given extension
+    by the given zoom factor and adjust WCS accordingly.
+
+    WCS adjustment is done using :func:`scale_wcs`.
+
+    Output image is a single-extension FITS file with only
+    the given extension header and data.
+
+    Parameters
+    ----------
     infile, outfile : str
         Input and output filenames.
 
-    zoom_factor : float or sequence
+    zoom_factor : float
         See :func:`scipy.ndimage.interpolation.zoom`.
 
     ext : int, str, or tuple
@@ -306,7 +393,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
     Raises
     ------
     ValueError
-        Unsupported number of dimension or invalid WCS.
+        Invalid data.
 
     """
     if not clobber and os.path.exists(outfile):  # pragma: no cover
@@ -331,60 +418,117 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
         raise ValueError('Unsupported ndim={0}'.format(data.ndim))
 
     # Scale the data.
-    # Supress UserWarning about scipy 0.13.0 using round() instead of int().
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', UserWarning)
-        data = zoom(data, zoom_factor)
+    data = zoom(data, zoom_factor)
 
     # Adjust WCS
-
-    slice_factor = int(1 / zoom_factor)
-    old_wcs = wcs.WCS(hdr)  # To account for distortion, add "pf" as 2nd arg
-
-    # Supress RuntimeWarning about ignoring cdelt because cd is present.
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', RuntimeWarning)
-        # Update if cropping
-        new_wcs = old_wcs.slice(
-            (np.s_[::slice_factor], np.s_[::slice_factor]))
-
-    if old_wcs.wcs.has_pc():  # PC matrix
-        wshdr = new_wcs.to_header()
-
-    elif old_wcs.wcs.has_cd():  # CD matrix
-
-        # Supress RuntimeWarning about ignoring cdelt because cd is present
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', RuntimeWarning)
-            new_wcs.wcs.cd *= new_wcs.wcs.cdelt
-
-        new_wcs.wcs.set()
-        wshdr = new_wcs.to_header()
-
-        for i in range(1, 3):
-            for j in range(1, 3):
-                key = 'PC{0}_{1}'.format(i, j)
-                if key in wshdr:
-                    wshdr.rename_keyword(key, 'CD{0}_{1}'.format(i, j))
-
-    else:
-        raise ValueError('Missing CD or PC matrix for WCS')
-
-    # Update header
-    if 'XTENSION' in hdr:
-        del hdr['XTENSION']
-    if 'SIMPLE' in hdr:  # pragma: no cover
-        hdr['SIMPLE'] = True
-    else:
-        hdr.insert(0, ('SIMPLE', True))
-    hdr.extend(
-        [c if c[0] not in hdr else c[0:] for c in wshdr.cards], update=True)
-
-    if debug:
-        old_wcs.printwcs()
-        new_wcs.printwcs()
+    outhdr = scale_wcs(hdr, zoom_factor, debug=debug)
 
     # Write to output file
     hdu = fits.PrimaryHDU(data)
-    hdu.header = hdr
+    hdu.header = outhdr
     hdu.writeto(outfile, overwrite=clobber)
+
+
+def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
+                        kernel_width=99, sci_ext=('SCI', 1), dq_ext=('DQ', 1),
+                        bad_flag=1, ignore_edge_pixels=4, overwrite=False,
+                        debug=False):
+    """Rescale the image size in the given extension by the given block size,
+    taking data quality (DQ) flags into account, and adjust WCS accordingly.
+
+    WCS adjustment is done using :func:`scale_wcs`.
+
+    Output image is a single-extension FITS file with only
+    the given extension header and data.
+
+    Parameters
+    ----------
+    infile, outfile : str
+        Input and output filenames.
+
+    zoom_factor : float
+        See :func:`scipy.ndimage.interpolation.zoom`.
+
+    dq_parser : `DQParser`
+        DQ parser for interpreting DQ flag.
+
+    kernel_width : int
+        See :class:`astropy.convolution.Box2DKernel`.
+
+    sci_ext, dq_ext : int, str, or tuple
+        Science and DQ extensions to extract, respectively.
+
+    bad_flag : int
+        DQ flag value to indicate bad pixels to exclude from calculations.
+        Compound flag is currently not supported.
+
+    ignore_edge_pixels : int
+        Ignore these number of pixels along the edges.
+        The default value of 4 is for the reference pixels on JWST NIRCam
+        detectors.
+
+    overwrite : bool
+        If `True`, overwrite existing output file.
+
+    debug : bool
+        If `True`, print extra information to screen.
+
+    Raises
+    ------
+    ValueError
+        Invalid data.
+
+    """
+    if not overwrite and os.path.exists(outfile):  # pragma: no cover
+        if debug:
+            warnings.warn('{0} already exists'.format(outfile),
+                          AstropyUserWarning)
+        return  # Instead of raising error at the very end
+
+    with fits.open(infile) as pf:
+        prihdr = pf['PRIMARY'].header
+        hdr = pf[sci_ext].header
+        data = pf[sci_ext].data
+        dq = pf[dq_ext].data
+
+    if data.ndim != 2:  # pragma: no cover
+        raise ValueError('Unsupported ndim={0}'.format(data.ndim))
+
+    # Inherit some keywords from primary header
+    for key in ('ROOTNAME', 'TARGNAME', 'INSTRUME', 'DETECTOR',
+                'FILTER', 'PUPIL', 'DATE-OBS', 'TIME-OBS'):
+        if (key in hdr) or (key not in prihdr):
+            continue
+        hdr[key] = prihdr[key]
+
+    dqs_by_flags = dq_parser.interpret_array(dq)
+
+    # Edge pixels
+    iy_max = data.shape[0] - ignore_edge_pixels
+    ix_max = data.shape[1] - ignore_edge_pixels
+    edge_mask = np.ones_like(dq, dtype=np.bool)
+    edge_mask[ignore_edge_pixels:iy_max, ignore_edge_pixels:ix_max] = False
+
+    badpix_mask = np.zeros_like(dq, dtype=np.bool)
+    badpix_mask[dqs_by_flags[bad_flag]] = True
+    badpix_mask[edge_mask] = False  # Ignore edge
+
+    # Fix bad pixels with convolution
+    box_kernel = Box2DKernel(kernel_width)
+    smoothed_data = convolve_fft(data, box_kernel, mask=badpix_mask)  # 5 secs
+    data[badpix_mask] = smoothed_data[badpix_mask]
+
+    # Should not have NaN in fixed image?
+    if not np.all(np.isfinite(data)):
+        raise ValueError('Fixed image has NaN(s)')
+
+    # Scale the data.
+    data = zoom(data, zoom_factor)
+
+    # Adjust WCS
+    outhdr = scale_wcs(hdr, zoom_factor, debug=debug)
+
+    # Write to output file
+    hdu = fits.PrimaryHDU(data)
+    hdu.header = outhdr
+    hdu.writeto(outfile, overwrite=overwrite)

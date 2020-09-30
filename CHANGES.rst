@@ -1,6 +1,15 @@
 1.3 (unreleased)
 ----------------
 
+New Features
+^^^^^^^^^^^^
+
+- New ``stginga.utils.scale_image_with_dq`` function to rescale image after
+  cleaning bad pixels first. [#200]
+- Exposed rescaling of WCS as ``stginga.utils.scale_wcs`` function. [#200]
+- Added a new ``rescale`` keyword for ``stginga.utils.interpolate_badpix``
+  function. [#200]
+
 1.2 (2020-07-20)
 ----------------
 
