@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 from astropy import wcs
 from astropy.io import ascii, fits
+from astropy.nddata import block_reduce
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
 from astropy.utils import minversion
@@ -18,7 +19,7 @@ ASTROPY_LT_3_1 = not minversion('astropy', '3.1')
 GINGA_LT_3 = not minversion('ginga', '3.0')
 
 __all__ = ['calc_stat', 'interpolate_badpix', 'find_ext', 'DQParser',
-           'scale_image']
+           'scale_image', 'scale_image_with_dq']
 
 
 def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
@@ -388,3 +389,143 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
     hdu = fits.PrimaryHDU(data)
     hdu.header = hdr
     hdu.writeto(outfile, overwrite=clobber)
+
+
+def scale_image_with_dq(infile, outfile, block_size, dq_parser,
+                        func=np.ma.mean, sci_ext=('SCI', 1), dq_ext=('DQ', 1),
+                        bad_flag=1, overwrite=False, debug=False):
+    """Rescale the image size in the given extension by the given block size,
+    taking data quality (DQ) flags into account, and adjust WCS accordingly.
+
+    Both PC and CD matrices are supported. Distortion is not
+    taken into account; therefore, this does not work on an
+    image with ``CTYPE`` that ends in ``-SIP``.
+
+    Output image is a single-extension FITS file with only
+    the given extension header and data.
+
+    .. note::
+
+        WCS transformation provided by Mihai Cara.
+
+        Some warnings are suppressed.
+
+    Parameters
+    ----------
+    infile, outfile : str
+        Input and output filenames.
+
+    block_size : int or array_like (int)
+        See :func:`astropy.nddata.block_reduce`.
+
+    dq_parser : `DQParser`
+        DQ parser for interpreting DQ flag.
+
+    func : callable
+        See :func:`astropy.nddata.block_reduce`.
+
+    sci_ext, dq_ext : int, str, or tuple
+        Science and DQ extensions to extract, respectively.
+
+    bad_flag : int
+        DQ flag value to indicate bad pixels to exclude from calculations.
+        Compound flag is currently not supported.
+
+    overwrite : bool
+        If `True`, overwrite existing output file.
+
+    debug : bool
+        If `True`, print extra information to screen.
+
+    Raises
+    ------
+    ValueError
+        Invalid data or WCS.
+
+    """
+    if not overwrite and os.path.exists(outfile):  # pragma: no cover
+        if debug:
+            warnings.warn('{0} already exists'.format(outfile),
+                          AstropyUserWarning)
+        return  # Instead of raising error at the very end
+
+    with fits.open(infile) as pf:
+        prihdr = pf['PRIMARY'].header
+        hdr = pf[sci_ext].header
+        data = pf[sci_ext].data
+        dq = pf[dq_ext].data
+
+    if data.ndim != 2:  # pragma: no cover
+        raise ValueError('Unsupported ndim={0}'.format(data.ndim))
+
+    # Inherit some keywords from primary header
+    for key in ('ROOTNAME', 'TARGNAME', 'INSTRUME', 'DETECTOR',
+                'FILTER', 'PUPIL', 'DATE-OBS', 'TIME-OBS'):
+        if (key in hdr) or (key not in prihdr):
+            continue
+        hdr[key] = prihdr[key]
+
+    # Mask the data.
+    dqs_by_flags = dq_parser.interpret_array(dq)
+    mask = np.zeros_like(dq, dtype=bool)
+    mask[dqs_by_flags[bad_flag]] = True
+    masked_data = np.ma.array(data=data, mask=mask)
+
+    # Scale the data.
+    scaled_data = block_reduce(masked_data, block_size, func=func)
+
+    # Should not have bad pixel in scaled image?
+    if np.any(scaled_data.mask):
+        raise ValueError('Scaled image has bad pixel(s)')
+
+    # Adjust WCS
+    slice_factor = int(masked_data.shape[1] / scaled_data.shape[1])
+    old_wcs = wcs.WCS(hdr)  # To account for distortion, add "pf" as 2nd arg
+
+    # Supress RuntimeWarning about ignoring cdelt because cd is present.
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', RuntimeWarning)
+        # Update if cropping
+        new_wcs = old_wcs.slice(
+            (np.s_[::slice_factor], np.s_[::slice_factor]))
+
+    if old_wcs.wcs.has_pc():  # PC matrix
+        wshdr = new_wcs.to_header()
+
+    elif old_wcs.wcs.has_cd():  # CD matrix
+
+        # Supress RuntimeWarning about ignoring cdelt because cd is present
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', RuntimeWarning)
+            new_wcs.wcs.cd *= new_wcs.wcs.cdelt
+
+        new_wcs.wcs.set()
+        wshdr = new_wcs.to_header()
+
+        for i in range(1, 3):
+            for j in range(1, 3):
+                key = 'PC{0}_{1}'.format(i, j)
+                if key in wshdr:
+                    wshdr.rename_keyword(key, 'CD{0}_{1}'.format(i, j))
+
+    else:
+        raise ValueError('Missing CD or PC matrix for WCS')
+
+    # Update header
+    if 'XTENSION' in hdr:
+        del hdr['XTENSION']
+    if 'SIMPLE' in hdr:  # pragma: no cover
+        hdr['SIMPLE'] = True
+    else:
+        hdr.insert(0, ('SIMPLE', True))
+    hdr.extend(
+        [c if c[0] not in hdr else c[0:] for c in wshdr.cards], update=True)
+
+    if debug:
+        old_wcs.printwcs()
+        new_wcs.printwcs()
+
+    # Write to output file
+    hdu = fits.PrimaryHDU(scaled_data.data)
+    hdu.header = hdr
+    hdu.writeto(outfile, overwrite=overwrite)
