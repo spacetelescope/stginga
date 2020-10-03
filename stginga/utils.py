@@ -6,8 +6,8 @@ import warnings
 # THIRD-PARTY
 import numpy as np
 from astropy import wcs
+from astropy.convolution import convolve, Box2DKernel
 from astropy.io import ascii, fits
-from astropy.nddata import block_reduce
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
 from astropy.utils import minversion
@@ -84,7 +84,8 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
     return val
 
 
-def interpolate_badpix(image, badpix_mask, basis_mask, method='linear'):
+def interpolate_badpix(image, badpix_mask, basis_mask, method='linear',
+                       rescale=False):
     """Use spline interpolation to fix bad pixel(s).
 
     Parameters
@@ -99,11 +100,15 @@ def interpolate_badpix(image, badpix_mask, basis_mask, method='linear'):
     method : {'nearest', 'linear', 'cubic'}
         See :func:`~scipy.interpolate.griddata`.
 
+    rescale : bool
+        See :func:`~scipy.interpolate.griddata`.
+
     """
     y, x = np.where(basis_mask)
     z = image[basis_mask]
     ynew, xnew = np.where(badpix_mask)
-    image[badpix_mask] = griddata((x, y), z, (xnew, ynew), method=method)
+    image[badpix_mask] = griddata((x, y), z, (xnew, ynew), method=method,
+                                  rescale=rescale)
 
 
 def find_ext(imfile, ext):
@@ -391,9 +396,10 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
     hdu.writeto(outfile, overwrite=clobber)
 
 
-def scale_image_with_dq(infile, outfile, block_size, dq_parser,
-                        func=np.ma.mean, sci_ext=('SCI', 1), dq_ext=('DQ', 1),
-                        bad_flag=1, overwrite=False, debug=False):
+def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
+                        kernel_width=101, sci_ext=('SCI', 1), dq_ext=('DQ', 1),
+                        bad_flag=1, ignore_edge_pixels=4, overwrite=False,
+                        debug=False):
     """Rescale the image size in the given extension by the given block size,
     taking data quality (DQ) flags into account, and adjust WCS accordingly.
 
@@ -415,14 +421,14 @@ def scale_image_with_dq(infile, outfile, block_size, dq_parser,
     infile, outfile : str
         Input and output filenames.
 
-    block_size : int or array_like (int)
-        See :func:`astropy.nddata.block_reduce`.
+    zoom_factor : float or sequence
+        See :func:`scipy.ndimage.interpolation.zoom`.
 
     dq_parser : `DQParser`
         DQ parser for interpreting DQ flag.
 
-    func : callable
-        See :func:`astropy.nddata.block_reduce`.
+    kernel_width : int
+        See :class:`astropy.convolution.Box2DKernel`.
 
     sci_ext, dq_ext : int, str, or tuple
         Science and DQ extensions to extract, respectively.
@@ -430,6 +436,11 @@ def scale_image_with_dq(infile, outfile, block_size, dq_parser,
     bad_flag : int
         DQ flag value to indicate bad pixels to exclude from calculations.
         Compound flag is currently not supported.
+
+    ignore_edge_pixels : int
+        Ignore these number of pixels along the edges.
+        The default value of 4 is for the reference pixels on JWST NIRCam
+        detectors.
 
     overwrite : bool
         If `True`, overwrite existing output file.
@@ -465,21 +476,37 @@ def scale_image_with_dq(infile, outfile, block_size, dq_parser,
             continue
         hdr[key] = prihdr[key]
 
-    # Mask the data.
     dqs_by_flags = dq_parser.interpret_array(dq)
-    mask = np.zeros_like(dq, dtype=bool)
-    mask[dqs_by_flags[bad_flag]] = True
-    masked_data = np.ma.array(data=data, mask=mask)
+
+    # Edge pixels
+    iy_max = data.shape[0] - ignore_edge_pixels
+    ix_max = data.shape[1] - ignore_edge_pixels
+    edge_mask = np.ones_like(dq, dtype=np.bool)
+    edge_mask[ignore_edge_pixels:iy_max, ignore_edge_pixels:ix_max] = False
+
+    badpix_mask = np.zeros_like(dq, dtype=np.bool)
+    badpix_mask[dqs_by_flags[bad_flag]] = True
+    badpix_mask[edge_mask] = False  # Ignore edge
+
+    # Fix bad pixels with convolution
+    box_kernel = Box2DKernel(kernel_width)
+    smoothed_data = convolve(data, box_kernel, mask=badpix_mask)  # 2 mins!
+    data[badpix_mask] = smoothed_data[badpix_mask]
+
+    # Should not have NaN in fixed image?
+    if not np.all(np.isfinite(data)):
+        raise ValueError('Fixed image has NaN(s)')
+
+# UNTIL HERE -- Move out common stuff to hidden functions and share with scale_image ?
 
     # Scale the data.
-    scaled_data = block_reduce(masked_data, block_size, func=func)
-
-    # Should not have bad pixel in scaled image?
-    if np.any(scaled_data.mask):
-        raise ValueError('Scaled image has bad pixel(s)')
+    # Supress UserWarning about scipy 0.13.0 using round() instead of int().
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', UserWarning)
+        data = zoom(data, zoom_factor)
 
     # Adjust WCS
-    slice_factor = int(masked_data.shape[1] / scaled_data.shape[1])
+    slice_factor = int(1 / zoom_factor)
     old_wcs = wcs.WCS(hdr)  # To account for distortion, add "pf" as 2nd arg
 
     # Supress RuntimeWarning about ignoring cdelt because cd is present.
@@ -526,6 +553,6 @@ def scale_image_with_dq(infile, outfile, block_size, dq_parser,
         new_wcs.printwcs()
 
     # Write to output file
-    hdu = fits.PrimaryHDU(scaled_data.data)
+    hdu = fits.PrimaryHDU(data)
     hdu.header = hdr
     hdu.writeto(outfile, overwrite=overwrite)
