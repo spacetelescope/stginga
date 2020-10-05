@@ -497,7 +497,7 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
     if not np.all(np.isfinite(data)):
         raise ValueError('Fixed image has NaN(s)')
 
-# UNTIL HERE -- Move out common stuff to hidden functions and share with scale_image ?
+# UNTIL HERE -- Move out common stuff to hidden functions and share with scale_image ? Add multiprocessing?
 
     # Scale the data.
     # Supress UserWarning about scipy 0.13.0 using round() instead of int().
