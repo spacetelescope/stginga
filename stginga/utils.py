@@ -6,7 +6,7 @@ import warnings
 # THIRD-PARTY
 import numpy as np
 from astropy import wcs
-from astropy.convolution import convolve, Box2DKernel
+from astropy.convolution import convolve_fft, Box2DKernel
 from astropy.io import ascii, fits
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
@@ -397,7 +397,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
 
 
 def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
-                        kernel_width=101, sci_ext=('SCI', 1), dq_ext=('DQ', 1),
+                        kernel_width=99, sci_ext=('SCI', 1), dq_ext=('DQ', 1),
                         bad_flag=1, ignore_edge_pixels=4, overwrite=False,
                         debug=False):
     """Rescale the image size in the given extension by the given block size,
@@ -490,7 +490,7 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
 
     # Fix bad pixels with convolution
     box_kernel = Box2DKernel(kernel_width)
-    smoothed_data = convolve(data, box_kernel, mask=badpix_mask)  # 2 mins!
+    smoothed_data = convolve_fft(data, box_kernel, mask=badpix_mask)  # 5 secs
     data[badpix_mask] = smoothed_data[badpix_mask]
 
     # Should not have NaN in fixed image?
