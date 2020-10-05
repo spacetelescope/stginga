@@ -397,7 +397,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
 
 
 def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
-                        kernel_width=101, sci_ext=('SCI', 1), dq_ext=('DQ', 1),
+                        kernel_width=5, sci_ext=('SCI', 1), dq_ext=('DQ', 1),
                         bad_flag=1, ignore_edge_pixels=4, overwrite=False,
                         debug=False):
     """Rescale the image size in the given extension by the given block size,
@@ -429,6 +429,7 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
 
     kernel_width : int
         See :class:`astropy.convolution.Box2DKernel`.
+        This kernel is applied to *rescaled* image.
 
     sci_ext, dq_ext : int, str, or tuple
         Science and DQ extensions to extract, respectively.
@@ -438,7 +439,7 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
         Compound flag is currently not supported.
 
     ignore_edge_pixels : int
-        Ignore these number of pixels along the edges.
+        Ignore these number of pixels along the edges before rescaling.
         The default value of 4 is for the reference pixels on JWST NIRCam
         detectors.
 
@@ -488,22 +489,22 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
     badpix_mask[dqs_by_flags[bad_flag]] = True
     badpix_mask[edge_mask] = False  # Ignore edge
 
+    # Scale the DQ mask.
+    dq = zoom(badpix_mask, zoom_factor)
+
+    # Scale the data.
+    data = zoom(data, zoom_factor)
+
     # Fix bad pixels with convolution
     box_kernel = Box2DKernel(kernel_width)
-    smoothed_data = convolve(data, box_kernel, mask=badpix_mask)  # 2 mins!
-    data[badpix_mask] = smoothed_data[badpix_mask]
+    smoothed_data = convolve(data, box_kernel, mask=dq)
+    data[dq] = smoothed_data[dq]
 
     # Should not have NaN in fixed image?
     if not np.all(np.isfinite(data)):
         raise ValueError('Fixed image has NaN(s)')
 
-# UNTIL HERE -- Move out common stuff to hidden functions and share with scale_image ? Add multiprocessing?
-
-    # Scale the data.
-    # Supress UserWarning about scipy 0.13.0 using round() instead of int().
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', UserWarning)
-        data = zoom(data, zoom_factor)
+# UNTIL HERE -- Move out common stuff to hidden functions and share with scale_image ?
 
     # Adjust WCS
     slice_factor = int(1 / zoom_factor)
