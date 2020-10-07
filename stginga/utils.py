@@ -6,7 +6,6 @@ import warnings
 # THIRD-PARTY
 import numpy as np
 from astropy import wcs
-from astropy.convolution import convolve_fft, Box2DKernel
 from astropy.io import ascii, fits
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
@@ -412,6 +411,8 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
 
     .. note::
 
+        Requires ``photutils``.
+
         WCS transformation provided by Mihai Cara.
 
         Some warnings are suppressed.
@@ -454,6 +455,8 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
         Invalid data or WCS.
 
     """
+    from photutils.utils import ShepardIDWInterpolator
+
     if not overwrite and os.path.exists(outfile):  # pragma: no cover
         if debug:
             warnings.warn('{0} already exists'.format(outfile),
@@ -486,18 +489,18 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
 
     badpix_mask = np.zeros_like(dq, dtype=np.bool)
     badpix_mask[dqs_by_flags[bad_flag]] = True
-    badpix_mask[edge_mask] = False  # Ignore edge
 
-    # Fix bad pixels with convolution
-    box_kernel = Box2DKernel(kernel_width)
-    smoothed_data = convolve_fft(data, box_kernel, mask=badpix_mask)  # 5 secs
-    data[badpix_mask] = smoothed_data[badpix_mask]
+    goodpix_idx = np.where(np.logical_not(badpix_mask))
+    idw = ShepardIDWInterpolator(np.array(goodpix_idx).T, data[goodpix_idx])
+
+    badpix_mask[edge_mask] = False  # Ignore edge
+    data[badpix_mask] = idw(np.array(np.where(badpix_mask)).T)
 
     # Should not have NaN in fixed image?
     if not np.all(np.isfinite(data)):
         raise ValueError('Fixed image has NaN(s)')
 
-# UNTIL HERE -- Move out common stuff to hidden functions and share with scale_image ? Add multiprocessing?
+# UNTIL HERE -- Move out common stuff to hidden functions and share with scale_image ?
 
     # Scale the data.
     # Supress UserWarning about scipy 0.13.0 using round() instead of int().
