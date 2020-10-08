@@ -455,6 +455,8 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
         Invalid data or WCS.
 
     """
+    from photutils.utils import ShepardIDWInterpolator
+
     if not overwrite and os.path.exists(outfile):  # pragma: no cover
         if debug:
             warnings.warn('{0} already exists'.format(outfile),
@@ -487,18 +489,21 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
 
     badpix_mask = np.zeros_like(dq, dtype=np.bool)
     badpix_mask[dqs_by_flags[bad_flag]] = True
-    badpix_mask[edge_mask] = False  # Ignore edge
+
+    goodpix_mask = np.logical_not(badpix_mask)
+    goodpix_mask = zoom(goodpix_mask, zoom_factor)
 
     # Scale the DQ mask.
-    dq = zoom(badpix_mask, zoom_factor)
+    badpix_mask[edge_mask] = False  # Ignore edge
+    badpix_mask = zoom(badpix_mask, zoom_factor)
 
     # Scale the data.
     data = zoom(data, zoom_factor)
 
-    # Fix bad pixels with convolution
-    box_kernel = Box2DKernel(kernel_width)
-    smoothed_data = convolve(data, box_kernel, mask=dq)
-    data[dq] = smoothed_data[dq]
+    # Fix bad pixels
+    idw = ShepardIDWInterpolator(np.array(np.where(goodpix_mask)).T,
+                                 data[goodpix_mask])
+    data[badpix_mask] = idw(np.array(np.where(badpix_mask)).T)
 
     # Should not have NaN in fixed image?
     if not np.all(np.isfinite(data)):
