@@ -6,7 +6,6 @@ import warnings
 # THIRD-PARTY
 import numpy as np
 from astropy import wcs
-from astropy.convolution import convolve, Box2DKernel
 from astropy.io import ascii, fits
 from astropy.stats import biweight_location
 from astropy.stats import sigma_clip
@@ -491,11 +490,13 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
     badpix_mask[dqs_by_flags[bad_flag]] = True
 
     goodpix_mask = np.logical_not(badpix_mask)
-    goodpix_mask = zoom(goodpix_mask, zoom_factor)
+    goodpix_mask = zoom(goodpix_mask, zoom_factor, output=np.bool, order=0,
+                        prefilter=False)
 
     # Scale the DQ mask.
     badpix_mask[edge_mask] = False  # Ignore edge
-    badpix_mask = zoom(badpix_mask, zoom_factor)
+    badpix_mask = zoom(badpix_mask, zoom_factor, output=np.bool, order=0,
+                       prefilter=False)
 
     # Scale the data.
     data = zoom(data, zoom_factor)
