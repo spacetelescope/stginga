@@ -5,10 +5,11 @@ import pytest
 from astropy.io import fits
 from astropy.utils import minversion
 from astropy.utils.data import get_pkg_data_filename
+from astropy.wcs import WCS
 from numpy.testing import assert_allclose, assert_array_equal
 
 from ..utils import (calc_stat, interpolate_badpix, find_ext, DQParser,
-                     scale_image)
+                     scale_image, scale_image_with_dq)
 
 SCIPY_LT_1_1_0 = not minversion('scipy', '1.1.0')
 
@@ -70,12 +71,37 @@ class TestStuffWithFITS(object):
     @pytest.fixture(autouse=True)
     def setup_class(self, tmpdir):
         self.filename = str(tmpdir.join('test.fits'))
+        self.bad_flag = 1
         hdulist = fits.HDUList()
+
         hduhdr = fits.PrimaryHDU()
         hduhdr.header['INSTRUME'] = 'ACS'
         hdulist.append(hduhdr)
-        hduimg = fits.ImageHDU(np.arange(100).reshape(10, 10), name='SCI')
+
+        w = WCS()
+        w.wcs.crpix = [4.5, 4.5]
+        w.wcs.crval = [5, 15]
+        w.wcs.cd = [[1e-5, -1e-8], [1.5e-8, 1.2e-5]]
+        w.wcs.ctype = ['RA---TAN', 'DEC--TAN']
+        w.wcs.set()
+        img_arr = np.arange(100).reshape(10, 10)
+        hduimg = fits.ImageHDU(img_arr, name='SCI')
+        hduimg.header.extend(w.to_header())
         hdulist.append(hduimg)
+
+        mask_arr = np.zeros_like(img_arr, dtype=np.uint32)
+        mask_arr[2, 2] = self.bad_flag
+        mask_arr[4:8, 3:7] = self.bad_flag  # Big area
+        mask_arr[8, 8] = self.bad_flag  # Next to edge
+        mask_arr[1, 8] = 2  # Should not be corrected
+        mask_arr[2, 8] = self.bad_flag | 2  # Should be corrected
+        mask_arr[:, 0] = self.bad_flag  # The next 4 lines define edges to be ignored  # noqa
+        mask_arr[:, -1] = self.bad_flag
+        mask_arr[0, :] = self.bad_flag
+        mask_arr[-1:, :] = self.bad_flag
+        hdumask = fits.ImageHDU(mask_arr, name='DQ')
+        hdulist.append(hdumask)
+
         hdulist.writeto(self.filename)
 
     def test_find_ext(self):
@@ -86,7 +112,6 @@ class TestStuffWithFITS(object):
         assert not find_ext(None, 'SCI')
 
     def test_scale_image(self):
-        """WCS handling is not tested."""
         outfile = self.filename.replace('test.fits', 'out.fits')
         scale_image(self.filename, outfile, 0.5, ext='SCI')
 
@@ -104,14 +129,52 @@ class TestStuffWithFITS(object):
                    [68, 70, 72, 74, 77],
                    [90, 92, 95, 97, 99]]
 
+        with fits.open(self.filename) as pf_orig:
+            in_hdr = pf_orig['SCI'].header
+            in_wcs = WCS(in_hdr)
+
         with fits.open(outfile) as pf:
-            assert pf[0].header['INSTRUME'] == 'ACS'
+            outhdr = pf[0].header
+            outwcs = WCS(outhdr)
+            assert_allclose(pf[0].data, ans)
+
+        assert outhdr['INSTRUME'] == 'ACS'
+        assert outhdr['CRPIX1'] == 2.5
+        assert outhdr['CRPIX2'] == 2.5
+        assert outhdr['CDELT1'] == 2
+        assert outhdr['CDELT2'] == 2
+
+        for key in ('PC1_1', 'PC1_2', 'PC2_1', 'PC2_2', 'CUNIT1', 'CUNIT2',
+                    'CTYPE1', 'CTYPE1', 'CRVAL1', 'CRVAL2', 'RADESYS'):
+            assert outhdr[key] == in_hdr[key]
+
+        # FIXME: Why input CRPIX needed to match output RA/Dec is off by 1?
+        c1 = in_wcs.pixel_to_world(in_hdr['CRPIX1'] + 1, in_hdr['CRPIX2'] + 1)
+        c2 = outwcs.pixel_to_world(outhdr['CRPIX1'], outhdr['CRPIX2'])
+        assert_allclose(c1.separation(c2).value, 0)
+
+    def test_scale_image_with_dq(self):
+        """Test scaling with mask."""
+        outfile = self.filename.replace('test.fits', 'out_masked.fits')
+        parsedq = DQParser(
+            get_pkg_data_filename('data/dqflags_jwst.txt', package='stginga'))
+        scale_image_with_dq(
+            self.filename, outfile, 0.5, parsedq, kernel_width=5,
+            sci_ext='SCI', dq_ext='DQ', bad_flag=self.bad_flag,
+            ignore_edge_pixels=1)
+        ans = [[0, 2, 5, 7, 9],
+               [22, 23, 27, 30, 31],
+               [45, 46, 37, 51, 54],
+               [68, 71, 83, 75, 77],
+               [90, 92, 95, 97, 99]]
+        with fits.open(outfile) as pf:
             assert_allclose(pf[0].data, ans)
 
 
 # https://github.com/spacetelescope/reftools/blob/master/reftools/tests/test_interpretdq.py
 def test_dq_parser():
-    parsedq = DQParser(get_pkg_data_filename('../data/dqflags_acs.txt'))
+    parsedq = DQParser(
+        get_pkg_data_filename('data/dqflags_acs.txt', package='stginga'))
 
     # One pixel
     dqs = parsedq.interpret_dqval(16658)
