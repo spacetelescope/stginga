@@ -45,9 +45,11 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
+    - name: Install for Linux
+      run: sudo apt-get install libxml2-utils
+      if: matrix.os == 'ubuntu-latest'
     - name: Install and build
       run: |
-        sudo apt-get install libxml2-utils
         python -m pip install --upgrade pip setuptools
         python -m pip install -e .[test]
     - name: Test
