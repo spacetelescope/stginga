@@ -9,9 +9,9 @@ stginga
     :target: https://stginga.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://travis-ci.org/spacetelescope/stginga.svg?branch=master
-    :target: https://travis-ci.org/spacetelescope/stginga
-    :alt: Travis CI results
+.. image:: https://github.com/spacetelescope/stginga/workflows/CI/badge.svg
+    :target: https://github.com/spacetelescope/stginga/actions?query=workflow%3ACI
+    :alt: Github Actions CI Status
 
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
     :target: http://www.astropy.org
