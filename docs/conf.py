@@ -122,3 +122,9 @@ man_pages = [('index', project.lower(), project + u' Documentation',
 
 intersphinx_mapping.update({
         'ginga': ('https://ginga.readthedocs.io/en/latest/', None)})
+
+# -- Options for linkcheck output ---------------------------------------------
+linkcheck_retry = 5
+linkcheck_ignore = ['https://hsthelp.stsci.edu']
+linkcheck_timeout = 180
+linkcheck_anchors = False
