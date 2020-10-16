@@ -10,6 +10,11 @@ New Features
 - Added a new ``rescale`` keyword for ``stginga.utils.interpolate_badpix``
   function. [#200]
 
+Other Changes and Additions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This version requires Python 3.7 or later. [#207]
+
 1.2 (2020-07-20)
 ----------------
 
