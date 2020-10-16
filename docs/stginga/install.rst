@@ -11,7 +11,7 @@ Installation
 * Ginga 2.7 or later, see
   `Ginga's documentation <https://ginga.readthedocs.io/>`_
 
-We suggest using `Anaconda <https://www.continuum.io/downloads>`_ as a
+We suggest using `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_ as a
 Python distribution that is known to work with ``stginga``::
 
     conda install stginga -c conda-forge

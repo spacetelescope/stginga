@@ -106,8 +106,7 @@ Meanwhile, this automatically loads the ``MultiDim`` local plugin for the
 plugin_Contents.cfg
 -------------------
 
-Ginga's default columns for
-`Contents plugin <https://ginga.readthedocs.io/en/latest/manual/plugins.html#contents>`_
+Ginga's default columns for :ref:`Contents plugin <ginga:sec-plugins-contents>`
 do not apply to STScI FITS data. Therefore, you should customize it to show
 keyword values that are relevant to your own data. However, you should *always*
 keep ``NAME`` and ``MODIFIED`` because they are used to identify the image
@@ -125,8 +124,7 @@ buffer and specify whether the buffer has changed, respectively. For example:
 plugin_Thumbs.cfg
 -----------------
 
-Ginga's default keywords for
-`Thumbs plugin <https://ginga.readthedocs.io/en/latest/manual/plugins.html#thumbs>`_
+Ginga's default keywords for :ref:`Thumbs plugin <ginga:sec-plugins-thumbs>`
 do not apply to STScI FITS data. Therefore, you should customize it to show
 keyword values that are relevant to your own data. For example:
 
