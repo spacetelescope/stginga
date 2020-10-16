@@ -28,7 +28,7 @@ tab. This list can be saved to a file by clicking "Save Selection" button.
 Optionally, the mosaic itself can be saved using
 :ref:`ginga:sec-plugins-global-saveimage`.
 
-"""
+"""  # noqa: E501
 # STDLIB
 import os
 
