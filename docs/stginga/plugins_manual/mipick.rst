@@ -11,7 +11,7 @@ MIPick
 
 This local plugin is mainly a demonstration on how custom plugins can be
 integrated with existing plugins. This plugin is based on the
-`Pick plugin <https://ginga.readthedocs.io/en/latest/manual/plugins.html#pick>`_.
+:ref:`Pick plugin <ginga:sec-plugins-pick>`.
 However, the pick region, instead of being fixed to image
 pixel coordinates, uses the image sky coordinates. If run with
 :ref:`local-plugin-multiimage`, the postage stamps will show the same region

@@ -11,7 +11,7 @@ channel.  An instance can be opened for each channel.
 
 This plugin is used to calculate SBR and SNR on an image, as follow.
 
-SBR is as defined by `Ball <http://www.ballaerospace.com/>`_
+SBR is as defined by `Ball <https://www.ball.com/aerospace>`_
 (Acton 2015, private communications), *"Take the median
 value of the pixels within the image. In the case of a defocused spot, this is
 just the median value within the 'top hat' portion of the image. Next, take the
@@ -76,7 +76,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         # superclass defines some variables for us, like logger
         super(SNRCalc, self).__init__(fv, fitsimage)
 
-        self.help_url = ('http://stginga.readthedocs.io/en/latest/stginga/'
+        self.help_url = ('https://stginga.readthedocs.io/en/latest/stginga/'
                          'plugins_manual/snrcalc.html')
 
         self.layertag = 'sbrcalc-canvas'
