@@ -1,5 +1,3 @@
-import os
-
 try:
     from pytest_astropy_header.display import (PYTEST_HEADER_MODULES,
                                                TESTED_VERSIONS)
@@ -8,7 +6,7 @@ except ImportError:
     TESTED_VERSIONS = {}
 
 try:
-    from .version import version
+    from stginga import __version__ as version
 except ImportError:
     version = 'unknown'
 
@@ -28,5 +26,4 @@ PYTEST_HEADER_MODULES.pop('h5py')
 # Uncomment the following lines to display the version number of the
 # package rather than the version number of Astropy in the top line when
 # running the tests.
-packagename = os.path.basename(os.path.dirname(__file__))
-TESTED_VERSIONS[packagename] = version
+TESTED_VERSIONS['stginga'] = version
