@@ -13,7 +13,7 @@ channel. An instance can be opened for each channel.
 This plugin is used to automatically create a mosaic of all currently
 loaded images in the channel. The position of an image on the mosaic is
 determined by its WCS without distortion correction. This is meant as a
-quick-look tool, not an `AstroDrizzle <http://drizzlepac.stsci.edu/>`_
+quick-look tool, not an `AstroDrizzle <https://www.stsci.edu/scientific-community/software/drizzlepac.html>`_
 replacement. Currently, such a mosaic can only be created once per Ginga
 session.
 
@@ -53,7 +53,7 @@ class MosaicAuto(HelpMixin, Mosaic):
     def __init__(self, fv, fitsimage):
         super(MosaicAuto, self).__init__(fv, fitsimage)
 
-        self.help_url = ('http://stginga.readthedocs.io/en/latest/stginga/'
+        self.help_url = ('https://stginga.readthedocs.io/en/latest/stginga/'
                          'plugins_manual/mosaicauto.html')
 
         # To store individual images and their footprints

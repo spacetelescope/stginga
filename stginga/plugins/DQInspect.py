@@ -67,7 +67,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         # superclass defines some variables for us, like logger
         super(DQInspect, self).__init__(fv, fitsimage)
 
-        self.help_url = ('http://stginga.readthedocs.io/en/latest/stginga/'
+        self.help_url = ('https://stginga.readthedocs.io/en/latest/stginga/'
                          'plugins_manual/dqinspect.html')
 
         self.layertag = 'dqinspect-canvas'

@@ -36,7 +36,7 @@ one way is to use the ``--plugins`` option along with ``stginga`` command
 
 These plugins are not actively maintained. If you really, really want to use
 them, see instructions at
-`experimental/README.rst <https://github.com/spacetelescope/stginga/tree/master/experimental/README.rst>`_:
+`experimental/README.rst <https://github.com/spacetelescope/stginga/blob/master/experimental/README.rst>`_:
 
 .. toctree::
    :maxdepth: 2

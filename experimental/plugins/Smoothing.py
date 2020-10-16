@@ -28,7 +28,7 @@ class Smoothing(HelpMixin, LocalPlugin, ParamMixin):
         # superclass defines some variables for us, like logger
         super(Smoothing, self).__init__(fv, fitsimage)
 
-        self.help_url = ('http://stginga.readthedocs.io/en/latest/stginga/'
+        self.help_url = ('https://stginga.readthedocs.io/en/latest/stginga/'
                          'plugins_manual/smoothing.html')
 
         self._smooth_options = ['boxcar', 'gauss', 'medfilt']

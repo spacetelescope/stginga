@@ -56,4 +56,4 @@ def _get_stginga_plugins():
 
 def show_plugin_install_info():
     """Print the documentation on how to install the ginga plugins."""
-    print('See http://stginga.readthedocs.org/en/latest/run.html')
+    print('See https://stginga.readthedocs.io/en/latest/stginga/run.html')
