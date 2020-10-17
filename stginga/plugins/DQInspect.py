@@ -301,8 +301,8 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
 
         if telescope not in dqdict or instrument not in dqdict[telescope]:
             self.logger.warn(
-                '{}={} and {}={} combo is not supported, using default'.format(
-                    self._tel_key, telescope, self._ins_key, instrument))
+                f'{self._tel_key}={telescope} and {self._ins_key}={instrument}'
+                ' combo is not supported, using default')
             return self._def_parser
 
         try:
@@ -311,14 +311,13 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         except Exception:
             dqfile = dqdict[telescope][instrument]
             if os.path.isfile(dqfile):
-                self.logger.info('Using external data {0}'.format(dqfile))
+                self.logger.info(f'Using external data {dqfile}')
             else:
                 self.logger.warn(
-                    '{} not found for {}/{}, using default'.format(
-                        dqfile, telescope, instrument))
+                    f'{dqfile} not found for {telescope}/{instrument}, using default')  # noqa: E501
                 dqfile = None
         else:
-            self.logger.info('Using package data {0}'.format(dqfile))
+            self.logger.info(f'Using package data {dqfile}')
 
         if dqfile is None:
             return self._def_parser
@@ -326,8 +325,8 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         try:
             dqp = utils.DQParser(dqfile)
         except Exception as err:
-            self.logger.warn('Cannot extract DQ info from {}, using '
-                             'default: {}'.format(dqfile, err))
+            self.logger.warn(f'Cannot extract DQ info from {dqfile}, using '
+                             f'default: {err}')
             dqp = self._def_parser
 
         return dqp
@@ -373,16 +372,15 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         dqname = dqsrc.get('name')
         data = dqsrc.get_data()
         if data.ndim != self._ndim:
-            self.logger.error('Expected ndim={0} but data has '
-                              'ndim={1}'.format(self._ndim, data.ndim))
+            self.logger.error(f'Expected ndim={self._ndim} but data has '
+                              f'ndim={data.ndim}')
             return self._reset_imdq_on_error()
 
         # Get cached DQ parser first, if available
         if (telescope in self._dqparser and
                 instrument in self._dqparser[telescope]):
             self.logger.debug(
-                'Using cached DQ parser for {}/{}'.format(
-                    telescope, instrument))
+                f'Using cached DQ parser for {telescope}/{instrument}')
             dqparser = self._dqparser[telescope][instrument]
 
         # Create new parser and cache it.
@@ -390,8 +388,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         # If no data file provided, use default.
         else:
             self.logger.debug(
-                'Creating new DQ parser for {}/{}'.format(
-                    telescope, instrument))
+                f'Creating new DQ parser for {telescope}/{instrument}')
             dqparser = self._load_dqparser(telescope, instrument)
             if telescope not in self._dqparser:
                 self._dqparser[telescope] = {}
@@ -407,14 +404,14 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         # pixmask_by_flag is {flag: np_index}
         # timestamp is datetime object or None
         if bnch is None or cur_timestamp != bnch.timestamp:
-            self.logger.debug('Interpreting all DQs for {0}...'.format(dqname))
+            self.logger.debug(f'Interpreting all DQs for {dqname}...')
             pixmask_by_flag = dqparser.interpret_array(data)
             dqsrc.metadata[self._cache_key] = Bunch.Bunch(
                 pixmask_by_flag=pixmask_by_flag, timestamp=cur_timestamp)
 
         # Get cached results first, if available.
         else:
-            self.logger.debug('Using cached DQ results for {0}'.format(dqname))
+            self.logger.debug(f'Using cached DQ results for {dqname}')
             pixmask_by_flag = bnch.pixmask_by_flag
 
         # Parse DQ into individual flag definitions
@@ -425,8 +422,8 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
             dqs = dqparser.interpret_dqval(pixval)
             self.recreate_pxdq(dqparser, dqs, pixval)
         else:
-            self.logger.warn('{0}[{1}, {2}] is out of range; data shape is '
-                             '{3}'.format(dqname, iy, ix, data.shape))
+            self.logger.warn(f'{dqname}[{iy}, {ix}] is out of range; '
+                             f'data shape is {data.shape}')
 
         # No need to do the rest if image has not changed
         if pixmask_by_flag is self._curpxmask:
@@ -493,13 +490,13 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
 
             # TODO: Better way to report colors used? Cannot set as treeview
             # columns because treeview resets on update.
-            self.logger.info('{0}: {1}'.format(key, cur_col))
+            self.logger.info(f'{key}: {cur_col}')
 
         # Report number of affected pixels
         npix = np.count_nonzero(mask)
         if npix > 0:
-            self.w.npix.set_text('{0}/{1} ({2:.3f}%)'.format(
-                npix, mask.size, 100 * npix / mask.size))
+            self.w.npix.set_text(
+                f'{npix}/{mask.size} ({npix / mask.size:.3%})')
         else:
             self.w.npix.set_text('0')
 

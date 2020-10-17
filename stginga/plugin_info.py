@@ -23,16 +23,16 @@ def load_plugins(ginga):
     # Add custom global plugins
     for gplg in stglobal_plugins:
         if gplg['module'] in ginga.global_plugins:
-            ginga.logger.info('Plugin {0} already loaded in Ginga. Not adding '
-                              'again.'.format(gplg['module']))
+            ginga.logger.info(f'Plugin {gplg["module"]} already loaded in '
+                              'Ginga. Not adding again.')
         else:
             ginga.add_global_plugin(gplg)
 
     # Add custom local plugins
     for lplg in stlocal_plugins:
         if lplg['module'] in ginga.local_plugins:
-            ginga.logger.info('Plugin {0} already loaded in Ginga. Not adding '
-                              'again.'.format(lplg['module']))
+            ginga.logger.info(f'Plugin {lplg["module"]} already loaded in '
+                              'Ginga. Not adding again.')
         else:
             ginga.add_local_plugin(lplg)
 

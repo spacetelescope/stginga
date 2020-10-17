@@ -78,8 +78,8 @@ def calc_stat(data, sigma=1.8, niter=10, algorithm='median'):
     elif algorithm == 'stddev':
         val = arr.std()
     else:
-        raise ValueError('{0} is not a valid algorithm for sky background '
-                         'calculations'.format(algorithm))
+        raise ValueError(f'{algorithm} is not a valid algorithm for sky '
+                         'background calculations')
 
     return val
 
@@ -330,12 +330,12 @@ def scale_wcs(input_hdr, zoom_factor, debug=False):
 
         for i in range(1, 3):
             for j in range(1, 3):
-                key = 'PC{0}_{1}'.format(i, j)
+                key = f'PC{i}_{j}'
                 if key in wshdr:
-                    newkey = 'CD{0}_{1}'.format(i, j)
+                    newkey = f'CD{i}_{j}'
                     wshdr.rename_keyword(key, newkey)
                     if debug:
-                        print('{} -> {}'.format(key, newkey))
+                        print(f'{key} -> {newkey}')
 
     else:
         raise ValueError('Missing CD or PC matrix for WCS')
@@ -398,7 +398,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
     """
     if not clobber and os.path.exists(outfile):  # pragma: no cover
         if debug:
-            warnings.warn('{0} already exists'.format(outfile),
+            warnings.warn(f'{outfile} already exists',
                           AstropyUserWarning)
         return  # Instead of raising error at the very end
 
@@ -415,7 +415,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
         hdr[key] = prihdr[key]
 
     if data.ndim != 2:  # pragma: no cover
-        raise ValueError('Unsupported ndim={0}'.format(data.ndim))
+        raise ValueError(f'Unsupported ndim={data.ndim}')
 
     # Scale the data.
     data = zoom(data, zoom_factor)
@@ -481,7 +481,7 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
     """
     if not overwrite and os.path.exists(outfile):  # pragma: no cover
         if debug:
-            warnings.warn('{0} already exists'.format(outfile),
+            warnings.warn(f'{outfile} already exists',
                           AstropyUserWarning)
         return  # Instead of raising error at the very end
 
@@ -492,7 +492,7 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
         dq = pf[dq_ext].data
 
     if data.ndim != 2:  # pragma: no cover
-        raise ValueError('Unsupported ndim={0}'.format(data.ndim))
+        raise ValueError(f'Unsupported ndim={data.ndim}')
 
     # Inherit some keywords from primary header
     for key in ('ROOTNAME', 'TARGNAME', 'INSTRUME', 'DETECTOR',

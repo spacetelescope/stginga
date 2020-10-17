@@ -206,7 +206,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         self.w.x.set_text(str(self.xcen))
         self.w.y.set_text(str(self.ycen))
-        self._debug_str = 'x={0}, y={1}'.format(self.xcen, self.ycen)
+        self._debug_str = f'x={self.xcen}, y={self.ycen}'
 
         image = self.fitsimage.get_image()
         if image is None:
@@ -225,8 +225,8 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         # If EXTNAME does not exist, just assume user knows best.
         if extname not in (self._sci_extname, self._no_keyword):
             self.logger.warn(
-                'Background calculation not possible for {0} extension in '
-                '{1}'.format(extname, image.get('name')))
+                f'Background calculation not possible for {extname} extension '
+                f'in {image.get("name")}')
             return True
 
         try:
@@ -239,13 +239,11 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         if self.bgtype == 'annulus':
             self.w.r.set_text(str(self.radius))
-            self._debug_str += ', r={0}, dannulus={1}'.format(
-                self.radius, self.annulus_width)
+            self._debug_str += f', r={self.radius}, dannulus={self.annulus_width}'  # noqa: E501
         else:  # box
             self.w.box_w.set_text(str(self.boxwidth))
             self.w.box_h.set_text(str(self.boxheight))
-            self._debug_str += ', w={0}, h={1}'.format(
-                self.boxwidth, self.boxheight)
+            self._debug_str += f', w={self.boxwidth}, h={self.boxheight}'
 
         # Extract DQ info
         if self.ignore_badpix:
@@ -266,7 +264,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         try:
             bg_data = bg_masked.data[mask]
         except Exception as e:
-            self.logger.warn('{0}: {1}'.format(e.__class__.__name__, str(e)))
+            self.logger.warn(f'{e.__class__.__name__}: {repr(e)}')
             self.bgval = self._dummy_value
         else:
             self.bgval = utils.calc_stat(
@@ -274,10 +272,9 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
                 algorithm=self.algorithm)
 
         self._debug_str += (
-            ', bgval={0}, salgo={1}, sigma={2}, niter={3}, '
-            'ignore_badpix={4}'.format(
-                self.bgval, self.algorithm, self.sigma, self.niter,
-                self.ignore_badpix))
+            f', bgval={self.bgval}, salgo={self.algorithm}, '
+            f'sigma={self.sigma}, niter={self.niter}, '
+            f'ignore_badpix={self.ignore_badpix}')
         self.logger.debug(self._debug_str)
         self.w.background_value.set_text(str(self.bgval))
 
@@ -401,7 +398,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
     def set_bgtype(self, bgtype):
         if bgtype not in self._bgtype_options:
             self.logger.error(
-                'Undefined background selection type - {0}'.format(bgtype))
+                f'Undefined background selection type - {bgtype}')
             return True
 
         self.bgtype = bgtype
@@ -687,7 +684,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         return self.set_algorithm(salgo)
 
     def set_algorithm(self, salgo):
-        self.logger.debug('BGSub algorithm: {0}'.format(salgo))
+        self.logger.debug(f'BGSub algorithm: {salgo}')
         self.algorithm = salgo
         return self.redo()
 
@@ -731,10 +728,9 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
             return True
 
         new_data = image.get_data() - self.bgval
-        s = '{0} subtracted from {1}'.format(
-            self.bgval, image.metadata['name'])
+        s = f"{self.bgval} subtracted from {image.metadata['name']}"
         if self._debug_str:
-            s += ' ({0})'.format(self._debug_str)
+            s += f' ({self._debug_str})'
         self.logger.info(s)
 
         # Change data in Ginga object and recalculate BG in annulus.

@@ -5,7 +5,7 @@ Installation
 
 ``stginga`` requires:
 
-* Python 3
+* Python 3.7 or later
 * Astropy 3.0 or later
 * SciPy 0.18 or later
 * Ginga 2.7 or later, see

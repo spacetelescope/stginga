@@ -221,10 +221,10 @@ class Smoothing(HelpMixin, LocalPlugin, ParamMixin):
         else:
             s = 'size'
 
-        debug_str = '{0}={1}, mode={2}'.format(s, self.smoothpars, self.mode)
+        debug_str = f'{s}={self.smoothpars}, mode={self.mode}'
 
         if self.mode == 'constant':
-            debug_str += ', fillval={0}'.format(self.fillval)
+            debug_str += f', fillval={self.fillval}'
 
         if self.algorithm == 'boxcar':
             kern = boxcar(self.smoothpars)
@@ -246,20 +246,19 @@ class Smoothing(HelpMixin, LocalPlugin, ParamMixin):
             self.fv.add_image, new_name, new_im, chname=self.chname)
 
         # Add change log
-        s = 'Smoothed {0} using {1}, {2}'.format(
-            old_name, self.algorithm, debug_str)
+        s = f'Smoothed {old_name} using {self.algorithm}, {debug_str}'
         info = {'time_modified': datetime.utcnow(), 'reason_modified': s}
         self.fv.update_image_info(new_im, info)
         self.logger.info(s)
 
         t2 = time.time()
-        self.w.status.set_text('Done ({0:.3f} s)'.format(t2 - t1))
+        self.w.status.set_text(f'Done ({t2 - t1:.3f} s)')
         self.toggle_gui(enable=True)
 
     def _get_new_name(self, oldname):
         """Generate new unique image name."""
         ts = int(time.time())  # Ensure unique name
-        return '{0}{1}_{2}'.format(self._out_pfx, ts, oldname)
+        return f'{self._out_pfx}{ts}_{oldname}'
 
     def _make_image(self, data_np, oldimage, name):
         """Generate new image object."""

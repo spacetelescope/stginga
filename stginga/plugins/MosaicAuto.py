@@ -249,7 +249,7 @@ class MosaicAuto(HelpMixin, Mosaic):
         fpwidth = self.settings.get('footprintlinewidth', 5)
         polygonlist = []
         for imname, bnch in self._imlist.items():
-            self.logger.debug('Drawing footprint for {0}'.format(imname))
+            self.logger.debug(f'Drawing footprint for {imname}')
             if bnch.footprint is None:
                 continue
             pixcrd = w.wcs_world2pix(bnch.footprint, self._wcs_origin)
@@ -289,7 +289,7 @@ class MosaicAuto(HelpMixin, Mosaic):
 
         imname = image.get('name', 'NoName')
         impath = image.get('path')
-        msg = 'Adding {0} to mosaic'.format(imname)
+        msg = f'Adding {imname} to mosaic'
         new_mosaic = self.settings.get('drop_creates_new_mosaic', False)
         self.fitsimage.onscreen_message(msg, delay=2.0)
         self.fv.nongui_do(self.fv.error_wrap, self.mosaic, [impath],
@@ -307,7 +307,7 @@ class MosaicAuto(HelpMixin, Mosaic):
         treedict[imname] = Bunch.Bunch(IMAGE=imname)
         self.treeview.add_tree(treedict)
 
-        self.logger.info('{0} added to mosaic'.format(imname))
+        self.logger.info(f'{imname} added to mosaic')
         return True
 
     def hl_canvas2table(self, canvas, button, data_x, data_y):
@@ -492,7 +492,7 @@ class MosaicAuto(HelpMixin, Mosaic):
         if fname is None:  # Cancel
             return
         if os.path.exists(fname):
-            s = '{0} will be overwritten'.format(fname)
+            s = f'{fname} will be overwritten'
             self.logger.warn(s)
         ascii.write(
             [imlist], fname, names=['IMAGE'], format='commented_header')

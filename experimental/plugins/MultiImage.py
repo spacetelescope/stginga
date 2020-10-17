@@ -297,9 +297,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.pstamps_show = False
         pstamps = Widgets.HBox()
         w = pstamps.get_widget()
-        self.logger.debug('layout="{}"'.format(
-            pstamps_frame.get_widget().layout()))
-        self.logger.debug('pstamps.w="{}"'.format(w))
+        self.logger.debug(f'layout="{pstamps_frame.get_widget().layout()}"')
+        self.logger.debug(f'pstamps.w="{w}"')
         w.setMinimumHeight(100)
         pstamps_frame.add_widget(pstamps)
         self.pstamps = pstamps
@@ -480,7 +479,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def make_id(self):
         self.id_count += 1
-        return 'Image_{:02}'.format(self.id_count)
+        return f'Image_{self.id_count:02}'
 
     def window_resized_cb(self, fitsimage, width, height):
         self.logger.debug('Called.')
