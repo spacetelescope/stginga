@@ -120,15 +120,14 @@ class MEFMixin(object):
             return False
 
         err_extnum = (self._err_extname, extver)
-        errname = '{0}[{1},{2}]'.format(imname, self._err_extname, extver)
+        errname = f'{imname}[{self._err_extname},{extver}]'
         errsrc = utils.find_ext(imfile, err_extnum)
 
         # Load ERR image
         if errsrc:
             errsrc = self.autoload_ginga_image(imfile, err_extnum, errname)
         else:
-            self.logger.warn('{0} extension not found for '
-                             '{1}'.format(err_extnum, imfile))
+            self.logger.warn(f'{err_extnum} extension not found for {imfile}')
 
         return errsrc
 
@@ -158,7 +157,7 @@ class MEFMixin(object):
         dq_extnum = (self._dq_extname, extver)
 
         if telescope != 'HST' or instrument != 'WFPC2':
-            dqname = '{0}[{1},{2}]'.format(imname, self._dq_extname, extver)
+            dqname = f'{imname}[{self._dq_extname},{extver}]'
             dqsrc = utils.find_ext(imfile, dq_extnum)
 
         # Special handling for WFPC2, lots of assumptions
@@ -171,14 +170,13 @@ class MEFMixin(object):
                 dq_extnum = (self._sci_extname, extver)
                 dqsrc = utils.find_ext(imfile, dq_extnum)
 
-            dqname = '{0}[{1},{2}]'.format(imname, dq_extnum[0], extver)
+            dqname = f'{imname}[{dq_extnum[0]},{extver}]'
 
         # Load DQ image
         if dqsrc:
             dqsrc = self.autoload_ginga_image(imfile, dq_extnum, dqname)
         else:
-            self.logger.error('{0} extension not found for '
-                              '{1}'.format(dq_extnum, imfile))
+            self.logger.error(f'{dq_extnum} extension not found for {imfile}')
 
         return dqsrc
 
@@ -205,13 +203,13 @@ class MEFMixin(object):
         """
         # Image already loaded
         if cachekey in self.chinfo.datasrc:
-            self.logger.debug('Loading {0} from cache'.format(cachekey))
+            self.logger.debug(f'Loading {cachekey} from cache')
             image = self.chinfo.datasrc[cachekey]
 
         # Auto load image data
         else:
             self.logger.debug(
-                'Loading {0} from {1}'.format(cachekey, filename))
+                f'Loading {cachekey} from {filename}')
             image = self.fv.load_image(filename, idx=extnum)
             future = Future()
             future.freeze(self.fv.load_image, filename, idx=extnum)
@@ -246,7 +244,7 @@ class ParamMixin(object):
         b.load_param.add_callback(
             'activated', lambda w: self.load_params_cb())
 
-        b.save_param.set_tooltip('Save {0} parameters'.format(str(self)))
+        b.save_param.set_tooltip(f'Save {str(self)} parameters')
         b.save_param.add_callback(
             'activated', lambda w: self.save_params())
 
@@ -267,11 +265,11 @@ class ParamMixin(object):
         if fname is None:  # Cancel
             return
         if os.path.exists(fname):
-            self.logger.warn('{0} will be overwritten'.format(fname))
+            self.logger.warn(f'{fname} will be overwritten')
         with open(fname, 'w') as fout:
             json.dump(pardict, fout, indent=4, sort_keys=True,
                       cls=JsonCustomEncoder)
-        self.logger.info('Parameters saved as {0}'.format(fname))
+        self.logger.info(f'Parameters saved as {fname}')
 
     def load_params_cb(self):
         """Allow user to select JSON file to load."""
@@ -284,8 +282,7 @@ class ParamMixin(object):
             return True
 
         with open(filename) as fin:
-            self.logger.info('{0} parameters loaded from {1}'.format(
-                str(self), filename))
+            self.logger.info(f'{str(self)} parameters loaded from {filename}')
             pardict = json.load(fin)
 
         self.ingest_params(pardict)

@@ -304,7 +304,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         self.w.x.set_text(str(self.xcen))
         self.w.y.set_text(str(self.ycen))
-        self._debug_str = 'x={0}, y={1}'.format(self.xcen, self.ycen)
+        self._debug_str = f'x={self.xcen}, y={self.ycen}'
 
         image = self.fitsimage.get_image()
         if image is None:
@@ -323,8 +323,8 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         # If EXTNAME does not exist, just assume user knows best.
         if extname not in (self._sci_extname, self._no_keyword):
             self.logger.warn(
-                'SNR/SBR calculations not possible for {0} extension in '
-                '{1}'.format(extname, image.get('name')))
+                f'SNR/SBR calculations not possible for {extname} extension in'
+                f' {image.get("name")}')
             return True
 
         try:
@@ -339,14 +339,13 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         if self.sigtype == 'box':
             self.w.box_w.set_text(str(self.boxwidth))
             self.w.box_h.set_text(str(self.boxheight))
-            self._debug_str += ', w={0}, h={1}'.format(
-                self.boxwidth, self.boxheight)
+            self._debug_str += f', w={self.boxwidth}, h={self.boxheight}'
         elif self.sigtype == 'circle':
             self.w.r.set_text(str(self.radius))
-            self._debug_str += ', r={0}'.format(self.radius)
+            self._debug_str += f', r={self.radius}'
         else:  # polygon
             self._poly_pts = sig_obj.points
-            self._debug_str += ', pts={0}'.format(self._poly_pts)
+            self._debug_str += f', pts={self._poly_pts}'
 
         # Set min SBR here, in case subclass reimplement this method to use
         # image metadata as selection criteria.
@@ -381,7 +380,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
             sci_data = sci_masked.data[mask_sci]
             bg_data = bg_masked.data[mask_bg]
         except Exception as e:
-            self.logger.error('{0}: {1}'.format(e.__class__.__name__, str(e)))
+            self.logger.error(f'{e.__class__.__name__}: {repr(e)}')
             return
 
         # Calculate SBR
@@ -394,16 +393,15 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         self.w.bg_std.set_text(str(bg_std))
         self.w.bg_mean.set_text(str(bg_mean))
         self._debug_str += (
-            ', bg_x={0}, bg_y={1}, bg_r={2}, dannulus={3}, '
-            'sigma={4}, niter={5}, sig_med={6}, bg_std={7}, '
-            'bg_mean={8}'.format(
-                bg_obj.x, bg_obj.y, bg_obj.radius, bg_obj.width,
-                self.sigma, self.niter, sig_med, bg_std, bg_mean))
+            f', bg_x={bg_obj.x}, bg_y={bg_obj.y}, bg_r={bg_obj.radius}, '
+            f'dannulus={bg_obj.width}, sigma={self.sigma}, '
+            f'niter={self.niter}, sig_med={sig_med}, bg_std={bg_std}, '
+            f'bg_mean={bg_mean}')
 
         if bg_std != 0:
             sbrval = sig_med / bg_std
             self.w.sbr_value.set_text(str(sbrval))
-            self._debug_str += ', sbr={0}, minsbr={1}'.format(sbrval, minsbr)
+            self._debug_str += f', sbr={sbrval}, minsbr={minsbr}'
 
             # Update SBR status
             if sbrval > minsbr:
@@ -429,7 +427,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
                 snr_err_data = err_masked.data[mask_snr]
             except Exception as e:
                 self.logger.error(
-                    '{0}: {1}'.format(e.__class__.__name__, str(e)))
+                    f'{e.__class__.__name__}: {repr(e)}')
                 return
 
             # Calculate SNR
@@ -440,8 +438,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
             self.w.min_snr.set_text(str(snrmin))
             self.w.mean_snr.set_text(str(snrmean))
             self.w.max_snr.set_text(str(snrmax))
-            self._debug_str += ', snrmin={0}, snrmean={1}, snrmax={2}'.format(
-                snrmin, snrmean, snrmax)
+            self._debug_str += f', snrmin={snrmin}, snrmean={snrmean}, snrmax={snrmax}'  # noqa: E501
 
         self.logger.debug(self._debug_str)
         self.w.update_hdr.set_enabled(True)
@@ -617,7 +614,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         """Set signal region shape."""
         if sigtype not in self._sigtype_options:
             self.logger.error(
-                'Undefined signal selection type - {0}'.format(sigtype))
+                f'Undefined signal selection type - {sigtype}')
             return True
 
         self.sigtype = sigtype
@@ -986,8 +983,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         hdr['SNRMAX'] = snrmax
         hdr['SBR'] = sbrval
 
-        s = 'SNR* and SBR keywords updated in {0}; {1}'.format(
-            imname, self._debug_str)
+        s = f'SNR* and SBR keywords updated in {imname}; {self._debug_str}'
         self.logger.info(s)
 
         # ----- Update Contents, History, and Header global plugins ----

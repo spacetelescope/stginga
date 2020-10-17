@@ -74,18 +74,17 @@ class MIPick(Pick):
             width = bbox.x2 - bbox.x1
             height = bbox.y2 - bbox.y1
             if (width > self.max_side) or (height > self.max_side):
-                errmsg = "Image area (%dx%d) too large!" % (width, height)
+                errmsg = f"Image area ({width}x{height}) too large!"
                 self.fv.show_error(errmsg)
                 raise Exception(errmsg)
 
             # Cut and show pick image in pick window
-            self.logger.debug("bbox %f,%f %f,%f" % (bbox.x1, bbox.y1,
-                                                    bbox.x2, bbox.y2))
+            self.logger.debug(f"bbox {bbox.x1:f},{bbox.y1:f} {bbox.x2:f},{bbox.y2:f}")
             x1, y1, x2, y2, data = self.cutdetail(self.fitsimage,
                                                   self.pickimage,
                                                   int(bbox.x1), int(bbox.y1),
                                                   int(bbox.x2), int(bbox.y2))
-            self.logger.debug("cut box %f,%f %f,%f" % (x1, y1, x2, y2))
+            self.logger.debug(f"cut box {x1:f},{y1:f} {x2:f},{y2:f}")
 
             # calculate center of pick image
             wd, ht = self.pickimage.get_data_size()
@@ -99,10 +98,10 @@ class MIPick(Pick):
 
             self.pick_x1, self.pick_y1 = x1, y1
             self.pick_data = data
-            self.wdetail.sample_area.set_text('%dx%d' % (x2 - x1, y2 - y1))
+            self.wdetail.sample_area.set_text(f'{x2 - x1}x{y2 - y1}')
 
             point.color = 'red'
-            text.text = '{0}: calc'.format(self._textlabel)
+            text.text = f'{self._textlabel}: calc'
             self.pickcenter.x = xc
             self.pickcenter.y = yc
             self.pickcenter.color = 'red'
@@ -130,8 +129,7 @@ class MIPick(Pick):
                               x1, y1, wd, ht, fig)
 
         except Exception as e:
-            self.logger.error("Error calculating quality metrics: %s" % (
-                str(e)))
+            self.logger.error(f"Error calculating quality metrics: {repr(e)}")
             return True
 
     def draw_cb(self, canvas, tag):
@@ -215,7 +213,7 @@ class MIPick(Pick):
         tag = canvas.add(self.dc.CompoundObject(
             self.dc.Rectangle(x1, y1, x2, y2, color=self.pickcolor),
             self.dc.Point(x, y, 10, color='red'),
-            self.dc.Text(x1, y2 + 4, '{0}: calc'.format(self._textlabel),
+            self.dc.Text(x1, y2 + 4, f'{self._textlabel}: calc',
                          color=self.pickcolor)))
         self.picktag = tag
         self.region.set_bbox(x1, y1, x2, y2, coord='data')

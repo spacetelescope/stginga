@@ -230,8 +230,8 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         # If EXTNAME does not exist, just assume user knows best.
         if extname not in (self._sci_extname, self._no_keyword):
             self.logger.debug(
-                'Bad pixel correction for science data not possible for {0} '
-                'extension in {1}'.format(extname, image.get('name')))
+                'Bad pixel correction for science data not possible for '
+                f'{extname} extension in {image.get("name")}')
             return True
 
         # Nothing to do
@@ -268,7 +268,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         try:
             sci_data = sci_masked[mask]
         except Exception as e:
-            self.logger.error('{0}: {1}'.format(e.__class__.__name__, str(e)))
+            self.logger.error(f'{e.__class__.__name__}: {repr(e)}')
             return True
 
         # Calculate fill value from annulus
@@ -418,7 +418,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         if corrtype not in self._corrtype_options:
             self.logger.error(
-                'Undefined bad pixel region type - {0}'.format(corrtype))
+                f'Undefined bad pixel region type - {corrtype}')
             return True
 
         self.corrtype = corrtype
@@ -465,7 +465,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
     def set_filltype(self, filltype):
         if filltype not in self._filltype_options:
             self.logger.error(
-                'Undefined fill from region type - {0}'.format(filltype))
+                f'Undefined fill from region type - {filltype}')
             return True
 
         self.filltype = filltype
@@ -742,7 +742,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         return self.set_griddata_method(method)
 
     def set_griddata_method(self, method):
-        self.logger.debug('Grid data method: {0}'.format(method))
+        self.logger.debug(f'Grid data method: {method}')
         self.griddata_method = method
         return True
 
@@ -751,7 +751,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         return self.set_algorithm(salgo)
 
     def set_algorithm(self, salgo):
-        self.logger.debug('Stats algorithm: {0}'.format(salgo))
+        self.logger.debug(f'Stats algorithm: {salgo}')
         self.algorithm = salgo
         return self.redo()
 
@@ -799,19 +799,18 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         imname = image.get('name')
         header = image.get_header()
         data = image.get_data()
-        s = 'Bad pixel(s) corrected for {0}; '.format(imname)
+        s = f'Bad pixel(s) corrected for {imname}; '
 
         if self.corrtype == 'circle':
             bpx_obj = obj.objects[0]
             mask = image.get_shape_mask(bpx_obj)
-            s += 'x={0}, y={1}, r={2}'.format(
-                self.xcen, self.ycen, self.radius)
+            s += f'x={self.xcen}, y={self.ycen}, r={self.radius}'
         else:  # single pixel
             mask = np.zeros(data.shape, dtype=np.bool)
             xx = int(self.xcen)
             yy = int(self.ycen)
             mask[yy, xx] = True
-            s += 'x={0}, y={1}'.format(xx, yy)
+            s += f'x={xx}, y={yy}'
 
         npix = np.count_nonzero(mask)
         if npix == 0:
@@ -819,8 +818,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
             return True
 
         if self.filltype in ('annulus', 'spline'):
-            s += ', rannulus={0}, dannulus={1}'.format(
-                self.annulus_radius, self.annulus_width)
+            s += f', rannulus={self.annulus_radius}, dannulus={self.annulus_width}'  # noqa: E501
 
         # Extract DQ info
         dqsrc = self.load_dq(image, header)
@@ -838,9 +836,9 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
             utils.interpolate_badpix(
                 data, mask, basis_mask, method=self.griddata_method)
-            s += ', spline method={0}'.format(self.griddata_method)
+            s += f', spline method={self.griddata_method}'
             if npix == 1:
-                s += ', fillval={0:E}'.format(data[mask][0])
+                s += f', fillval={data[mask][0]:E}'
 
         # Use given fill value
         else:
@@ -852,11 +850,10 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
             data[mask] = self.fillval
             if self.filltype == 'annulus':
-                s += ', salgo={0}, sigma={1}, niter={2}'.format(
-                    self.algorithm, self.sigma, self.niter)
-            s += ', fillval={0:E}'.format(self.fillval)
+                s += f', salgo={self.algorithm}, sigma={self.sigma}, niter={self.niter}'  # noqa: E501
+            s += f', fillval={self.fillval:E}'
 
-        s += ', npix={0}'.format(npix)
+        s += f', npix={npix}'
         self.logger.info(s)
 
         # Change data in Ginga object.
@@ -883,8 +880,8 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
             self.chinfo.switch_image(dqsrc)
 
             dqdata[mask] = self._dq_fixed_flag
-            s = ('Bad pixel flag(s) replaced in {0}; dqflag={1}, '
-                 'npix={2}'.format(dqname, self._dq_fixed_flag, npix))
+            s = (f'Bad pixel flag(s) replaced in {dqname}; '
+                 f'dqflag={self._dq_fixed_flag}, npix={npix}')
             self.logger.info(s)
 
             # This issues a 'modified' callback, which sets timestamp and
