@@ -1,0 +1,41 @@
+doc:
+  - .github/**/*.md
+  - .readthedocs.yml
+  - docs/**/*
+  - licenses/*
+  - CITATION
+  - '*.md'
+  - any: ['*.rst', '!CHANGES.rst']
+
+testing:
+  - conftest.py
+  - stginga/tests/*
+
+BackgroundSub:
+  - stginga/plugins/BackgroundSub.py
+
+BadPixCorr:
+  - stginga/plugins/BadPixCorr.py
+
+DQInspect:
+  - stginga/data/*
+  - stginga/plugins/DQInspect.py
+
+IPython Notebook:
+  - experimental/notebooks/*
+
+MosaicAuto:
+  - stginga/plugins/MosaicAuto.py
+
+MultiImage:
+  - experimental/plugins/MIPick.py
+  - experimental/plugins/MultiImage.py
+
+Smoothing:
+  - experimental/plugins/Smoothing.py
+
+SNRCalc:
+  - stginga/plugins/SNRCalc.py
+
+utils:
+  - stginga/utils.py
