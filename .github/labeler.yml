@@ -8,6 +8,7 @@ doc:
   - any: ['*.rst', '!CHANGES.rst']
 
 testing:
+  - .github/**/*.yml
   - conftest.py
   - stginga/tests/*
 
