@@ -1,4 +1,4 @@
-1.3 (unreleased)
+1.3 (2021-06-11)
 ----------------
 
 New Features
@@ -13,7 +13,8 @@ New Features
 Other Changes and Additions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This version requires Python 3.7 or later. [#207]
+- This version requires Python 3.7 or later. [#207]
+- This version should be compatible with Ginga 3.2.
 
 1.2 (2020-07-20)
 ----------------
