@@ -806,7 +806,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
             mask = image.get_shape_mask(bpx_obj)
             s += f'x={self.xcen}, y={self.ycen}, r={self.radius}'
         else:  # single pixel
-            mask = np.zeros(data.shape, dtype=np.bool)
+            mask = np.zeros(data.shape, dtype=bool)
             xx = int(self.xcen)
             yy = int(self.ycen)
             mask[yy, xx] = True

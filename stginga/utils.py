@@ -193,8 +193,8 @@ class DQParser(object):
             os.path.expanduser(definition_file),
             names=(self._dqcol, self._sdcol, self._ldcol),
             converters={self._dqcol: [ascii.convert_numpy(np.uint)],
-                        self._sdcol: [ascii.convert_numpy(np.str)],
-                        self._ldcol: [ascii.convert_numpy(np.str)]})
+                        self._sdcol: [ascii.convert_numpy(str)],
+                        self._ldcol: [ascii.convert_numpy(str)]})
 
         # Another table to store metadata
         self.metadata = ascii.read(self.tab.meta['comments'], delimiter='=',
@@ -231,7 +231,7 @@ class DQParser(object):
             of affected array elements.
 
         """
-        data = np.asarray(data, dtype=np.int)  # Ensure int array
+        data = np.asarray(data, dtype=int)  # Ensure int array
         dqs_by_flag = {}
 
         def _one_flag(vf):
@@ -506,10 +506,10 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
     # Edge pixels
     iy_max = data.shape[0] - ignore_edge_pixels
     ix_max = data.shape[1] - ignore_edge_pixels
-    edge_mask = np.ones_like(dq, dtype=np.bool)
+    edge_mask = np.ones_like(dq, dtype=bool)
     edge_mask[ignore_edge_pixels:iy_max, ignore_edge_pixels:ix_max] = False
 
-    badpix_mask = np.zeros_like(dq, dtype=np.bool)
+    badpix_mask = np.zeros_like(dq, dtype=bool)
     badpix_mask[dqs_by_flags[bad_flag]] = True
     badpix_mask[edge_mask] = False  # Ignore edge
 
