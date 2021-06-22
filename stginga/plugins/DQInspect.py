@@ -468,7 +468,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         # To save memory, composite mask is generated on the fly.
         imdqcolors = self.settings.get('imdqcolors', self._def_imdqcolors)
         n_color = len(imdqcolors)
-        mask = np.zeros(self._curshape, dtype=np.bool)
+        mask = np.zeros(self._curshape, dtype=bool)
         m_objs = []
 
         # Evenly distribute alpha between all individual masks
@@ -483,7 +483,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
 
             # Mask only for that DQ flag, for individual color display
             cur_col = imdqcolors[i % n_color]
-            cur_mask = np.zeros(self._curshape, dtype=np.bool)
+            cur_mask = np.zeros(self._curshape, dtype=bool)
             cur_mask[self._curpxmask[ikey]] = True
             m_objs.append(self.dc.Image(
                 0, 0, masktorgb(cur_mask, color=cur_col, alpha=imdqalpha)))

@@ -40,7 +40,7 @@ class TestInterpBadPix(object):
     def setup_class(self):
         self.image = np.array([[1, 2, 3],
                                [4, 0, 6],
-                               [7, 8, 9]], dtype=np.float)
+                               [7, 8, 9]], dtype=float)
         self.basis_mask = np.array([[True, True, True],
                                     [True, False, True],
                                     [True, True, True]])
