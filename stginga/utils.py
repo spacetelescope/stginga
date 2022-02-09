@@ -13,7 +13,7 @@ from astropy.stats import sigma_clip
 from astropy.utils import minversion
 from astropy.utils.exceptions import AstropyUserWarning
 from scipy.interpolate import griddata
-from scipy.ndimage.interpolation import zoom
+from scipy.ndimage import zoom
 
 ASTROPY_LT_3_1 = not minversion('astropy', '3.1')
 GINGA_LT_3 = not minversion('ginga', '3.0')
