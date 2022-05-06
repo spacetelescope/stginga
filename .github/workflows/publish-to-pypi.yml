@@ -19,12 +19,12 @@ jobs:
 
           # Check out the commit containing this workflow file.
           - name: checkout repo
-            uses: actions/checkout@v2
+            uses: actions/checkout@v3
             with:
               # Number of commits to fetch. 0 indicates all history for all branches and tags.
               # Default: 1
               fetch-depth: '0'
-         
+
           - name: custom action
             uses: spacetelescope/action-publish_to_pypi@master
             id: custom_action_0
