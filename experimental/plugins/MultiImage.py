@@ -169,7 +169,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
         self.logger.debug('Called.')
 
-        self.dc = self.fv.getDrawClasses()
+        self.dc = self.fv.get_draw_classes()
 
         canvas = self.dc.DrawingCanvas()
         canvas.enable_draw(True)
@@ -181,7 +181,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         canvas.add_draw_mode('move', down=self.btndown,
                              move=self.drag, up=self.update)
         canvas.register_for_cursor_drawing(self.fitsimage)
-        canvas.setSurface(self.fitsimage)
+        canvas.set_surface(self.fitsimage)
         canvas.set_draw_mode('move')
         self.canvas = canvas
 
@@ -202,7 +202,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         vbox.set_spacing(2)
 
         # Instructions
-        self.msgFont = self.fv.getFont("sansFont", 12)
+        self.msgFont = self.fv.get_font("sansFont", 12)
         tw = Widgets.TextArea(wrap=True, editable=False)
         tw.set_font(self.msgFont)
         self.tw = tw
@@ -316,7 +316,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
         # insert layer if it is not already
         p_canvas = self.fitsimage.get_canvas()
         try:
-            p_canvas.getObjectByTag(self.layertag)
+            p_canvas.get_object_by_tag(self.layertag)
 
         except KeyError:
             # Add canvas layer
@@ -327,8 +327,8 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def resume(self):
         self.logger.debug('Called.')
 
-        self.canvas.ui_setActive(True)
-        self.fv.showStatus("Draw a region to examine.")
+        self.canvas.ui_set_active(True)
+        self.fv.show_status("Draw a region to examine.")
 
         self.redo()
 
@@ -371,13 +371,13 @@ class MultiImage(GingaPlugin.LocalPlugin):
         self.logger.debug('Called.')
 
         try:
-            obj = self.canvas.getObjectByTag(self.pstag)
+            obj = self.canvas.get_object_by_tag(self.pstag)
         except Exception:
             """Ignore"""
         else:
             self.canvas.delete_objects([obj])
-        self.canvas.ui_setActive(False)
-        self.fv.showStatus("")
+        self.canvas.ui_set_active(False)
+        self.fv.show_status("")
 
         self.pstamps_frame.layout().removeWidget(self.pstamps.get_widget())
         self.pstamps.get_widget().setParent(None)
@@ -392,7 +392,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def pause(self):
         self.logger.debug('Called.')
 
-        self.canvas.ui_setActive(False)
+        self.canvas.ui_set_active(False)
 
     def __str__(self):
         return 'MultiImage'
@@ -415,11 +415,11 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def draw_cb(self, canvas, tag):
         self.logger.debug('Called.')
-        obj = canvas.getObjectByTag(tag)
-        pt_obj = canvas.getObjectByTag(self.pstag)
+        obj = canvas.get_object_by_tag(tag)
+        pt_obj = canvas.get_object_by_tag(self.pstag)
         if obj.kind != 'rectangle':
             return True
-        canvas.deleteObjects([obj, pt_obj])
+        canvas.delete_objects([obj, pt_obj])
         x1, y1, x2, y2 = obj.get_llur()
         self.region.set_bbox(x1, y1, x2, y2, coord='data')
         self.redo()
@@ -427,7 +427,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def edit_cb(self, canvas, obj):
         self.logger.debug('Called.')
-        pt_obj = canvas.getObjectByTag(self.pstag)
+        pt_obj = canvas.get_object_by_tag(self.pstag)
         if obj != pt_obj:
             return True
         x1, y1, x2, y2 = pt_obj.get_llur()
@@ -442,7 +442,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
     def add_pstamp(self):
         self.logger.debug('Called.')
         # Setup for thumbnail display
-        di = Viewers.ImageViewCanvas(logger=self.logger)
+        di = Viewers.CanvasView(logger=self.logger)
         # di.configure_window(100, 100)
         di.set_desired_size(100, 100)
         di.enable_autozoom('on')
@@ -463,14 +463,14 @@ class MultiImage(GingaPlugin.LocalPlugin):
         linestyle = 'solid' if finalize else 'dash'
         x1, y1, x2, y2 = self.region.bbox(coord=coord)
         try:
-            obj = self.canvas.getObjectByTag(self.pstag)
+            obj = self.canvas.get_object_by_tag(self.pstag)
         except Exception:  # Need be general due to ginga
             self.pstag = self.canvas.add(
                 self.dc.Rectangle(x1, y1, x2, y2,
                                   color='cyan',
                                   linestyle=linestyle)
             )
-            obj = self.canvas.getObjectByTag(self.pstag)
+            obj = self.canvas.get_object_by_tag(self.pstag)
         else:
             obj.linestyle = linestyle
             obj.x1, obj.y1 = x1, y1
@@ -491,7 +491,7 @@ class MultiImage(GingaPlugin.LocalPlugin):
 
     def edit_region(self):
         if self.pstag is not None:
-            obj = self.canvas.getObjectByTag(self.pstag)
+            obj = self.canvas.get_object_by_tag(self.pstag)
             if obj.kind != 'rectangle':
                 return True
             self.canvas.edit_select(obj)
