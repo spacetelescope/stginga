@@ -290,7 +290,7 @@ def scale_wcs(input_hdr, zoom_factor, debug=False):
         FITS header containing the WCS.
 
     zoom_factor : float
-        See :func:`scipy.ndimage.interpolation.zoom`.
+        See :func:`scipy.ndimage.zoom`.
 
     debug : bool
         If `True`, print extra information to screen.
@@ -379,7 +379,7 @@ def scale_image(infile, outfile, zoom_factor, ext=('SCI', 1), clobber=False,
         Input and output filenames.
 
     zoom_factor : float
-        See :func:`scipy.ndimage.interpolation.zoom`.
+        See :func:`scipy.ndimage.zoom`.
 
     ext : int, str, or tuple
         Extension to extract.
@@ -447,7 +447,7 @@ def scale_image_with_dq(infile, outfile, zoom_factor, dq_parser,
         Input and output filenames.
 
     zoom_factor : float
-        See :func:`scipy.ndimage.interpolation.zoom`.
+        See :func:`scipy.ndimage.zoom`.
 
     dq_parser : `DQParser`
         DQ parser for interpreting DQ flag.

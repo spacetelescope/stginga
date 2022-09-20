@@ -1,6 +1,6 @@
 doc:
   - .github/**/*.md
-  - .readthedocs.yml
+  - .readthedocs.yaml
   - docs/**/*
   - licenses/*
   - CITATION
