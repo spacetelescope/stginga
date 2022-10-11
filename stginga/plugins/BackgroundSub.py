@@ -80,7 +80,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         # Used for calculation
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
-        self.radius = self._dummy_value
+        self.radius = 1  # Avoid zero-radius circle
         self.boxwidth, self.boxheight = self._dummy_value, self._dummy_value
 
         # Stores latest result
@@ -363,7 +363,8 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
             x = bg_obj.x
             y = bg_obj.y
             y2 = y + bg_obj.radius + bg_obj.width
-            self.radius = bg_obj.radius
+            self.radius = max(bg_obj.radius, 1.0)
+            bg_obj.radius = self.radius
         else:  # rectangle
             x, y = bg_obj.get_center_pt()
             self.boxwidth = np.abs(bg_obj.x2 - bg_obj.x1)
@@ -413,7 +414,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         # Reset parameters
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
-        self.radius = self._dummy_value
+        self.radius = 1  # Avoid zero-radius circle
         self.boxwidth, self.boxheight = self._dummy_value, self._dummy_value
 
         captions = [('X:', 'label', 'X', 'entry'),
