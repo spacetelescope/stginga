@@ -84,7 +84,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         # Used for calculation
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
-        self.radius = self._dummy_value
+        self.radius = 1  # Avoid zero-radius circle
 
         # Stores latest result
         self.fillval = self._dummy_value
@@ -356,7 +356,9 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         obj.linestyle = 'solid'
 
         if obj.kind == 'circle':
-            self.radius = obj.radius
+            # force a radius of at least 1 pixel
+            self.radius = max(obj.radius, 1.0)
+            obj.radius = self.radius
             yt = y + self.radius + self._text_label_offset
         else:  # point
             obj.radius = self._point_radius
