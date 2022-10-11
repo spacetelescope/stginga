@@ -84,7 +84,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         # Used for calculation
         self.xcen, self.ycen = self._dummy_value, self._dummy_value
-        self.radius = self._dummy_value
+        self.radius = 1  # Avoid zero-radius circle
 
         # Stores latest result
         self.fillval = self._dummy_value
