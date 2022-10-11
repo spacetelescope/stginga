@@ -356,7 +356,9 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         obj.linestyle = 'solid'
 
         if obj.kind == 'circle':
-            self.radius = obj.radius
+            # force a radius of at least 1 pixel
+            self.radius = max(obj.radius, 1.0)
+            obj.radius = self.radius
             yt = y + self.radius + self._text_label_offset
         else:  # point
             obj.radius = self._point_radius
