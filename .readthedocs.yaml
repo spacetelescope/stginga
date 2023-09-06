@@ -16,7 +16,6 @@ sphinx:
 
 # Set the version of Python and requirements required to build your docs
 python:
-  system_packages: false
   install:
     - method: pip
       path: .
