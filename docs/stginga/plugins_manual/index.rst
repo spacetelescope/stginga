@@ -8,6 +8,10 @@ available, in addition to the ones that already come with Ginga. Some are
 customizable via plugin configuration files, which are available in the
 `stginga/examples/configs <https://github.com/spacetelescope/stginga/tree/master/stginga/examples/configs>`_ directory.
 
+.. note::
+
+    To find ``stginga`` plugins, click on the "Operation" menu
+    and then the "Custom" menu.
 
 .. _stginga-local-plugins:
 
