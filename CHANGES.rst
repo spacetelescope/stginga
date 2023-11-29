@@ -1,4 +1,4 @@
-1.4 (unreleased)
+1.4 (2023-11-28)
 ----------------
 
 Bug Fixes
@@ -6,6 +6,12 @@ Bug Fixes
 
 - BackgroundSub and BadPixCorr plugins now no longer creates a zero-radius
   circle when user clicks instead of drags on draw. [#228, #229]
+
+Other Changes and Additions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Keeping the code up-to-date with new upstream changes.
+- Universal wheel for PyPI release.
 
 1.3 (2021-06-11)
 ----------------
