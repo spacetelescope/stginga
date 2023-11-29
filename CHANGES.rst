@@ -10,8 +10,10 @@ Bug Fixes
 Other Changes and Additions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+- This version requires Python 3.8 or later.
 - Keeping the code up-to-date with new upstream changes.
 - Universal wheel for PyPI release.
+- Astroconda is no longer supported.
 
 1.3 (2021-06-11)
 ----------------

@@ -45,7 +45,7 @@ jobs:
       run: |
         cd ..
         python -m venv testenv
-        testenv/bin/pip install pytest-astropy ci-watson stginga_refactor/dist/*.whl
+        testenv/bin/pip install pytest-astropy ci-watson stginga/dist/*.whl
         testenv/bin/python -c "import stginga; stginga.test()"
 
     - name: Publish distribution 📦 to PyPI
