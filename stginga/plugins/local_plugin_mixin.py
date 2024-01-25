@@ -3,6 +3,7 @@
 # STDLIB
 import json
 import os
+import re
 
 # THIRD-PARTY
 from astropy.utils.misc import JsonCustomEncoder
@@ -18,28 +19,21 @@ except ImportError:
     pass
 
 # STGINGA
+import stginga
 from stginga import utils
 
 __all__ = ['HelpMixin', 'MEFMixin', 'ParamMixin']
 
 
+# base of our online documentation
+rtd_base_url = "https://stginga.readthedocs.io/en/"
+
+
 class HelpMixin(object):
     def help(self):
         """Display online help for the plugin."""
-        if not self.fv.gpmon.has_plugin('WBrowser'):
-            self._help_docstring()
-            return
-
-        self.fv.start_global_plugin('WBrowser')
-
-        # need to let GUI finish processing, it seems
-        self.fv.update_pending()
-
-        obj = self.fv.gpmon.get_plugin('WBrowser')
-
-        # Unlike Ginga, we do not attempt to download offline doc
-        # but just point to online doc directly.
-        obj.browse(self.help_url)
+        url = get_online_docs_url(self)
+        self.fv.help_plugin(self, url=url)
 
 
 class MEFMixin(object):
@@ -291,3 +285,34 @@ class ParamMixin(object):
         """Ingest dictionary containing plugin parameters into plugin
         GUI and internal variables."""
         raise NotImplementedError('To be implemented by Ginga local plugin')
+
+
+def get_online_docs_url(plugin=None):
+    """
+    Return URL to online documentation closest to this stginga version.
+
+    Parameters
+    ----------
+    plugin : obj or `None`
+        Plugin object. If given, URL points to plugin doc directly.
+        If this function is called from within plugin class,
+        pass ``self`` here.
+
+    Returns
+    -------
+    url : str
+        URL to online documentation (top-level, if plugin == None).
+
+    """
+    stginga_ver = stginga.__version__
+    if re.match(r'^\d+\.\d+\.\d+$', stginga_ver):
+        rtd_version = stginga_ver
+    else:
+        # default to latest
+        rtd_version = 'latest'
+    url = f"{rtd_base_url}{rtd_version}"
+    if plugin is not None:
+        plugin_name = str(plugin)
+        url += f'/stginga/plugins_manual/{plugin_name}.html'
+
+    return url
