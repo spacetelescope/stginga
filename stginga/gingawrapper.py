@@ -36,7 +36,7 @@ def run_stginga(sys_argv):
     # Note: Unable to get this to work from within ginga_config.py
     # Example:
     #     glb_plg_to_remove = ['WBrowser', 'RC', 'SAMP', 'IRAF']
-    plg_to_remove = []
+    plg_to_remove = ['PluginConfig']
     _remove_plugins(plg_to_remove, gmain.plugins)
 
     # Add custom plugins.
@@ -51,9 +51,11 @@ def run_stginga(sys_argv):
     #     new_argv[new_argv.index('-t') + 1] = 'qt'
 
     # Auto start core global plugins
-    for gplgname in ('ChangeHistory', ):
+    for gplgname in ('ChangeHistory', 'Zoom', 'Header'):
         gplg = _locate_plugin(gmain.plugins, gplgname)
         gplg.start = True
+        # prevents appearing in the Operations plugin tray
+        gplg.optray = False
 
     # Start Ginga
     gmain.reference_viewer(sys_argv)
@@ -73,7 +75,8 @@ def _remove_plugins(rmlist, plist):
     """Remove default global or local plugin(s) from Ginga."""
     for plgname in rmlist:
         plg = _locate_plugin(plist, plgname)
-        plist.remove(plg)
+        if plg is not None:
+            plist.remove(plg)
 
 
 # This is used by entry point.
