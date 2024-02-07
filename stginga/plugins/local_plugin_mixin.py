@@ -24,36 +24,12 @@ __all__ = ['HelpMixin', 'MEFMixin', 'ParamMixin']
 
 
 class HelpMixin(object):
-    def _stginga_help_docstring(self):
-        import inspect
-
-        # Insert section title at the beginning
-        plg_name = self.__class__.__name__
-        plg_mod = inspect.getmodule(self)
-        plg_doc = ('{}\n{}\n'.format(plg_name, '=' * len(plg_name)) +
-                   plg_mod.__doc__)
-
-        self.fv.show_help_text(plg_name, plg_doc, wsname='channels')
-
     def help(self):
         """Display online help for the plugin."""
-        if self.fv.gpmon.has_plugin('WBrowser') and Widgets.has_webkit:
-            # ginga < v5.x
-            self.fv.start_global_plugin('WBrowser')
-
-            # need to let GUI finish processing, it seems
-            self.fv.update_pending()
-
-            obj = self.fv.gpmon.get_plugin('WBrowser')
-
-            # Unlike Ginga, we do not attempt to download offline doc
-            # but just point to online doc directly.
-            obj.browse(self.help_url)
-            return
-
         if not hasattr(self.fv, 'help_plugin'):
-            # ginga < v5.x but somehow user doesn't have WBrowser plugin
-            self._stginga_help_docstring()
+            # ginga < v5.x, open in external browser
+            import webbrowser
+            webbrowser.open(self.help_url)
             return
 
         # ginga v5.x
