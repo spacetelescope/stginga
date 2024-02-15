@@ -1,6 +1,15 @@
 1.5 (unreleased)
 ----------------
 
+Other Changes and Additions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Compatibility with Ginga 5. [#234]
+
+- This version requires Python 3.9 or later.
+  Also bumped minimum versions of other dependencies to
+  ``astropy>=5``, ``ginga>=4.1``, and ``scipy>=1``. [#234]
+
 1.4 (2023-11-28)
 ----------------
 
