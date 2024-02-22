@@ -533,7 +533,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         self.xcen = data_x
         self.ycen = data_y
 
-        pix_obj.move_to(data_x, data_y)
+        pix_obj.move_to_pt((data_x, data_y))
         tag = canvas.add(pix_obj)
         self.draw_cb(canvas, tag)
         return True
@@ -555,7 +555,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         if pix_obj.kind != 'point':
             return True
 
-        pix_obj.move_to(data_x, data_y)
+        pix_obj.move_to_pt((data_x, data_y))
 
         if obj.kind == 'compound':
             try:
@@ -582,7 +582,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
 
         # Round to nearest pixel
         x, y = round(obj.x), round(obj.y)
-        obj.move_to(x, y)
+        obj.move_to_pt((x, y))
 
         # Change bad pix region appearance
         obj.radius = self._point_radius
@@ -627,7 +627,7 @@ class DQInspect(HelpMixin, LocalPlugin, MEFMixin):
         # Reposition all elements to match
         for c_obj in obj.objects:
             if c_obj.kind != 'image':
-                c_obj.move_to(self.xcen, c_obj.y)
+                c_obj.move_to_pt((self.xcen, c_obj.y))
 
         self.fitsimage.redraw(whence=3)
         return self.redo()
