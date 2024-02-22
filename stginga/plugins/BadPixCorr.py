@@ -303,7 +303,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         self.xcen = data_x
         self.ycen = data_y
 
-        bpx_obj.move_to(data_x, data_y)
+        bpx_obj.move_to_pt((data_x, data_y))
         tag = canvas.add(bpx_obj)
         self.draw_cb(canvas, tag)
         return True
@@ -322,7 +322,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         if bpx_obj.kind not in ('circle', 'point'):
             return True
 
-        bpx_obj.move_to(data_x, data_y)
+        bpx_obj.move_to_pt((data_x, data_y))
 
         if obj.kind == 'compound':
             try:
@@ -349,7 +349,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         # Round to nearest pixel
         x, y = round(obj.x), round(obj.y)
-        obj.move_to(x, y)
+        obj.move_to_pt((x, y))
 
         # Change bad pix region appearance
         obj.color = self.bpixcorrcolor
@@ -607,7 +607,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
                 y = c_obj.y
             else:
                 y = c_obj.get_center_pt()[1]
-            c_obj.move_to(self.xcen, y)
+            c_obj.move_to_pt((self.xcen, y))
 
         self.fitsimage.redraw(whence=3)
         return self.redo()
@@ -638,7 +638,7 @@ class BadPixCorr(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         if n_obj == 3:
             # Also reposition annulus
             ann_obj = obj.objects[1]
-            ann_obj.move_to(ann_obj.x, self.ycen)
+            ann_obj.move_to_pt((ann_obj.x, self.ycen))
             c_obj.y = (self.ycen + ann_obj.radius + ann_obj.width +
                        self._text_label_offset)
         elif bpx_obj.kind == 'circle':  # circle without annulus

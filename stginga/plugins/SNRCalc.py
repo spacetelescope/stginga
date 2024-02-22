@@ -514,7 +514,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         self.xcen = data_x
         self.ycen = data_y
 
-        sig_obj.move_to(data_x, data_y)
+        sig_obj.move_to_pt((data_x, data_y))
         tag = canvas.add(sig_obj)
         self.draw_cb(canvas, tag)
         return True
@@ -533,7 +533,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         if sig_obj.kind not in ('circle', 'polygon', 'rectangle'):
             return True
 
-        sig_obj.move_to(data_x, data_y)
+        sig_obj.move_to_pt((data_x, data_y))
 
         if obj.kind == 'compound':
             try:
@@ -691,12 +691,12 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         self.w.bg_y.set_text(str(self.bgycen))
 
         # Reposition annulus
-        obj.objects[1].move_to(self.bgxcen, self.bgycen)
+        obj.objects[1].move_to_pt((self.bgxcen, self.bgycen))
 
         # Reposition label
         yt = (self.bgycen + self.bgradius + self.annulus_width +
               self._text_label_offset)
-        obj.objects[2].move_to(self.bgxcen, yt)
+        obj.objects[2].move_to_pt((self.bgxcen, yt))
 
         self.fitsimage.redraw(whence=3)
         return self.redo()
@@ -723,7 +723,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         else:  # polygon, rectangle
             y = sig_obj.get_center_pt()[1]
-            sig_obj.move_to(self.xcen, y)
+            sig_obj.move_to_pt((self.xcen, y))
 
         self.fitsimage.redraw(whence=3)
         return self.redo()
@@ -750,7 +750,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         else:  # polygon, rectangle
             x = sig_obj.get_center_pt()[0]
-            sig_obj.move_to(x, self.ycen)
+            sig_obj.move_to_pt((x, self.ycen))
 
         self.fitsimage.redraw(whence=3)
         return self.redo()
@@ -852,7 +852,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         # Reposition annulus and label
         for i in (1, 2):
             cobj = obj.objects[i]
-            cobj.move_to(self.bgxcen, cobj.y)
+            cobj.move_to_pt((self.bgxcen, cobj.y))
 
         self.fitsimage.redraw(whence=3)
         return self.redo()
@@ -874,7 +874,7 @@ class SNRCalc(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
 
         # Reposition annulus
         ann_obj = obj.objects[1]
-        ann_obj.move_to(ann_obj.x, self.bgycen)
+        ann_obj.move_to_pt((ann_obj.x, self.bgycen))
 
         # Reposition label
         obj.objects[2].y = (ann_obj.y + ann_obj.radius + ann_obj.width +

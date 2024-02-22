@@ -306,7 +306,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         self.xcen = data_x
         self.ycen = data_y
 
-        bg_obj.move_to(data_x, data_y)
+        bg_obj.move_to_pt((data_x, data_y))
         tag = canvas.add(bg_obj)
         self.draw_cb(canvas, tag)
         return True
@@ -325,7 +325,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
         if bg_obj.kind not in ('compound', 'annulus', 'rectangle'):
             return True
 
-        bg_obj.move_to(data_x, data_y)
+        bg_obj.move_to_pt((data_x, data_y))
 
         if obj.kind == 'compound':
             try:
@@ -522,7 +522,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
                 y = c_obj.y
             else:
                 y = c_obj.get_center_pt()[1]
-            c_obj.move_to(self.xcen, y)
+            c_obj.move_to_pt((self.xcen, y))
 
         self.fitsimage.redraw(whence=3)
         return self.redo()
@@ -552,7 +552,7 @@ class BackgroundSub(HelpMixin, LocalPlugin, MEFMixin, ParamMixin):
             y2 = self.ycen + 0.5 * self.boxheight
 
         # Reposition background region
-        bg_obj.move_to(x, self.ycen)
+        bg_obj.move_to_pt((x, self.ycen))
 
         # Reposition label to match
         obj.objects[1].y = y2 + self._text_label_offset
