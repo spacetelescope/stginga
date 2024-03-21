@@ -1,4 +1,4 @@
-1.5 (unreleased)
+1.5 (2024-03-21)
 ----------------
 
 Other Changes and Additions
