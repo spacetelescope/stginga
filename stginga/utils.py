@@ -231,7 +231,7 @@ class DQParser(object):
             of affected array elements.
 
         """
-        data = np.asarray(data, dtype=int)  # Ensure int array
+        data = np.asarray(data, dtype=np.uint)  # Ensure uint array
         dqs_by_flag = {}
 
         def _one_flag(vf):
