@@ -61,4 +61,6 @@ SNRCalc:
     - stginga/plugins/SNRCalc.py
 
 utils:
-  - stginga/utils.py
+- changed-files:
+  - any-glob-to-any-file:
+    - stginga/utils.py
