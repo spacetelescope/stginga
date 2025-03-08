@@ -46,7 +46,7 @@ jobs:
         cd ..
         python -m venv testenv
         testenv/bin/pip install pytest-astropy ci-watson stginga/dist/*.whl
-        testenv/bin/python -c "import stginga; stginga.test()"
+        testenv/bin/pytest --pyargs stginga
 
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'release'
