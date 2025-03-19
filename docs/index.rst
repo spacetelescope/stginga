@@ -3,6 +3,12 @@
 ``stginga``: Ginga for STScI
 ============================
 
+.. warning::
+
+    This package is no longer actively developed.
+    For any questions or concerns, please contact Data Analysis Tools Help Desk
+    via https://jwsthelp.stsci.edu . We apologize for any inconvenience caused.
+
 ``stginga`` is a package that customizes
 `Ginga <https://ginga.readthedocs.io/en/latest/>`_ in order to aid data
 analysis for the data supported by `STScI <https://www.stsci.edu/>`_ (e.g.,
