@@ -1,6 +1,14 @@
 stginga
 =======
 
+------
+
+**IMPORTANT NOTICE**: This repository is archived and the stginga package is no longer actively developed.
+For any questions or concerns, please contact Data Analysis Tools Help Desk via
+https://jwsthelp.stsci.edu . We apologize for any inconvenience caused.
+
+------
+
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4927189.svg
     :target: https://doi.org/10.5281/zenodo.4927189
     :alt: Zenodo badge
